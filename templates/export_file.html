@@ -834,8 +834,10 @@ const PROMPT_NODE_DESCRIPTORS = {
     'CLIPTextEncodeSDXL': { kind: 'clip',    positiveInput: null,              negativeInput: null,              widgetIdx: 0 },
     'CLIPTextEncodeSD3':  { kind: 'clip',    positiveInput: null,              negativeInput: null,              widgetIdx: 0 },
     'smZ CLIPTextEncode': { kind: 'clip',    positiveInput: null,              negativeInput: null,              widgetIdx: 0 },
-    'WanVideoTextEncode': { kind: 'wan',     positiveInput: 'positive_prompt', negativeInput: 'negative_prompt', widgetIdx: null },
-    'Textbox':            { kind: 'textbox', positiveInput: null,              negativeInput: null,              widgetIdx: 0 },
+    'WanVideoTextEncode':      { kind: 'wan',        positiveInput: 'positive_prompt', negativeInput: 'negative_prompt', widgetIdx: null },
+    // WanVideoTextEncodeCached: widgets_values = [model, dtype, positive, negative, ...]
+    'WanVideoTextEncodeCached': { kind: 'wan-cached', positiveInput: 'positive_prompt', negativeInput: 'negative_prompt', positiveWidgetIdx: 2, negativeWidgetIdx: 3 },
+    'Textbox':                  { kind: 'textbox',    positiveInput: null,              negativeInput: null,              widgetIdx: 0 },
 };
 
 /** Heuristic: does this text look like a negative prompt? */
@@ -901,7 +903,7 @@ function extractPromptsFromVideoMeta(promptObj) {
         // Textbox nodes are resolved as link targets only, not top-level prompts
         if (desc.kind === 'textbox') continue;
 
-        if (desc.kind === 'wan') {
+        if (desc.kind === 'wan' || desc.kind === 'wan-cached') {
             const posRaw  = node.inputs?.[desc.positiveInput];
             const negRaw  = node.inputs?.[desc.negativeInput];
             const posText = resolvePromptValue(posRaw, promptObj);
@@ -978,18 +980,22 @@ function extractPromptsFromWorkflow(workflow) {
         // Textbox nodes are resolved as link targets only
         if (desc.kind === 'textbox') continue;
 
-        if (desc.kind === 'wan') {
+        if (desc.kind === 'wan' || desc.kind === 'wan-cached') {
             const inputsByName = {};
             for (const inp of (node.inputs ?? [])) inputsByName[inp.name] = inp;
 
-            // widgets_values layout: [0] positive text, [1] negative text, [2+] other params
             const posInput = inputsByName[desc.positiveInput];
             const negInput = inputsByName[desc.negativeInput];
 
+            // wan-cached: widgets_values = [model, dtype, positive, negative, ...]
+            // wan:        widgets_values = [positive, negative, ...]
+            const posWi = desc.positiveWidgetIdx ?? 0;
+            const negWi = desc.negativeWidgetIdx ?? 1;
+
             const posText = (posInput?.link != null ? resolveWorkflowInput(posInput, linkMap) : null)
-                         ?? (typeof node.widgets_values?.[0] === 'string' ? node.widgets_values[0] : null);
+                         ?? (typeof node.widgets_values?.[posWi] === 'string' ? node.widgets_values[posWi] : null);
             const negText = (negInput?.link != null ? resolveWorkflowInput(negInput, linkMap) : null)
-                         ?? (typeof node.widgets_values?.[1] === 'string' ? node.widgets_values[1] : null);
+                         ?? (typeof node.widgets_values?.[negWi] === 'string' ? node.widgets_values[negWi] : null);
 
             if (posText?.trim()) {
                 results.push({ title: node.title ?? 'Positive Prompt', text: posText.trim(), isPositive: true,  isNegative: false });

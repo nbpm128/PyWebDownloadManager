@@ -399,6 +399,9 @@ class FilesService:
 
         tags = fmt.get("tags", {})
 
+        # ── Comment tag (legacy VHS / older ComfyUI exporters) ────────────────
+        # Some exporters pack workflow+prompt together inside a single Comment tag
+        # as a JSON object: {"nodes": [...]} or {"prompt": {...}, "workflow": {...}}
         comment_raw = (
             tags.get("comment")
             or tags.get("Comment")
@@ -418,6 +421,31 @@ class FilesService:
                         meta.workflow = parsed["workflow"]
                 else:
                     meta.prompt = parsed
+
+        # ── Standalone workflow / prompt tags  ──────────
+        # MediaInfo shows these as top-level tags alongside comment:
+        #   workflow: {"id": "...", "nodes": [...], ...}
+        #   prompt:   {"10": {"class_type": "...", "inputs": {...}}, ...}
+        # Only fill fields not already populated by the comment block above.
+        if meta.workflow is None:
+            for key in ("workflow", "Workflow", "WORKFLOW"):
+                raw = tags.get(key)
+                if raw:
+                    parsed = FilesService._try_json(raw)
+                    if isinstance(parsed, dict) and "nodes" in parsed:
+                        meta.workflow = parsed
+                        if meta.comment is None:
+                            meta.comment = raw
+                    break
+
+        if meta.prompt is None:
+            for key in ("prompt", "Prompt", "PROMPT"):
+                raw = tags.get(key)
+                if raw:
+                    parsed = FilesService._try_json(raw)
+                    if isinstance(parsed, dict):
+                        meta.prompt = parsed
+                    break
 
         logger.debug(
             "Video metadata parsed | path=%s | size=%sx%s | duration=%s | fps=%s | codec=%s",
