@@ -1,0 +1,1508 @@
+{% extends "base.html" %}
+
+{% block title %}Download Manager — ComfyDownloadManager{% endblock %}
+
+{% block extra_styles %}
+        /* ─────────────────────────────────────────────────────────
+           FORMS
+        ───────────────────────────────────────────────────────── */
+        label {
+            display: block;
+            font-size: 0.8em;
+            font-weight: 500;
+            color: var(--text-2);
+            margin-bottom: 8px;
+            letter-spacing: 0.03em;
+        }
+
+        .label-hint { font-weight: 400; color: var(--text-3); }
+
+        input[type="text"],
+        input[type="url"],
+        select,
+        textarea {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            font-family: inherit;
+            font-size: 0.9em;
+            color: var(--text);
+            outline: none;
+            appearance: none;
+            transition: border-color var(--ease), box-shadow var(--ease);
+        }
+
+        input[type="text"]:focus,
+        input[type="url"]:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: var(--text-3);
+            font-family: 'DM Mono', monospace;
+            font-size: 0.9em;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+            font-family: 'DM Mono', monospace;
+            font-size: 0.82em;
+            line-height: 1.6;
+        }
+
+        input[type="file"] { display: none; }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .form-section { margin-bottom: 20px; }
+        .form-section:last-child { margin-bottom: 0; }
+
+        .form-advanced {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+        }
+        .form-advanced summary { cursor: pointer; font-size: 0.82em; color: var(--text-2); user-select: none; }
+        .form-advanced-body { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+
+        /* ─── Input with button ─── */
+        .input-with-btn { display: flex; gap: 8px; align-items: center; }
+        .input-with-btn input { flex: 1; min-width: 0; }
+        .input-browse-btn { flex-shrink: 0; height: 38px; padding: 0 12px; }
+
+        /* ─── Folder browser modal ─── */
+        .fb-breadcrumb {
+            display: flex; align-items: center; flex-wrap: wrap; gap: 2px;
+            padding: 8px 10px; background: var(--bg); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); font-size: 0.78em; font-family: 'DM Mono', monospace;
+            color: var(--text-2); margin-bottom: 10px; min-height: 34px;
+        }
+        .fb-breadcrumb .crumb { color: var(--accent); cursor: pointer; }
+        .fb-breadcrumb .crumb:hover { text-decoration: underline; }
+        .fb-breadcrumb .crumb-root { cursor: pointer; }
+        .fb-breadcrumb .crumb-root:hover { color: var(--accent); }
+        .crumb-sep { color: var(--text-3); margin: 0 1px; }
+        .fb-list {
+            display: flex; flex-direction: column; gap: 2px;
+            max-height: 260px; overflow-y: auto;
+            border: 1px solid var(--border); border-radius: var(--radius-sm);
+            padding: 4px; background: var(--bg);
+        }
+        .fb-item {
+            display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+            border-radius: 4px; font-size: 0.82em; font-family: 'DM Mono', monospace;
+            color: var(--text); cursor: pointer; transition: background var(--ease); user-select: none;
+        }
+        .fb-item:hover { background: var(--surface-2); }
+        .fb-item.selected { background: var(--accent-dim); color: var(--accent); }
+        .fb-empty { padding: 20px; text-align: center; font-size: 0.8em; color: var(--text-3); font-style: italic; }
+
+        /* ─────────────────────────────────────────────────────────
+           TABS
+        ───────────────────────────────────────────────────────── */
+        .tab-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .tab-bar {
+            display: flex;
+            padding: 0 6px;
+            background: var(--surface-2);
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .tab-bar::-webkit-scrollbar { display: none; }
+
+        .tab-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 12px 20px;
+            margin-bottom: -1px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            border-radius: 6px 6px 0 0;
+            font-family: inherit;
+            font-size: 0.83em;
+            font-weight: 500;
+            color: var(--text-3);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: color var(--ease), border-color var(--ease), background var(--ease);
+        }
+        .tab-btn:hover  { color: var(--text-2); background: rgba(255, 255, 255, 0.02); }
+        .tab-btn.active { color: var(--text);   border-bottom-color: var(--accent); background: rgba(91, 127, 255, 0.05); }
+
+        .tab-icon { opacity: 0.65; transition: opacity var(--ease); }
+        .tab-btn:hover .tab-icon,
+        .tab-btn.active .tab-icon { opacity: 1; }
+
+        .tab-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            border-radius: 9px;
+            font-size: 0.72em;
+            font-weight: 600;
+            background: var(--accent-dim);
+            color: var(--accent);
+            transition: all var(--ease);
+        }
+        .tab-btn.active .tab-badge { background: var(--accent); color: white; }
+
+        .tab-panel        { display: none; padding: 24px; animation: tabIn 0.15s ease; }
+        .tab-panel.active { display: block; }
+
+        @keyframes tabIn {
+            from { opacity: 0; transform: translateY(3px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ─────────────────────────────────────────────────────────
+           PRESETS TOOLBAR & TREE
+        ───────────────────────────────────────────────────────── */
+        .presets-toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; }
+        .presets-toolbar .btn { flex-shrink: 0; }
+        .preset-search { flex: 1; max-width: 300px; }
+
+        .presets-tree { display: flex; flex-direction: column; gap: 8px; }
+        .tree-list    { display: flex; flex-direction: column; gap: 6px; }
+
+        .preset-node {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+        }
+        .preset-node .preset-node { background: var(--bg); border-color: var(--border-soft); }
+        .tree-list > .preset-node { border-left: 2px solid var(--accent-dim); }
+
+        .preset-node-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            background: var(--surface-2);
+            cursor: pointer;
+            transition: background var(--ease);
+        }
+        .preset-node-header:hover          { background: var(--border); }
+        .preset-node-header.nested         { background: var(--surface); padding: 10px 14px; }
+        .preset-node-header.nested:hover   { background: var(--surface-2); }
+
+        .preset-node-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 12px 14px;
+            background: var(--bg);
+            border-top: 1px solid var(--border);
+        }
+
+        .preset-node-info { flex: 1; min-width: 0; }
+        .preset-node-name { font-size: 0.9em; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+        .preset-node-desc { font-size: 0.75em; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* ─────────────────────────────────────────────────────────
+           DOWNLOAD NODE (inside preset)
+        ───────────────────────────────────────────────────────── */
+        .download-node {
+            background: var(--surface);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-sm);
+            margin-left: 12px;
+            overflow: hidden;
+        }
+
+        .download-node-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: var(--surface-2);
+            cursor: pointer;
+            transition: background var(--ease);
+        }
+        .download-node-header:hover { background: var(--border); }
+
+        .download-node-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 10px 12px;
+            background: var(--bg);
+            border-top: 1px solid var(--border-soft);
+            font-size: 0.8em;
+        }
+
+        .download-node-info { flex: 1; min-width: 0; }
+        .download-node-name { font-size: 0.85em; font-weight: 500; font-family: 'DM Mono', monospace; color: var(--text); margin-bottom: 2px; }
+        .download-node-url  { font-size: 0.7em; font-family: 'DM Mono', monospace; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .tree-checkbox { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--accent); cursor: pointer; }
+        .tree-toggle   { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex-shrink: 0; font-size: 0.8em; color: var(--text-2); cursor: pointer; user-select: none; }
+
+        .detail-row    { display: flex; gap: 8px; padding: 6px 8px; background: var(--surface); border-radius: 4px; border-left: 2px solid var(--accent); }
+        .detail-label  { font-weight: 600; color: var(--text-2); min-width: 50px; flex-shrink: 0; }
+        .detail-value  { font-family: 'DM Mono', monospace; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .mirrors-list       { padding: 8px; background: var(--surface); border-radius: 4px; border-left: 2px solid var(--blue); }
+        .mirrors-list-label { font-weight: 600; font-size: 0.85em; color: var(--text-2); margin-bottom: 6px; }
+
+        .mirror-item     { display: flex; align-items: center; gap: 8px; padding: 4px 6px; margin-bottom: 4px; background: var(--bg); border-radius: 3px; font-size: 0.75em; }
+        .mirror-priority { font-weight: 600; color: var(--accent); min-width: 30px; }
+        .mirror-url      { flex: 1; font-family: 'DM Mono', monospace; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .mirror-auth-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 1px 6px;
+            background: var(--accent-dim);
+            color: var(--accent);
+            border-radius: 8px;
+            font-size: 0.85em;
+            font-weight: 600;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .tree-empty { padding: 12px; text-align: center; font-size: 0.85em; font-style: italic; color: var(--text-3); }
+
+        /* ─────────────────────────────────────────────────────────
+           SELECTION BAR (fixed bottom)
+        ───────────────────────────────────────────────────────── */
+        .selection-bar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 20px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+        }
+        .selection-bar.active { display: flex; }
+
+        .selection-info    { display: flex; align-items: center; gap: 12px; }
+        .selection-count   { font-size: 0.9em; font-weight: 600; }
+        .selection-details { font-size: 0.78em; color: var(--text-3); }
+        .selection-actions { display: flex; gap: 8px; }
+
+        /* ─────────────────────────────────────────────────────────
+           DOWNLOAD QUEUE TAB
+        ───────────────────────────────────────────────────────── */
+        .queue-header-title {
+            font-size: 0.8em;
+            font-weight: 600;
+            color: var(--text-3);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+            border-bottom: 1px dashed var(--border);
+        }
+
+        .queue-header-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+        .queue-row        { display: flex; align-items: center; gap: 6px; }
+        .queue-row-spacer { flex: 1; }
+
+        .queue-count-pill {
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.75em;
+            font-family: 'DM Mono', monospace;
+            font-weight: 600;
+            color: var(--text-2);
+            background: rgba(255, 95, 126, 0.06);
+            border: 1px solid rgba(255, 95, 126, 0.15);
+            border-radius: 8px;
+            padding: 4px 10px;
+            white-space: nowrap;
+        }
+
+        .queue-stats { display: flex; gap: 6px; align-items: center; }
+
+        .queue-stat {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.75em;
+            font-family: 'DM Mono', monospace;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            color: var(--text-2);
+            white-space: nowrap;
+            min-width: 0;
+        }
+
+        #stat-total-val     { display: inline-block; min-width: 52px; text-align: right; }
+        #stat-remaining-val { display: inline-block; min-width: 52px; text-align: right; }
+        #stat-speed-val     { display: inline-block; min-width: 64px; text-align: right; }
+
+        .queue-stat-icon { opacity: 0.65; font-style: normal; }
+        .queue-stat-val  { font-weight: 600; color: var(--text); }
+
+        .queue-stat.stat-total     { border-color: rgba(91, 127, 255, 0.25); background: var(--accent-dim); }
+        .queue-stat.stat-remaining { border-color: rgba(251, 191, 36, 0.25); background: var(--yellow-dim); color: var(--yellow); }
+        .queue-stat.stat-remaining .queue-stat-val { color: var(--yellow); }
+        .queue-stat.stat-speed     { border-color: rgba(96, 165, 250, 0.30); background: var(--blue-dim); color: var(--blue); }
+        .queue-stat.stat-speed     .queue-stat-val { color: var(--blue); }
+        .queue-stat.stat-workers   { border-color: rgba(54, 211, 153, 0.25); background: var(--green-dim); color: var(--green); }
+
+        .queue-controls { display: flex; gap: 6px; flex-shrink: 0; }
+
+        /* ─────────────────────────────────────────────────────────
+           DOWNLOAD CARDS
+        ───────────────────────────────────────────────────────── */
+        .downloads-list { display: flex; flex-direction: column; gap: 8px; }
+
+        .download-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            transition: border-color var(--ease);
+        }
+        .download-card:hover { border-color: var(--accent); }
+
+        .dl-top  { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+        .dl-info { flex: 1; min-width: 0; }
+
+        .dl-filename {
+            font-size: 0.85em;
+            font-weight: 500;
+            font-family: 'DM Mono', monospace;
+            color: var(--text);
+            margin-bottom: 3px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .dl-meta-row  { display: flex; align-items: baseline; gap: 6px; margin-top: 3px; min-width: 0; }
+        .dl-meta-label { flex-shrink: 0; min-width: 36px; font-size: 0.68em; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3); }
+        .dl-meta-val  { font-size: 0.72em; font-family: 'DM Mono', monospace; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .dl-meta-val.hash { color: var(--text-3); font-size: 0.68em; }
+
+        .dl-url-row { display: flex; align-items: center; gap: 6px; margin-top: 3px; min-width: 0; }
+        .dl-url     { flex: 1; min-width: 0; font-size: 0.72em; font-family: 'DM Mono', monospace; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+        .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; }
+
+        .badge-pending::before     { background: var(--yellow); }  .badge-pending     { background: var(--yellow-dim); color: var(--yellow); }
+        .badge-downloading::before { background: var(--blue); }    .badge-downloading { background: var(--blue-dim);   color: var(--blue);   animation: pulse 1.5s infinite; }
+        .badge-paused::before      { background: var(--red); }     .badge-paused      { background: var(--red-dim);    color: var(--red); }
+        .badge-completed::before   { background: var(--green); }   .badge-completed   { background: var(--green-dim);  color: var(--green); }
+        .badge-failed::before      { background: var(--red); }     .badge-failed      { background: var(--red-dim);    color: var(--red); }
+
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+        .dl-bottom   { display: flex; align-items: center; gap: 12px; }
+        .dl-progress { flex: 1; min-width: 0; }
+
+        .progress-track {
+            height: 3px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 2px;
+            background: linear-gradient(90deg, var(--accent), #a78bfa);
+            transition: width 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            will-change: width;
+        }
+        .progress-fill.completed { background: linear-gradient(90deg, var(--green), #34d399); }
+        .progress-fill.active::after {
+            content: '';
+            position: absolute;
+            right: 0; top: 0; bottom: 0;
+            width: 60px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22));
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer { from { transform: translateX(-60px); } to { transform: translateX(60px); } }
+
+        .progress-text { display: flex; justify-content: space-between; font-size: 0.7em; font-family: 'DM Mono', monospace; color: var(--text-3); }
+
+        .dl-speed {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.7em;
+            font-family: 'DM Mono', monospace;
+            font-weight: 600;
+            white-space: nowrap;
+            background: var(--blue-dim);
+            color: var(--blue);
+            border: 1px solid rgba(96, 165, 250, 0.2);
+        }
+        .dl-speed.idle { background: var(--surface-2); color: var(--text-3); border-color: var(--border); }
+
+        .dl-actions      { display: flex; gap: 4px; }
+        .dl-actions .btn-sm { padding: 4px 10px; font-size: 0.75em; }
+
+        .dl-error {
+            margin-top: 8px;
+            padding: 8px 10px;
+            background: var(--red-dim);
+            border: 1px solid rgba(255, 95, 126, 0.2);
+            border-radius: 6px;
+            font-size: 0.75em;
+            font-family: 'DM Mono', monospace;
+            color: var(--red);
+        }
+
+        /* ─────────────────────────────────────────────────────────
+           IMPORT TAB
+        ───────────────────────────────────────────────────────── */
+        .dropzone {
+            border: 1.5px dashed var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg);
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            transition: border-color var(--ease), background var(--ease);
+        }
+        .dropzone:hover,
+        .dropzone.drag-over { border-color: var(--accent); background: var(--accent-dim); }
+        .dropzone.drag-over { box-shadow: 0 0 0 3px var(--accent-glow); }
+
+        .dropzone-icon { font-size: 2.5em; margin-bottom: 12px; opacity: 0.5; transition: opacity var(--ease); }
+        .dropzone:hover .dropzone-icon,
+        .dropzone.drag-over .dropzone-icon { opacity: 1; }
+
+        .dropzone-text        { font-size: 0.9em; font-weight: 500; color: var(--text-2); margin-bottom: 6px; }
+        .dropzone-text strong { color: var(--accent); }
+        .dropzone-hint        { font-size: 0.78em; color: var(--text-3); }
+        .dropzone-filename    { margin-top: 12px; font-size: 0.82em; font-family: 'DM Mono', monospace; font-weight: 500; color: var(--green); }
+
+        .configs-section-title { font-size: 0.78em; font-weight: 600; color: var(--text-3); letter-spacing: 0.06em; text-transform: uppercase; margin: 20px 0 10px; }
+        .configs-list          { display: flex; flex-direction: column; gap: 6px; }
+
+        .config-item      { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+        .config-item-icon { font-size: 1em; opacity: 0.6; }
+        .config-item-name { flex: 1; font-size: 0.85em; font-family: 'DM Mono', monospace; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .configs-empty    { font-size: 0.82em; font-style: italic; color: var(--text-3); padding: 8px 0; }
+
+        /* ─────────────────────────────────────────────────────────
+           RESPONSIVE
+        ───────────────────────────────────────────────────────── */
+        @media (max-width: 768px) {
+            .preset-search { max-width: none; }
+            .dl-bottom     { flex-direction: column; align-items: stretch; }
+            .download-node { margin-left: 0; }
+        }
+        @media (max-width: 640px) {
+            .form-grid { grid-template-columns: 1fr; }
+        }
+{% endblock %}
+
+{% block page_header %}
+    <header class="page-header">
+        <div class="page-header-icon">📦</div>
+        <div>
+            <h1>Download Manager</h1>
+            <p>Manage your downloads with presets and mirrors</p>
+        </div>
+    </header>
+{% endblock %}
+
+{% block content %}
+    <div class="tab-card">
+
+        <nav class="tab-bar">
+            <button class="tab-btn active" data-tab="presets">
+                <span class="tab-icon">📚</span>
+                <span>Presets</span>
+                <span class="tab-badge" id="presets-count">0</span>
+            </button>
+            <button class="tab-btn" data-tab="queue">
+                <span class="tab-icon">📋</span>
+                <span>Download Queue</span>
+                <span class="tab-badge" id="queue-count">0</span>
+            </button>
+            <button class="tab-btn" data-tab="add">
+                <span class="tab-icon">➕</span>
+                <span>Add Download</span>
+            </button>
+            <button class="tab-btn" data-tab="import">
+                <span class="tab-icon">📂</span>
+                <span>Import Presets</span>
+            </button>
+        </nav>
+
+        <!-- ════ TAB: PRESETS ════ -->
+        <div class="tab-panel active" data-panel="presets">
+            <div class="presets-toolbar">
+                <button class="btn btn-primary" id="btn-load-presets"><span>🔄</span><span>Load Presets</span></button>
+                <button class="btn btn-ghost"   id="btn-select-all">  <span>☑️</span><span>Select All</span></button>
+                <button class="btn btn-ghost"   id="btn-deselect-all"><span>⬜</span><span>Deselect All</span></button>
+                <input type="text" id="preset-search" class="preset-search" placeholder="🔍 Search presets...">
+            </div>
+            <div id="presets-container">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📦</div>
+                    <p>No presets loaded yet.<br>Click "Load Presets" to load from directory.</p>
+                </div>
+            </div>
+            <div id="presets-flash"></div>
+        </div>
+
+        <!-- ════ TAB: DOWNLOAD QUEUE ════ -->
+        <div class="tab-panel" data-panel="queue">
+            <div class="queue-header-title">📋 Download Queue</div>
+            <div class="queue-header-row">
+                <!-- Row 1: Downloads | spacer | Workers + Apply | Refresh | spacer | Start All | Stop All -->
+                <div class="queue-row">
+                    <span class="queue-count-pill" id="queue-count-text">
+                        <i class="queue-stat-icon">🗂️</i>
+                        Downloads: <span id="queue-count-val">0</span>
+                    </span>
+                    <div class="queue-row-spacer"></div>
+                    <span class="queue-stat stat-workers">
+                        <i class="queue-stat-icon">⚙️</i>
+                        <span>Workers:</span>
+                        <input type="number" id="concurrency-input" min="1" max="32" value="3"
+                               style="width:42px;padding:1px 4px;font-size:1em;text-align:center;background:var(--bg);border:1px solid rgba(54,211,153,0.3);border-radius:4px;color:var(--text);font-family:'DM Mono',monospace;font-weight:600">
+                        <button class="btn btn-ghost btn-sm" id="btn-set-concurrency" style="padding:2px 8px;font-size:0.9em;height:auto">Apply</button>
+                    </span>
+                    <button class="btn btn-ghost btn-sm" id="btn-refresh"><span>🔄</span><span>Refresh</span></button>
+                    <div class="queue-row-spacer"></div>
+                    <button class="btn btn-success btn-sm" id="btn-start-all"><span>▶️</span><span>Start All</span></button>
+                    <button class="btn btn-danger  btn-sm" id="btn-stop-all"> <span>⏹️</span><span>Stop All</span></button>
+                </div>
+                <!-- Row 2: centred stats -->
+                <div class="queue-row">
+                    <div class="queue-row-spacer"></div>
+                    <div class="queue-stats">
+                        <span class="queue-stat stat-total">
+                            <i class="queue-stat-icon">📦</i>
+                            <span>Total:</span>
+                            <span class="queue-stat-val" id="stat-total-val">—</span>
+                        </span>
+                        <span class="queue-stat stat-remaining">
+                            <i class="queue-stat-icon">⏳</i>
+                            <span>Remaining:</span>
+                            <span class="queue-stat-val" id="stat-remaining-val">—</span>
+                        </span>
+                        <span class="queue-stat stat-speed" id="stat-speed">
+                            <i class="queue-stat-icon">⚡</i>
+                            <span>Speed:</span>
+                            <span class="queue-stat-val" id="stat-speed-val">0 B/s</span>
+                        </span>
+                    </div>
+                    <div class="queue-row-spacer"></div>
+                </div>
+            </div>
+
+            <div class="downloads-list" id="downloads-list">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <p>No downloads in queue</p>
+                </div>
+            </div>
+            <div id="queue-flash"></div>
+        </div>
+
+        <!-- ════ TAB: ADD DOWNLOAD ════ -->
+        <div class="tab-panel" data-panel="add">
+            <form id="add-download-form">
+                <div class="form-section">
+                    <label>Download URL</label>
+                    <input type="url" id="download-url" placeholder="https://example.com/file.safetensors" required>
+                </div>
+                <div class="form-section">
+                    <label>File Path <span class="label-hint">(relative, e.g. models/char/file.safetensors)</span></label>
+                    <div class="input-with-btn">
+                        <input type="text" id="download-path" placeholder="models/character  or  models/char/file.safetensors  (optional)">
+                        <button type="button" class="btn btn-sm btn-ghost input-browse-btn" onclick="openFolderBrowser()" title="Browse folders">📁</button>
+                    </div>
+                </div>
+                <div class="form-grid form-section">
+                    <div>
+                        <label>Expected Hash <span class="label-hint">(optional, abc123...)</span></label>
+                        <input type="text" id="download-hash" placeholder="abc123...">
+                    </div>
+                    <div>
+                        <label>Hash Algorithm</label>
+                        <select id="hash-algorithm">
+                            <option value="md5">MD5</option>
+                            <option value="sha1">SHA-1</option>
+                            <option value="sha256" selected>SHA-256</option>
+                        </select>
+                    </div>
+                </div>
+                <details class="form-advanced form-section">
+                    <summary>Advanced: Headers &amp; Cookies (optional)</summary>
+                    <div class="form-advanced-body">
+                        <div>
+                            <label>Headers (JSON)</label>
+                            <textarea id="download-headers" placeholder='{"Authorization": "Bearer token"}'></textarea>
+                        </div>
+                        <div>
+                            <label>Cookies (JSON)</label>
+                            <textarea id="download-cookies" placeholder='{"session": "abc123"}'></textarea>
+                        </div>
+                    </div>
+                </details>
+                <div class="form-section">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:0;">
+                        <input type="checkbox" id="extract-zip" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;">
+                        <span>Extract ZIP after download</span>
+                    </label>
+                    <div id="extract-options" style="display:none;margin-top:12px;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);border-left:2px solid var(--accent);">
+                        <div style="margin-bottom:12px;">
+                            <label>Extract destination <span class="label-hint">(optional — defaults to same folder as archive)</span></label>
+                            <input type="text" id="extract-destination" placeholder="Leave empty to extract in place">
+                        </div>
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:0;">
+                            <input type="checkbox" id="extract-remove-archive" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;">
+                            <span style="font-size:0.9em;">Remove archive after extraction</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-success"><span>➕</span><span>Add to Queue</span></button>
+                    <button type="button" class="btn btn-ghost" id="btn-clear-form"><span>🗑️</span><span>Clear Form</span></button>
+                </div>
+            </form>
+            <div id="add-flash"></div>
+        </div>
+
+        <!-- ════ TAB: IMPORT PRESETS ════ -->
+        <div class="tab-panel" data-panel="import">
+            <div class="dropzone" id="config-dropzone">
+                <div class="dropzone-icon">📄</div>
+                <div class="dropzone-text"><strong>Drop JSON config</strong> or click to browse</div>
+                <div class="dropzone-hint">Configs will be saved to presets directory</div>
+                <div class="dropzone-filename" id="config-filename"></div>
+            </div>
+            <input type="file" id="config-file-input" accept=".json">
+            <div id="import-flash"></div>
+            <div class="configs-section-title">Saved Configs</div>
+            <div class="configs-list" id="saved-configs-list">
+                <div class="configs-empty">Loading…</div>
+            </div>
+        </div>
+
+    </div><!-- /.tab-card -->
+
+    <!-- Selection bar (fixed bottom) -->
+    <div class="selection-bar" id="selection-bar">
+        <div class="selection-info">
+            <span class="selection-count"   id="selection-count">0 presets selected</span>
+            <span class="selection-details" id="selection-details">0 files</span>
+        </div>
+        <div class="selection-actions">
+            <button class="btn btn-success" id="btn-add-selected"><span>➕</span><span>Add to Queue</span></button>
+            <button class="btn btn-ghost"   id="btn-cancel-selection"><span>✕</span><span>Cancel</span></button>
+        </div>
+    </div>
+    <div class="modal-backdrop" id="folder-browser-modal" onclick="closeFolderBrowser(event)">
+        <div class="modal" style="width:460px">
+            <div class="modal-title">📁 Browse folders</div>
+            <div id="fb-breadcrumb" class="fb-breadcrumb">
+                <span class="crumb-root" onclick="loadFolderBrowser('')">🏠 root</span>
+            </div>
+            <div id="fb-list" class="fb-list">
+                <div class="fb-empty">Loading…</div>
+            </div>
+            <div class="modal-actions" style="margin-top:16px">
+                <button class="btn btn-ghost btn-sm" onclick="closeFolderBrowser()">Cancel</button>
+                <button class="btn btn-sm" onclick="selectFolder()">Select this folder</button>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop" id="delete-modal" onclick="closeDeleteModal(event)">
+        <div class="modal">
+            <div class="modal-title">🗑️ Delete download</div>
+            <div class="modal-subtitle" id="delete-modal-filename">—</div>
+            <label class="modal-checkbox-row" for="delete-file-checkbox">
+                <input type="checkbox" id="delete-file-checkbox">
+                <span class="modal-checkbox-label">Also delete file from disk</span>
+            </label>
+            <div class="modal-actions">
+                <button class="btn btn-ghost btn-sm" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn btn-danger btn-sm" id="delete-modal-confirm">Delete</button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+'use strict';
+
+const DL_SEP   = '__dl__';
+const FLASH_TTL = 5000;
+const POLL_MS   = 1000;
+
+let presets           = [];
+let globalDownloadsMap = {};
+let globalPresetsMap   = {};
+let globalAuthConfigs  = {};
+let selectedKeys       = new Set();
+let downloads          = [];
+let speedTracker       = {};
+
+/* ── Formatting ── */
+function formatSize(bytes, suffix = '') {
+    if (!bytes || bytes <= 0) return `0 B${suffix}`;
+    const exp   = Math.floor(Math.log(bytes) / Math.log(1024));
+    const value = (bytes / Math.pow(1024, exp)).toFixed(exp > 0 ? 1 : 0);
+    return `${value} ${ ['B', 'KB', 'MB', 'GB'][exp] }${suffix}`;
+}
+const formatBytes = (b) => formatSize(b);
+const formatSpeed = (b) => formatSize(b, '/s');
+
+function basenameOf(path) {
+    if (!path) return '(unknown)';
+    return path.split('/').pop() || path;
+}
+
+/* ── API helper ── */
+async function apiFetch(url, method = 'GET', body = undefined) {
+    const opts = { method };
+    if (body !== undefined) {
+        opts.body    = JSON.stringify(body);
+        opts.headers = { 'Content-Type': 'application/json' };
+    }
+    const res = await fetch(url, opts);
+    return res.json();
+}
+
+/* ── Flash messages ── */
+function showFlash(tab, message, type) {
+    const elId = { presets: 'presets-flash', import: 'import-flash', add: 'add-flash', queue: 'queue-flash' }[tab];
+    const el   = document.getElementById(elId ?? 'presets-flash');
+    if (!el) return;
+    el.innerHTML = `<div class="flash flash-${type}"><span>${type === 'success' ? '✓' : '✕'}</span><span>${message}</span></div>`;
+    setTimeout(() => { el.innerHTML = ''; }, FLASH_TTL);
+}
+
+/* ── Clipboard ── */
+function copyToClipboard(text, btn) {
+    const confirm = () => {
+        btn.textContent = '✓';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = '⎘'; btn.classList.remove('copied'); }, 1500);
+    };
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(confirm).catch(legacyCopy);
+    } else { legacyCopy(); }
+    function legacyCopy() {
+        const ta = Object.assign(document.createElement('textarea'), { value: text });
+        Object.assign(ta.style, { position: 'fixed', opacity: '0' });
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta); confirm();
+    }
+}
+window.copyUrl = (url, btn) => copyToClipboard(url, btn);
+
+/* ── Auth resolution ── */
+function resolveAuth(mirror) {
+    if (!mirror.auth) return mirror;
+    const cfg = globalAuthConfigs[mirror.auth];
+    if (!cfg) return mirror;
+    return { ...mirror, headers: { ...(cfg.headers ?? {}), ...(mirror.headers ?? {}) }, cookies: { ...(cfg.cookies ?? {}), ...(mirror.cookies ?? {}) }, _authName: mirror.auth };
+}
+
+function registerDownloads(list) {
+    if (!Array.isArray(list)) return;
+    for (const dl of list) {
+        if (dl.id) globalDownloadsMap[dl.id] = { ...dl, mirrors: (dl.mirrors ?? []).map(resolveAuth) };
+    }
+}
+
+function registerPreset(preset) {
+    if (!preset.id) return;
+    globalPresetsMap[preset.id] = preset;
+    registerDownloads(preset.downloads);
+    (preset.presets ?? []).forEach(registerPreset);
+}
+
+function processConfig(config) {
+    if (config.authConfigs) Object.assign(globalAuthConfigs, config.authConfigs);
+    registerDownloads(config.downloads);
+    (config.presets ?? []).forEach(registerPreset);
+}
+
+/* ── Preset resolution ── */
+function uniqueBy(arr, keyFn) {
+    const seen = new Set();
+    return arr.filter(item => { const k = keyFn(item); return seen.has(k) ? false : (seen.add(k), true); });
+}
+
+function resolvePreset(preset, visited = new Set()) {
+    const id = preset.id ?? preset.name;
+    if (visited.has(id)) return { ...preset, _circular: true, downloads: [], presets: [] };
+    const guard = new Set(visited); guard.add(id);
+
+    const inlineDownloads = (preset.downloads  ?? []).map(dl => ({ ...dl, mirrors: (dl.mirrors ?? []).map(resolveAuth) }));
+    const linkedDownloads = (preset.download_ids ?? []).flatMap(dlId => { const dl = globalDownloadsMap[String(dlId)]; return dl ? [dl] : []; });
+    const allDownloads    = uniqueBy([...inlineDownloads, ...linkedDownloads], dl => dl.id ?? dl.file_name);
+
+    const inlineSubPresets = (preset.presets    ?? []).map(p => resolvePreset(p, guard));
+    const linkedSubPresets = (preset.preset_ids ?? []).flatMap(pid => { const p = globalPresetsMap[String(pid)]; return p ? [resolvePreset(p, guard)] : []; });
+    const allSubPresets    = uniqueBy([...inlineSubPresets, ...linkedSubPresets], p => p.id ?? p.name);
+
+    return { ...preset, downloads: allDownloads, presets: allSubPresets };
+}
+
+/* ── Preset API ── */
+async function loadPresets() {
+    globalDownloadsMap = {}; globalPresetsMap = {}; globalAuthConfigs = {}; presets = [];
+    try {
+        const list = await apiFetch('/api/configs/list');
+        if (!list.success) { showFlash('presets', 'Failed to load presets', 'error'); return; }
+
+        for (const file of (list.configs ?? [])) {
+            try {
+                const name = file.name.replace('.json', '');
+                const cfg  = await apiFetch(`/api/configs/load/${name}`);
+                if (cfg.success && cfg.config) processConfig(cfg.config);
+            } catch (err) { console.error(`Failed to load config "${file.name}":`, err); }
+        }
+
+        const childIds = new Set(
+            Object.values(globalPresetsMap).flatMap(p => [
+                ...(p.preset_ids ?? []).map(String),
+                ...(p.presets    ?? []).map(s => String(s.id)).filter(Boolean),
+            ])
+        );
+
+        presets = Object.values(globalPresetsMap)
+            .filter(p => !childIds.has(String(p.id)))
+            .map(p  => resolvePreset(p));
+
+        renderPresets();
+        document.getElementById('presets-count').textContent = presets.length;
+        showFlash('presets', `Loaded ${presets.length} preset(s)`, 'success');
+    } catch (err) {
+        console.error('loadPresets error:', err);
+        showFlash('presets', 'Error loading presets', 'error');
+    }
+}
+
+/* ── Preset rendering ── */
+function presetMatchesSearch(preset, term) {
+    if (!term) return true;
+    if ((preset.name ?? '').toLowerCase().includes(term)) return true;
+    if ((preset.description ?? '').toLowerCase().includes(term)) return true;
+    if ((preset.presets ?? []).some(p  => presetMatchesSearch(p, term))) return true;
+    if ((preset.downloads ?? []).some(dl => (dl.file_name ?? '').toLowerCase().includes(term) || (dl.id ?? '').toLowerCase().includes(term))) return true;
+    return false;
+}
+
+function renderPresets() {
+    const container = document.getElementById('presets-container');
+    const term      = document.getElementById('preset-search').value.toLowerCase();
+    if (presets.length === 0) { container.innerHTML = emptyStateHtml('📦', 'No presets found in directory.<br>Import a config to create presets.'); return; }
+    const filtered = presets.filter(p => presetMatchesSearch(p, term));
+    if (filtered.length === 0) { container.innerHTML = emptyStateHtml('🔍', 'No presets match your search'); return; }
+    container.innerHTML = `<div class="presets-tree">${filtered.map(p => presetNodeHtml(p, 0)).join('')}</div>`;
+    attachCheckboxListeners(container);
+}
+
+function presetNodeHtml(preset, depth) {
+    const pid        = String(preset.id ?? preset.name);
+    const subPresets = preset.presets  ?? [];
+    const dlList     = preset.downloads ?? [];
+    const hasContent = subPresets.length > 0 || dlList.length > 0;
+    const headerMod  = depth > 0 ? ' nested' : '';
+
+    const contentHtml = hasContent
+        ? `<div class="preset-node-content">
+                ${ subPresets.length > 0 ? `<div class="section-label">📁 Sub-presets (${subPresets.length})</div><div class="tree-list">${subPresets.map(s => presetNodeHtml(s, depth + 1)).join('')}</div>` : '' }
+                ${ dlList.length > 0     ? `<div class="section-label">⬇️ Downloads (${dlList.length})</div><div class="tree-list">${dlList.map((dl, i) => downloadNodeHtml(dl, pid, i)).join('')}</div>` : '' }
+           </div>`
+        : `<div class="preset-node-content"><div class="tree-empty">No downloads or sub-presets</div></div>`;
+
+    return `
+        <div class="preset-node" data-preset-id="${pid}">
+            <div class="preset-node-header${headerMod}">
+                <input  type="checkbox" class="tree-checkbox" data-kind="preset" data-key="${pid}" ${ selectedKeys.has(pid) ? 'checked' : '' }>
+                <span   class="tree-toggle">▼</span>
+                <div class="preset-node-info">
+                    <div class="preset-node-name">${preset.name ?? pid}</div>
+                    <div class="preset-node-desc">${preset.description ?? 'No description'}</div>
+                </div>
+            </div>
+            ${contentHtml}
+        </div>`;
+}
+
+function downloadNodeHtml(dl, pid, idx) {
+    const key         = `${pid}${DL_SEP}${dl.id ?? idx}`;
+    const savePath    = dl.folder_path && dl.file_name ? `${dl.folder_path}/${dl.file_name}` : (dl.filepath ?? '');
+    const displayName = dl.file_name ?? basenameOf(dl.filepath) ?? dl.id ?? '(unknown)';
+    const primaryUrl  = dl.mirrors?.[0]?.url ?? '';
+
+    return `
+        <div class="download-node" data-key="${key}">
+            <div class="download-node-header">
+                <input  type="checkbox" class="tree-checkbox" data-kind="download" data-key="${key}" data-preset-id="${pid}" data-dl-idx="${idx}" ${ selectedKeys.has(key) ? 'checked' : '' }>
+                <span   class="tree-toggle">▼</span>
+                <div class="download-node-info">
+                    <div class="download-node-name">${displayName}</div>
+                    <div class="download-node-url">${primaryUrl}</div>
+                </div>
+            </div>
+            <div class="download-node-content">
+                ${ savePath     ? detailRowHtml('Path', savePath) : '' }
+                ${ dl.file_size ? detailRowHtml('Size', formatBytes(dl.file_size)) : '' }
+                ${ dl.checksum  ? detailRowHtml('Hash', dl.checksum) : '' }
+                ${ dl.mirrors?.length ? mirrorsHtml(dl.mirrors) : '' }
+            </div>
+        </div>`;
+}
+
+function detailRowHtml(label, value) {
+    return `<div class="detail-row"><span class="detail-label">${label}:</span><span class="detail-value">${value}</span></div>`;
+}
+
+function mirrorsHtml(mirrors) {
+    const rows = mirrors.map((m, i) => `
+        <div class="mirror-item">
+            <span class="mirror-priority">P${m.priority ?? (i + 1)}:</span>
+            <span class="mirror-url">${m.url}</span>
+            ${ m._authName ? `<span class="mirror-auth-badge">🔑 ${m._authName}</span>` : '' }
+        </div>`).join('');
+    return `<div class="mirrors-list"><div class="mirrors-list-label">Mirrors (${mirrors.length}):</div>${rows}</div>`;
+}
+
+function emptyStateHtml(icon, text) {
+    return `<div class="empty-state"><div class="empty-state-icon">${icon}</div><p>${text}</p></div>`;
+}
+
+/* ── Tree toggle ── */
+function toggleNode(toggleEl) {
+    const nodeEl    = toggleEl.closest('.preset-node, .download-node');
+    const contentEl = nodeEl.querySelector(':scope > .preset-node-content, :scope > .download-node-content');
+    const isOpen    = contentEl.style.display !== 'none';
+    contentEl.style.display = isOpen ? 'none' : '';
+    toggleEl.textContent    = isOpen ? '▶' : '▼';
+}
+
+/* ── Selection ── */
+function attachCheckboxListeners(container) {
+    container.querySelectorAll('.tree-checkbox').forEach(cb =>
+        cb.addEventListener('change', () => onCheckboxChange(cb, container))
+    );
+}
+
+function onCheckboxChange(cb, container) {
+    const { kind, key, presetId } = cb.dataset;
+    if (kind === 'preset') {
+        cb.closest('.preset-node').querySelectorAll('.tree-checkbox').forEach(c => {
+            c.checked = cb.checked;
+            cb.checked ? selectedKeys.add(c.dataset.key) : selectedKeys.delete(c.dataset.key);
+        });
+    } else {
+        cb.checked ? selectedKeys.add(key) : selectedKeys.delete(key);
+        if (!cb.checked && presetId) {
+            const parentCb = container.querySelector(`.tree-checkbox[data-kind="preset"][data-key="${presetId}"]`);
+            if (parentCb) { parentCb.checked = false; selectedKeys.delete(presetId); }
+        }
+    }
+    updateSelectionBar();
+}
+
+function updateSelectionBar() {
+    const dlKeys     = [...selectedKeys].filter(k => k.includes(DL_SEP));
+    const presetKeys = [...selectedKeys].filter(k => !k.includes(DL_SEP));
+    const bar        = document.getElementById('selection-bar');
+    bar.classList.toggle('active', selectedKeys.size > 0);
+    document.getElementById('selection-count').textContent  = `${presetKeys.length} preset${presetKeys.length !== 1 ? 's' : ''} selected`;
+    document.getElementById('selection-details').textContent = `${dlKeys.length} file${dlKeys.length !== 1 ? 's' : ''}`;
+}
+
+function setSelectionAll(select) {
+    function walk(list) {
+        for (const p of list) {
+            const pid = String(p.id ?? p.name);
+            select ? selectedKeys.add(pid) : selectedKeys.delete(pid);
+            (p.downloads ?? []).forEach((dl, i) => {
+                const k = `${pid}${DL_SEP}${dl.id ?? i}`;
+                select ? selectedKeys.add(k) : selectedKeys.delete(k);
+            });
+            walk(p.presets ?? []);
+        }
+    }
+    walk(presets);
+}
+
+function collectSelectedDownloads() {
+    const result = [], seen = new Set();
+    for (const key of selectedKeys) {
+        if (!key.includes(DL_SEP)) continue;
+        const sepAt  = key.lastIndexOf(DL_SEP);
+        const pid    = key.slice(0, sepAt);
+        const dlKey  = key.slice(sepAt + DL_SEP.length);
+        const preset = findPresetById(presets, pid);
+        if (!preset) continue;
+        const dl = preset.downloads.find(d => (d.id ?? '') === dlKey) ?? preset.downloads[parseInt(dlKey, 10)];
+        if (dl && !seen.has(dl.id ?? dlKey)) { seen.add(dl.id ?? dlKey); result.push(dl); }
+    }
+    return result;
+}
+
+function findPresetById(list, targetId) {
+    for (const p of list) {
+        if (String(p.id ?? p.name) === targetId) return p;
+        const found = findPresetById(p.presets ?? [], targetId);
+        if (found) return found;
+    }
+    return null;
+}
+
+/* ── Download queue ── */
+async function loadDownloads() {
+    try {
+        const data = await apiFetch('/api/downloads/all');
+        if (!data.tasks) return;
+        const now = Date.now();
+        data.tasks.forEach(dl => {
+            const prev  = speedTracker[dl.task_id];
+            const bytes = dl.downloaded_bytes ?? 0;
+            const dt    = prev ? (now - prev.ts) / 1000 : 0;
+            dl._speed = dl.speed != null ? dl.speed
+                : (prev && dt > 0 && dl.status === 'downloading') ? Math.max(0, (bytes - prev.bytes) / dt) : 0;
+            speedTracker[dl.task_id] = { bytes, ts: now };
+        });
+        const activeIds = new Set(data.tasks.map(d => d.task_id));
+        Object.keys(speedTracker).forEach(id => { if (!activeIds.has(id)) delete speedTracker[id]; });
+        downloads = data.tasks;
+        renderDownloads();
+        updateQueueStats();
+    } catch (err) { console.error('loadDownloads error:', err); }
+}
+
+async function downloadAction(taskId, action) {
+    try { await apiFetch(`/api/downloads/${taskId}/${action}`, 'POST'); await loadDownloads(); }
+    catch (err) { console.error(`downloadAction(${action}) error:`, err); }
+}
+window.resumeDownload = (id) => downloadAction(id, 'resume');
+window.pauseDownload  = (id) => downloadAction(id, 'pause');
+
+window.extractDownload = async (taskId, btn) => {
+    btn.disabled    = true;
+    btn.textContent = '⏳';
+    try {
+        const data = await apiFetch(`/api/downloads/${taskId}/extract`, 'POST');
+        showFlash('queue', data.success ? (data.message ?? 'Extracted successfully') : (data.error ?? 'Extraction failed'), data.success ? 'success' : 'error');
+    } catch {
+        showFlash('queue', 'Error extracting file', 'error');
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = '📦';
+    }
+};
+
+/* ── Folder browser ── */
+
+let _browserPath = '';
+
+async function openFolderBrowser() {
+    await loadFolderBrowser('');
+    document.getElementById('folder-browser-modal').classList.add('open');
+}
+
+function closeFolderBrowser(e) {
+    if (e && e.target !== document.getElementById('folder-browser-modal')) return;
+    document.getElementById('folder-browser-modal').classList.remove('open');
+}
+
+async function loadFolderBrowser(path) {
+    _browserPath = path;
+
+    // Breadcrumb
+    const crumbEl = document.getElementById('fb-breadcrumb');
+    const parts = path ? path.split('/') : [];
+    let html = `<span class="crumb-root" onclick="loadFolderBrowser('')">🏠 root</span>`;
+    let built = '';
+    for (const part of parts) {
+        built += (built ? '/' : '') + part;
+        const p = built;
+        html += `<span class="crumb-sep">/</span><span class="crumb" onclick="loadFolderBrowser('${p}')">${part}</span>`;
+    }
+    crumbEl.innerHTML = html;
+
+    // Folder list
+    const listEl = document.getElementById('fb-list');
+    listEl.innerHTML = '<div class="fb-empty">Loading…</div>';
+    try {
+        const data = await apiFetch(`/api/downloads/browse?path=${encodeURIComponent(path)}`);
+        if (data.error) {
+            listEl.innerHTML = `<div class="fb-empty">${data.error}</div>`;
+            return;
+        }
+        if (!data.folders?.length) {
+            listEl.innerHTML = '<div class="fb-empty">No subfolders</div>';
+            return;
+        }
+        listEl.innerHTML = data.folders.map(f => {
+            const fullPath = path ? `${path}/${f}` : f;
+            return `<div class="fb-item" onclick="selectFolderItem(this, '${fullPath}')" ondblclick="loadFolderBrowser('${fullPath}')">
+                <span>📁</span><span>${f}</span>
+            </div>`;
+        }).join('');
+    } catch {
+        listEl.innerHTML = '<div class="fb-empty">Failed to load folders</div>';
+    }
+}
+
+function selectFolderItem(el, path) {
+    document.querySelectorAll('#fb-list .fb-item').forEach(i => i.classList.remove('selected'));
+    el.classList.add('selected');
+    _browserPath = path;
+}
+
+function selectFolder() {
+    const input = document.getElementById('download-path');
+    const current = input.value.trim();
+    // Append folder path, preserve filename if present
+    const fileName = current.split('/').pop();
+    const hasExt = fileName.includes('.');
+    input.value = hasExt ? `${_browserPath}/${fileName}` : _browserPath;
+    document.getElementById('folder-browser-modal').classList.remove('open');
+}
+
+
+
+/* ── Delete with confirmation ── */
+
+let _deleteTaskId = null;
+
+window.deleteDownload = (id) => {
+    _deleteTaskId = id;
+    const dl = downloads.find(d => d.task_id === id);
+    document.getElementById('delete-modal-filename').textContent = dl?.file_name ?? id;
+    document.getElementById('delete-file-checkbox').checked = false;
+    document.getElementById('delete-modal').classList.add('open');
+};
+
+function closeDeleteModal(e) {
+    if (e && e.target !== document.getElementById('delete-modal')) return;
+    document.getElementById('delete-modal').classList.remove('open');
+    _deleteTaskId = null;
+}
+
+document.getElementById('delete-modal-confirm').addEventListener('click', async () => {
+    if (!_deleteTaskId) return;
+    const deleteFile = document.getElementById('delete-file-checkbox').checked;
+    document.getElementById('delete-modal').classList.remove('open');
+    try {
+        const data = await apiFetch(
+            `/api/downloads/${_deleteTaskId}/delete`,
+            'POST',
+            { delete_file: deleteFile }
+        );
+        if (data.success) await loadDownloads();
+        else showFlash('queue', data.message ?? 'Delete failed', 'error');
+    } catch {
+        showFlash('queue', 'Error deleting download', 'error');
+    }
+    _deleteTaskId = null;
+});
+
+/* ── Render download queue ── */
+
+function renderDownloads() {
+    const list = document.getElementById('downloads-list');
+    list.innerHTML = downloads.length === 0 ? emptyStateHtml('📭', 'No downloads in queue') : downloads.map(downloadCardHtml).join('');
+}
+
+function downloadCardHtml(dl) {
+    const pct      = dl.total_bytes > 0 ? Math.round((dl.downloaded_bytes / dl.total_bytes) * 100) : Math.round(dl.percentage ?? 0);
+    const isActive = dl.status === 'downloading';
+    const fileName = dl.file_name ?? basenameOf(dl.filepath);
+    const savePath = dl.folder_path ? `${dl.folder_path}/${dl.file_name ?? ''}` : (dl.filepath ?? '');
+    const url      = dl.url ?? '';
+    const hash     = dl.expected_hash ?? dl.checksum ?? '';
+    const safeUrl  = url.replace(/'/g, "\\'");
+
+    const speedChip = isActive
+        ? `<span class="dl-speed">⚡ ${formatSpeed(dl._speed)}</span>`
+        : `<span class="dl-speed idle">${dl.status === 'completed' ? '✓ done' : dl.status}</span>`;
+
+    return `
+        <div class="download-card">
+            <div class="dl-top">
+                <div class="dl-info">
+                    <div class="dl-filename" title="${fileName}">${fileName}</div>
+                    ${ savePath ? `<div class="dl-meta-row"><span class="dl-meta-label">Path:</span><span class="dl-meta-val">${savePath}</span></div>` : '' }
+                    ${ hash     ? `<div class="dl-meta-row"><span class="dl-meta-label">Hash:</span><span class="dl-meta-val hash">${hash}</span></div>` : '' }
+                    <div class="dl-url-row">
+                        <span class="dl-url" title="${url}">${url}</span>
+                        ${ url ? `<button class="btn-copy" title="Copy URL" onclick="copyUrl('${safeUrl}', this)">⎘</button>` : '' }
+                    </div>
+                </div>
+                <span class="badge badge-${dl.status}">${dl.status}</span>
+            </div>
+            <div class="dl-bottom">
+                <div class="dl-progress">
+                    <div class="progress-track">
+                        <div class="progress-fill ${isActive ? 'active' : ''} ${dl.status === 'completed' ? 'completed' : ''}" style="width:${pct}%"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span>${pct}% &nbsp;${speedChip}</span>
+                        <span>${formatBytes(dl.downloaded_bytes)} / ${formatBytes(dl.total_bytes)}</span>
+                    </div>
+                </div>
+                <div class="dl-actions">
+                    ${ dl.status === 'pending' || dl.status === 'paused' ? `<button class="btn btn-sm btn-ghost" onclick="resumeDownload('${dl.task_id}')">▶️</button>` : '' }
+                    ${ isActive ? `<button class="btn btn-sm btn-ghost" onclick="pauseDownload('${dl.task_id}')">⏸️</button>` : '' }
+                    ${ dl.status === 'completed' && (dl.file_name ?? '').toLowerCase().endsWith('.zip') ? `<button class="btn btn-sm btn-ghost" title="Extract ZIP" onclick="extractDownload('${dl.task_id}', this)">📦</button>` : '' }
+                    <button class="btn btn-sm btn-danger" onclick="deleteDownload('${dl.task_id}')">🗑️</button>
+                </div>
+            </div>
+            ${ dl.error_message ? `<div class="dl-error">${dl.error_message}</div>` : '' }
+        </div>`;
+}
+
+function updateQueueStats() {
+    let totalBytes = 0, downloadedSum = 0, totalSpeed = 0, hasSize = false;
+    for (const dl of downloads) {
+        if (dl.total_bytes > 0) { totalBytes += dl.total_bytes; downloadedSum += (dl.downloaded_bytes ?? 0); hasSize = true; }
+        if (dl.status === 'downloading') totalSpeed += (dl._speed ?? 0);
+    }
+    document.getElementById('queue-count').textContent      = downloads.length;
+    document.getElementById('queue-count-val').textContent  = downloads.length;
+    document.getElementById('stat-total-val').textContent     = hasSize ? formatBytes(totalBytes) : '—';
+    document.getElementById('stat-remaining-val').textContent = hasSize ? formatBytes(Math.max(0, totalBytes - downloadedSum)) : '—';
+    document.getElementById('stat-speed-val').textContent     = formatSpeed(totalSpeed);
+}
+
+/* ── Add download ── */
+async function enqueueDownload({ folder_path, file_name, expected_hash, hash_algorithm, mirrors, extract = null }) {
+    return apiFetch('/api/downloads/add', 'POST', {
+        folder_path: folder_path || null,
+        file_name:   file_name   || null,
+        expected_hash:  expected_hash  || null,
+        hash_algorithm: hash_algorithm ?? 'sha256',
+        mirrors: mirrors ?? [],
+        extract: extract ?? null,
+    });
+}
+
+async function submitAddDownloadForm(e) {
+    e.preventDefault();
+    const url      = document.getElementById('download-url').value.trim();
+    const rawPath  = document.getElementById('download-path').value.trim();
+    const hash     = document.getElementById('download-hash').value.trim();
+    const algo     = document.getElementById('hash-algorithm').value;
+    const hdrsRaw  = document.getElementById('download-headers').value.trim();
+    const cookRaw  = document.getElementById('download-cookies').value.trim();
+
+    if (!url) { showFlash('add', 'URL is required', 'error'); return; }
+
+    let headers = {}, cookies = {};
+    try { if (hdrsRaw) headers = JSON.parse(hdrsRaw); } catch { showFlash('add', 'Invalid headers JSON', 'error'); return; }
+    try { if (cookRaw) cookies = JSON.parse(cookRaw); } catch { showFlash('add', 'Invalid cookies JSON', 'error'); return; }
+
+    // Разбираем путь: пусто / только папка / папка+файл
+    let folder_path = null, file_name = null;
+    if (rawPath) {
+        const parts = rawPath.split('/');
+        const last  = parts[parts.length - 1];
+        const hasExt = last.includes('.');
+
+        if (hasExt) {
+            file_name   = last;
+            folder_path = parts.slice(0, -1).join('/') || null;
+        } else {
+            // нет расширения — всё считается папкой
+            folder_path = rawPath;
+        }
+    }
+
+    try {
+        const extractZip = document.getElementById('extract-zip').checked;
+        const extract = extractZip ? {
+            format: 'zip',
+            destination: document.getElementById('extract-destination').value.trim() || null,
+            remove_archive: document.getElementById('extract-remove-archive').checked,
+            password: null,
+        } : null;
+
+        const data = await enqueueDownload({ folder_path, file_name, expected_hash: hash, hash_algorithm: algo, mirrors: [{ url, priority: 1, headers, cookies }], extract });
+        if (data.success) {
+            showFlash('add', 'Download added to queue', 'success');
+            document.getElementById('download-url').value = '';
+            document.getElementById('download-hash').value = '';
+            document.getElementById('hash-algorithm').value = 'sha256';
+            await loadDownloads();
+        }
+        else { showFlash('add', data.error ?? 'Failed to add download', 'error'); }
+    } catch { showFlash('add', 'Error adding download', 'error'); }
+}
+
+/* ── Import / Config ── */
+async function loadSavedConfigs() {
+    const container = document.getElementById('saved-configs-list');
+    try {
+        const data    = await apiFetch('/api/configs/list');
+        const configs = data.configs ?? [];
+        if (configs.length === 0) { container.innerHTML = '<div class="configs-empty">No saved configs yet</div>'; return; }
+        container.innerHTML = configs.map(cfg => {
+            const name = cfg.name.replace('.json', '');
+            return `<div class="config-item">
+                <span class="config-item-icon">📄</span>
+                <span class="config-item-name">${cfg.name}</span>
+                <button class="btn btn-danger btn-sm" onclick="deleteConfig('${name}', this)"><span>🗑️</span><span>Delete</span></button>
+            </div>`;
+        }).join('');
+    } catch { container.innerHTML = '<div class="configs-empty">Failed to load configs</div>'; }
+}
+
+window.deleteConfig = async (name, btn) => {
+    if (!confirm(`Delete config "${name}.json"?`)) return;
+    btn.disabled = true;
+    try {
+        const data = await apiFetch(`/api/configs/delete/${name}`, 'POST');
+        if (data.success) { showFlash('import', `Deleted: ${name}.json`, 'success'); await Promise.all([loadSavedConfigs(), loadPresets()]); }
+        else { showFlash('import', data.error ?? 'Delete failed', 'error'); btn.disabled = false; }
+    } catch { showFlash('import', 'Error deleting config', 'error'); btn.disabled = false; }
+};
+
+async function handleConfigFile(file) {
+    document.getElementById('config-filename').textContent = `📄 ${file.name}`;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+        const res  = await fetch('/api/configs/save-from-file', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) { showFlash('import', `Config saved: ${file.name}`, 'success'); await Promise.all([loadSavedConfigs(), loadPresets()]); }
+        else { showFlash('import', data.error ?? 'Import failed', 'error'); }
+    } catch { showFlash('import', 'Error importing config', 'error'); }
+}
+
+
+
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', () => {
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelector(`[data-panel="${btn.dataset.tab}"]`)?.classList.add('active');
+            if (btn.dataset.tab === 'import') loadSavedConfigs();
+        });
+    });
+
+    document.getElementById('presets-container').addEventListener('click', e => {
+        const toggle = e.target.closest('.tree-toggle');
+        if (toggle) toggleNode(toggle);
+    });
+
+    document.getElementById('btn-load-presets').addEventListener('click', loadPresets);
+    document.getElementById('btn-select-all').addEventListener('click', () => { setSelectionAll(true); renderPresets(); updateSelectionBar(); });
+    document.getElementById('btn-deselect-all').addEventListener('click', () => { selectedKeys.clear(); renderPresets(); updateSelectionBar(); });
+    document.getElementById('preset-search').addEventListener('input', renderPresets);
+
+    document.getElementById('btn-add-selected').addEventListener('click', async () => {
+        const toAdd = collectSelectedDownloads();
+        if (toAdd.length === 0) return;
+        try {
+            for (const dl of toAdd) {
+                let folder_path = dl.folder_path ?? '', file_name = dl.file_name ?? '';
+                if (!file_name && dl.filepath) { const parts = dl.filepath.split('/'); file_name = parts.pop() ?? ''; folder_path = parts.join('/'); }
+                await enqueueDownload({ folder_path, file_name, expected_hash: dl.checksum ?? dl.hash ?? '', hash_algorithm: dl.hash_algorithm ?? 'sha256', mirrors: dl.mirrors ?? [] });
+            }
+            showFlash('presets', `Added ${toAdd.length} download(s) to queue`, 'success');
+            selectedKeys.clear(); updateSelectionBar(); renderPresets();
+            document.querySelector('[data-tab="queue"]')?.click();
+            await loadDownloads();
+        } catch (err) { console.error('add-selected error:', err); showFlash('presets', 'Error adding downloads', 'error'); }
+    });
+
+    document.getElementById('btn-cancel-selection').addEventListener('click', () => { selectedKeys.clear(); updateSelectionBar(); renderPresets(); });
+
+    document.getElementById('btn-refresh').addEventListener('click', loadDownloads);
+    document.getElementById('btn-start-all').addEventListener('click', async () => { const data = await apiFetch('/api/downloads/start', 'POST'); if (data.success) loadDownloads(); });
+    document.getElementById('btn-stop-all').addEventListener('click', async () => { const data = await apiFetch('/api/downloads/stop', 'POST'); if (data.success) loadDownloads(); });
+
+    document.getElementById('btn-set-concurrency').addEventListener('click', async () => {
+        const val = parseInt(document.getElementById('concurrency-input').value, 10);
+        if (!val || val < 1) return;
+        const data = await apiFetch('/api/downloads/set-concurrency', 'POST', { max_concurrent: val });
+        showFlash('queue', data.success ? `Workers set to ${val}` : (data.error ?? 'Failed'), data.success ? 'success' : 'error');
+    });
+
+    document.getElementById('add-download-form').addEventListener('submit', submitAddDownloadForm);
+    document.getElementById('btn-clear-form').addEventListener('click', () => { document.getElementById('add-download-form').reset(); document.getElementById('extract-options').style.display = 'none'; });
+    document.getElementById('extract-zip').addEventListener('change', function () {
+        document.getElementById('extract-options').style.display = this.checked ? 'block' : 'none';
+    });
+
+    const dropzone  = document.getElementById('config-dropzone');
+    const fileInput = document.getElementById('config-file-input');
+    dropzone.addEventListener('click',    () => fileInput.click());
+    dropzone.addEventListener('dragover', e  => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+    dropzone.addEventListener('dragleave',() => dropzone.classList.remove('drag-over'));
+    dropzone.addEventListener('drop', e => {
+        e.preventDefault(); dropzone.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file?.name.endsWith('.json')) handleConfigFile(file);
+    });
+    fileInput.addEventListener('change', e => { if (e.target.files[0]) handleConfigFile(e.target.files[0]); });
+
+    loadPresets();
+    loadDownloads();
+    loadSavedConfigs();
+    apiFetch('/api/downloads/concurrency').then(data => {
+        if (data.success && data.max_concurrent)
+            document.getElementById('concurrency-input').value = data.max_concurrent;
+    });
+    setInterval(loadDownloads, POLL_MS);
+});
+</script>
+{% endblock %}

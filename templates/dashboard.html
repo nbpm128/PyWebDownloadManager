@@ -1,0 +1,716 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — ComfyDownloadManager{% endblock %}
+
+{% block extra_styles %}
+        /* ─────────────────────────────────────────────────────────
+           DASHBOARD — PAGE HEADER OVERRIDES
+        ───────────────────────────────────────────────────────── */
+        .page-header {
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+
+        .page-header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .refresh-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.82em;
+            font-weight: 500;
+            color: var(--text-2);
+            cursor: pointer;
+            transition: all var(--ease);
+        }
+        .refresh-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+        .refresh-btn.spinning .icon { animation: spin 0.8s linear infinite; }
+
+        /* ─────────────────────────────────────────────────────────
+           CARDS GRID
+        ───────────────────────────────────────────────────────── */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        @media (max-width: 580px) { .grid { grid-template-columns: 1fr; } }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 22px;
+            transition: border-color var(--ease), transform var(--ease);
+            animation: fadeUp 0.3s ease both;
+        }
+        .card:hover { border-color: rgba(91, 127, 255, 0.35); }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .card:nth-child(1) { animation-delay: 0.05s; }
+        .card:nth-child(2) { animation-delay: 0.10s; }
+        .card:nth-child(3) { animation-delay: 0.15s; }
+        .card:nth-child(4) { animation-delay: 0.20s; }
+        .card:nth-child(5) { animation-delay: 0.25s; }
+        .card:nth-child(6) { animation-delay: 0.30s; }
+
+        /* ─────────────────────────────────────────────────────────
+           CARD INTERNALS
+        ───────────────────────────────────────────────────────── */
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .card-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95em;
+            flex-shrink: 0;
+        }
+        .icon-blue   { background: var(--accent-dim); }
+        .icon-green  { background: var(--green-dim); }
+        .icon-yellow { background: var(--yellow-dim); }
+        .icon-purple { background: var(--purple-dim); }
+        .icon-red    { background: var(--red-dim); }
+        .icon-cyan   { background: rgba(34, 211, 238, 0.12); }
+
+        .card-title {
+            font-size: 0.82em;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-2);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-soft);
+        }
+        .info-row:last-of-type { border-bottom: none; }
+
+        .info-label { font-size: 0.82em; color: var(--text-3); font-weight: 500; }
+        .info-value { font-size: 0.82em; color: var(--text-2); font-family: 'DM Mono', monospace; text-align: right; }
+        .info-value.highlight { color: var(--text); font-weight: 500; }
+
+        /* ─────────────────────────────────────────────────────────
+           PROGRESS BARS
+        ───────────────────────────────────────────────────────── */
+        .progress-wrap { margin-top: 14px; }
+        .progress-wrap + .progress-wrap { margin-top: 12px; }
+
+        .progress-track {
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .progress-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+        .fill-blue   { background: linear-gradient(90deg, var(--accent), #818cf8); }
+        .fill-green  { background: linear-gradient(90deg, var(--green), #34d399); }
+        .fill-yellow { background: linear-gradient(90deg, var(--yellow), #f59e0b); }
+        .fill-purple { background: linear-gradient(90deg, var(--purple), #c084fc); }
+        .fill-high   { background: linear-gradient(90deg, var(--red), #fb923c) !important; }
+
+        .progress-meta { display: flex; justify-content: space-between; align-items: center; }
+        .progress-pct  { font-size: 0.78em; font-family: 'DM Mono', monospace; color: var(--text-2); }
+        .progress-label { font-size: 0.78em; color: var(--text-3); }
+
+        /* ─────────────────────────────────────────────────────────
+           GPU badge
+        ───────────────────────────────────────────────────────── */
+        .gpu-count-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.72em;
+            color: var(--text-3);
+            margin-left: auto;
+        }
+
+        /* ─────────────────────────────────────────────────────────
+           INNER BLOCK  (shared by RAM / Disk / CPU / Env / GPU)
+        ───────────────────────────────────────────────────────── */
+        .inner-block {
+            margin-top: 12px;
+            padding: 12px 14px;
+            background: var(--bg);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-sm);
+        }
+        .inner-block + .inner-block { margin-top: 8px; }
+
+        .inner-block-title {
+            font-size: 0.78em;
+            font-weight: 500;
+            color: var(--text-2);
+            margin-bottom: 8px;
+            font-family: 'DM Mono', monospace;
+        }
+
+        /* ─────────────────────────────────────────────────────────
+           SHUTDOWN CARD
+        ───────────────────────────────────────────────────────── */
+        .shutdown-time-inputs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 14px 0;
+        }
+
+        .time-seg {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .time-seg-label {
+            font-size: 0.68em;
+            font-weight: 600;
+            color: var(--text-3);
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+        }
+
+        .time-input {
+            width: 100%;
+            text-align: center;
+            font-size: 1.4em;
+            font-weight: 700;
+            font-family: 'DM Mono', monospace;
+            color: var(--text);
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 4px;
+            outline: none;
+            transition: border-color var(--ease);
+            -moz-appearance: textfield;
+        }
+        .time-input::-webkit-outer-spin-button,
+        .time-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .time-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+
+        .time-sep {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: var(--text-3);
+            margin-bottom: 18px;
+            flex-shrink: 0;
+        }
+
+        /* Countdown display */
+        .countdown-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 14px 0;
+        }
+
+        .countdown-seg {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .countdown-seg-label {
+            font-size: 0.68em;
+            font-weight: 600;
+            color: var(--text-3);
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+        }
+
+        .countdown-num {
+            width: 100%;
+            text-align: center;
+            font-size: 1.4em;
+            font-weight: 700;
+            font-family: 'DM Mono', monospace;
+            color: var(--red);
+            background: var(--red-dim);
+            border: 1px solid rgba(255, 95, 126, 0.2);
+            border-radius: var(--radius-sm);
+            padding: 10px 4px;
+        }
+
+        .countdown-sep {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: var(--red);
+            opacity: 0.5;
+            margin-bottom: 18px;
+            flex-shrink: 0;
+        }
+
+        .shutdown-scheduled-at {
+            font-size: 0.75em;
+            color: var(--text-3);
+            font-family: 'DM Mono', monospace;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .shutdown-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .shutdown-actions .btn { flex: 1; justify-content: center; }
+
+        /* ─────────────────────────────────────────────────────────
+           LOADING / ERROR STATES
+        ───────────────────────────────────────────────────────── */
+        .loading-state { padding: 30px 0; text-align: center; color: var(--text-3); font-size: 0.85em; }
+
+        .loading-dots span { display: inline-block; animation: dotBounce 1.2s ease infinite; }
+        .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes dotBounce {
+            0%, 80%, 100% { transform: translateY(0); opacity: 0.3; }
+            40% { transform: translateY(-4px); opacity: 1; }
+        }
+
+        .error-state {
+            padding: 12px;
+            background: var(--red-dim);
+            border: 1px solid rgba(255, 95, 126, 0.2);
+            border-radius: 6px;
+            color: var(--red);
+            font-size: 0.8em;
+            text-align: center;
+        }
+
+        .no-gpu {
+            padding: 16px;
+            background: var(--surface-2);
+            border: 1px dashed var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-3);
+            font-size: 0.82em;
+            text-align: center;
+        }
+
+        /* ─────────────────────────────────────────────────────────
+           FOOTER
+        ───────────────────────────────────────────────────────── */
+        .footer {
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--text-3);
+            font-size: 0.78em;
+            font-family: 'DM Mono', monospace;
+        }
+        .footer-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--text-3); }
+{% endblock %}
+
+{% block page_header %}
+    <div class="page-header">
+        <div class="page-header-left">
+            <div class="page-header-icon">📊</div>
+            <div>
+                <h1>System Dashboard</h1>
+                <p>ComfyDownloadManager — resource monitor</p>
+            </div>
+        </div>
+        <div class="page-header-right">
+            <div class="status-pill">
+                <div class="status-pill-dot"></div>
+                Live
+            </div>
+            <button class="refresh-btn" onclick="refreshData()" id="refresh-btn">
+                <span class="icon">↻</span>
+                Refresh
+            </button>
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="grid">
+
+        <!-- RAM -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon icon-blue">💾</div>
+                <span class="card-title">RAM Memory</span>
+            </div>
+            <div id="memory-content">
+                <div class="loading-state"><div class="loading-dots"><span>●</span><span>●</span><span>●</span></div></div>
+            </div>
+        </div>
+
+        <!-- Disk -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon icon-green">💿</div>
+                <span class="card-title">Disk Storage</span>
+            </div>
+            <div id="disk-content">
+                <div class="loading-state"><div class="loading-dots"><span>●</span><span>●</span><span>●</span></div></div>
+            </div>
+        </div>
+
+        <!-- CPU -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon icon-yellow">⚙</div>
+                <span class="card-title">Processor</span>
+            </div>
+            <div id="cpu-content">
+                <div class="loading-state"><div class="loading-dots"><span>●</span><span>●</span><span>●</span></div></div>
+            </div>
+        </div>
+
+        <!-- GPU -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon icon-purple">🎮</div>
+                <span class="card-title">Graphics Card</span>
+                <span class="gpu-count-badge" id="gpu-count-badge" style="display:none;"></span>
+            </div>
+            <div id="gpu-content">
+                <div class="loading-state"><div class="loading-dots"><span>●</span><span>●</span><span>●</span></div></div>
+            </div>
+        </div>
+
+        <!-- Environment -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon icon-cyan">🧪</div>
+                <span class="card-title">Environment</span>
+            </div>
+            <div id="env-content">
+                <div class="loading-state"><div class="loading-dots"><span>●</span><span>●</span><span>●</span></div></div>
+            </div>
+        </div>
+
+        <!-- Shutdown Scheduler -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon icon-red">⏻</div>
+                <span class="card-title">Shutdown Scheduler</span>
+            </div>
+
+            <!-- Picker (visible when no shutdown scheduled) -->
+            <div id="shutdown-picker">
+                <div class="shutdown-time-inputs">
+                    <div class="time-seg">
+                        <input class="time-input" type="number" id="sd-hours" min="0" max="99" value="0">
+                        <span class="time-seg-label">Hours</span>
+                    </div>
+                    <span class="time-sep">:</span>
+                    <div class="time-seg">
+                        <input class="time-input" type="number" id="sd-mins" min="0" max="59" value="30">
+                        <span class="time-seg-label">Min</span>
+                    </div>
+                    <span class="time-sep">:</span>
+                    <div class="time-seg">
+                        <input class="time-input" type="number" id="sd-secs" min="0" max="59" value="0">
+                        <span class="time-seg-label">Sec</span>
+                    </div>
+                </div>
+                <div class="shutdown-actions">
+                    <button class="btn btn-danger" onclick="scheduleShutdown()">⏻ Schedule Shutdown</button>
+                </div>
+            </div>
+
+            <!-- Countdown (visible when shutdown is scheduled) -->
+            <div id="shutdown-active" style="display:none;">
+                <div class="countdown-display">
+                    <div class="countdown-seg">
+                        <div class="countdown-num" id="cd-hours">00</div>
+                        <span class="countdown-seg-label">Hours</span>
+                    </div>
+                    <span class="countdown-sep">:</span>
+                    <div class="countdown-seg">
+                        <div class="countdown-num" id="cd-mins">00</div>
+                        <span class="countdown-seg-label">Min</span>
+                    </div>
+                    <span class="countdown-sep">:</span>
+                    <div class="countdown-seg">
+                        <div class="countdown-num" id="cd-secs">00</div>
+                        <span class="countdown-seg-label">Sec</span>
+                    </div>
+                </div>
+                <div class="shutdown-scheduled-at" id="sd-scheduled-at"></div>
+                <div class="shutdown-actions">
+                    <button class="btn btn-ghost" onclick="cancelShutdown()">✕ Cancel</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        <span>Auto-refresh every 5 s</span>
+        <div class="footer-dot"></div>
+        <span id="timestamp">—</span>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // ─── Utilities ───────────────────────────────────────────────
+    function formatBytes(bytes) {
+        if (!bytes) return '0 B';
+        const k = 1024, s = ['B','KB','MB','GB','TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + s[i];
+    }
+
+    function pad2(n) { return String(Math.max(0, n)).padStart(2, '0'); }
+
+    function getBarClass(pct, baseClass) {
+        return pct >= 85 ? 'fill-high' : baseClass;
+    }
+
+    function buildInfoRows(rows) {
+        return rows.map(([label, value, highlight]) =>
+            `<div class="info-row">
+                <span class="info-label">${label}</span>
+                <span class="info-value${highlight ? ' highlight' : ''}">${value}</span>
+            </div>`
+        ).join('');
+    }
+
+    function buildProgress(pct, fillClass, label) {
+        const cls = getBarClass(pct, fillClass);
+        return `
+            <div class="progress-wrap">
+                <div class="progress-meta">
+                    <span class="progress-label">${label || 'Usage'}</span>
+                    <span class="progress-pct">${pct.toFixed(1)}%</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill ${cls}" style="width:${Math.min(pct, 100)}%"></div>
+                </div>
+            </div>`;
+    }
+
+    // ─── System Info ─────────────────────────────────────────────
+    async function loadSystemInfo() {
+        try {
+            const res = await fetch('/api/system/info');
+            const d = await res.json();
+
+            // RAM
+            document.getElementById('memory-content').innerHTML = `
+                <div class="inner-block">
+                    ${buildInfoRows([
+                        ['Total',     formatBytes(d.memory.total), true],
+                        ['Used',      formatBytes(d.memory.used)],
+                        ['Available', formatBytes(d.memory.free)],
+                    ])}
+                    ${buildProgress(d.memory.percent, 'fill-blue')}
+                </div>`;
+
+            // Disk — root only
+            const disk = d.disk.root || d.disk;
+            document.getElementById('disk-content').innerHTML = `
+                <div class="inner-block">
+                    ${buildInfoRows([
+                        ['Total', formatBytes(disk.total), true],
+                        ['Used',  formatBytes(disk.used)],
+                        ['Free',  formatBytes(disk.free)],
+                    ])}
+                    ${buildProgress(disk.percent, 'fill-green')}
+                </div>`;
+
+            // CPU
+            document.getElementById('cpu-content').innerHTML = `
+                <div class="inner-block">
+                    ${buildInfoRows([
+                        ['Model',     d.cpu.name, true],
+                        ['Frequency', d.cpu.frequency.toFixed(0) + ' MHz'],
+                        ['Cores',     d.cpu.cores + ' physical · ' + d.cpu.threads + ' threads'],
+                    ])}
+                    ${buildProgress(d.cpu.percent, 'fill-yellow')}
+                </div>`;
+
+            // GPU
+            const gpuBadge = document.getElementById('gpu-count-badge');
+            if (d.gpu.count === 0) {
+                gpuBadge.style.display = 'none';
+                document.getElementById('gpu-content').innerHTML =
+                    '<div class="no-gpu">No GPUs detected</div>';
+            } else {
+                gpuBadge.style.display = 'inline-flex';
+                gpuBadge.textContent = d.gpu.count + (d.gpu.count === 1 ? ' card' : ' cards');
+                document.getElementById('gpu-content').innerHTML =
+                    d.gpu.gpus.map(gpu => `
+                        <div class="inner-block">
+                            <div class="inner-block-title">GPU ${gpu.id} — ${gpu.name}</div>
+                            ${buildInfoRows([
+                                ['VRAM', formatBytes(gpu.memory_total), true],
+                                ['Used', formatBytes(gpu.memory_used)],
+                                ['Free', formatBytes(gpu.memory_free)],
+                            ])}
+                            ${buildProgress(gpu.load,           'fill-purple', 'GPU Load')}
+                            ${buildProgress(gpu.memory_percent, 'fill-purple', 'VRAM Usage')}
+                        </div>`).join('');
+            }
+
+            // Environment
+            if (d.environment) renderEnvironment(d.environment);
+
+            // Shutdown status
+            if (d.shutdown) applyShutdownStatus(d.shutdown);
+
+            document.getElementById('timestamp').textContent =
+                'Updated: ' + new Date().toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+
+        } catch (error) {
+            console.error('Error loading data:', error);
+            ['memory-content','disk-content','cpu-content','gpu-content','env-content'].forEach(id => {
+                document.getElementById(id).innerHTML =
+                    '<div class="error-state">⚠ Failed to load data</div>';
+            });
+        }
+    }
+
+    // ─── Environment ─────────────────────────────────────────────
+    function renderEnvironment(env) {
+        document.getElementById('env-content').innerHTML = `
+            <div class="inner-block">
+                ${buildInfoRows([
+                    ['Hostname', env.hostname,       true],
+                    ['Python',   env.python_version],
+                    ['CUDA',     env.cuda_version],
+                    ['PyTorch',  env.torch_version],
+                ])}
+            </div>`;
+    }
+
+    // ─── Shutdown Scheduler ──────────────────────────────────────
+    let _countdownInterval = null;
+
+    function applyShutdownStatus(status) {
+        const picker  = document.getElementById('shutdown-picker');
+        const active  = document.getElementById('shutdown-active');
+
+        if (status.scheduled) {
+            picker.style.display  = 'none';
+            active.style.display  = 'block';
+            document.getElementById('sd-scheduled-at').textContent =
+                'Shutdown at: ' + (status.shutdown_time || '—');
+            startCountdown(status.time_remaining);
+        } else {
+            picker.style.display  = 'block';
+            active.style.display  = 'none';
+            stopCountdown();
+        }
+    }
+
+    function startCountdown(remainingSeconds) {
+        stopCountdown();
+        let remaining = Math.max(0, remainingSeconds);
+
+        function tick() {
+            const h = Math.floor(remaining / 3600);
+            const m = Math.floor((remaining % 3600) / 60);
+            const s = remaining % 60;
+            document.getElementById('cd-hours').textContent = pad2(h);
+            document.getElementById('cd-mins').textContent  = pad2(m);
+            document.getElementById('cd-secs').textContent  = pad2(s);
+            if (remaining > 0) remaining--;
+        }
+
+        tick();
+        _countdownInterval = setInterval(tick, 1000);
+    }
+
+    function stopCountdown() {
+        if (_countdownInterval) {
+            clearInterval(_countdownInterval);
+            _countdownInterval = null;
+        }
+    }
+
+    async function scheduleShutdown() {
+        const hours   = parseInt(document.getElementById('sd-hours').value) || 0;
+        const minutes = parseInt(document.getElementById('sd-mins').value)  || 0;
+        const seconds = parseInt(document.getElementById('sd-secs').value)  || 0;
+        const total   = hours * 3600 + minutes * 60 + seconds;
+
+        if (total < 1) {
+            alert('Please specify a time greater than 0 seconds.');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/shutdown/schedule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hours, minutes, seconds }),
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                alert('Error: ' + (err.detail || 'Unknown error'));
+                return;
+            }
+            const status = await fetch('/api/shutdown/status').then(r => r.json());
+            applyShutdownStatus(status);
+        } catch (e) {
+            alert('Request failed: ' + e.message);
+        }
+    }
+
+    async function cancelShutdown() {
+        try {
+            await fetch('/api/shutdown/cancel', { method: 'POST' });
+            applyShutdownStatus({ scheduled: false });
+        } catch (e) {
+            alert('Request failed: ' + e.message);
+        }
+    }
+
+    // ─── Refresh ─────────────────────────────────────────────────
+    function refreshData() {
+        const btn = document.getElementById('refresh-btn');
+        btn.classList.add('spinning');
+        loadSystemInfo().finally(() => {
+            setTimeout(() => btn.classList.remove('spinning'), 500);
+        });
+    }
+
+    // ─── Init ────────────────────────────────────────────────────
+    loadSystemInfo();
+    setInterval(loadSystemInfo, 5000);
+</script>
+{% endblock %}

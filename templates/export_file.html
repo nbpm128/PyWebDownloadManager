@@ -1,0 +1,1229 @@
+{% extends "base.html" %}
+
+{% block title %}Export File — ComfyDownloadManager{% endblock %}
+
+{% block extra_styles %}
+        /* ─────────────────────────────────────────────────────────
+           EXPORT FILE TAB
+        ───────────────────────────────────────────────────────── */
+        .export-path-bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .export-path-bar input {
+            flex: 1;
+            font-family: 'DM Mono', monospace;
+            font-size: 0.88em;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            color: var(--text);
+            outline: none;
+            transition: border-color var(--ease), box-shadow var(--ease);
+        }
+        .export-path-bar input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .export-path-bar input::placeholder {
+            color: var(--text-3);
+            font-family: 'DM Mono', monospace;
+        }
+
+        /* ─── Folder breadcrumb ─── */
+        .fb-breadcrumb {
+            display: flex; align-items: center; flex-wrap: wrap; gap: 2px;
+            padding: 8px 10px; background: var(--bg); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); font-size: 0.78em; font-family: 'DM Mono', monospace;
+            color: var(--text-2); margin-bottom: 14px; min-height: 34px;
+        }
+        .fb-breadcrumb .crumb { color: var(--accent); cursor: pointer; }
+        .fb-breadcrumb .crumb:hover { text-decoration: underline; }
+        .fb-breadcrumb .crumb-root { cursor: pointer; }
+        .fb-breadcrumb .crumb-root:hover { color: var(--accent); }
+        .crumb-sep { color: var(--text-3); margin: 0 1px; }
+        .fb-empty { padding: 20px; text-align: center; font-size: 0.8em; color: var(--text-3); font-style: italic; }
+
+        .export-browser {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, var(--tile-size, 120px));
+            gap: 10px;
+            min-height: 180px;
+            padding: 4px 0;
+        }
+
+        .export-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 8px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-soft);
+            background: var(--bg);
+            cursor: pointer;
+            transition: background var(--ease), border-color var(--ease), box-shadow var(--ease);
+            text-align: center;
+            user-select: none;
+            width: var(--tile-size, 120px);
+            height: var(--tile-size, 120px);
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        .export-item:hover { background: var(--surface-2); border-color: var(--border); }
+        .export-item.is-dir:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-glow); }
+
+        .export-item-icon { font-size: 2.2em; line-height: 1; flex-shrink: 0; }
+        .export-item-name {
+            font-size: 0.72em;
+            font-family: 'DM Mono', monospace;
+            color: var(--text-2);
+            word-break: break-all;
+            max-width: 100%;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-height: 1.4;
+            flex-shrink: 0;
+        }
+        .export-item.is-dir .export-item-name { color: var(--accent); }
+        .export-item.is-image .export-item-icon { font-size: 1.2em; }
+        .export-item .export-thumb {
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            display: block;
+            flex-shrink: 1;
+        }
+        .export-item.is-image:hover .export-thumb,
+        .export-item.is-video:hover .export-item-icon {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+
+        /* ─── Image/Video viewer modal ─── */
+        .img-modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px);
+            z-index: 300;
+            align-items: center;
+            justify-content: center;
+        }
+        .img-modal-backdrop.open { display: flex; }
+
+        .img-modal-panel {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #1a1d26;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+            width: 80vw;
+            height: 85vh;
+            max-width: 1200px;
+            padding: 20px 20px 24px;
+        }
+
+        .img-modal-close {
+            position: absolute;
+            top: 12px; right: 12px;
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            color: var(--text-2);
+            font-size: 0.9em;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: background var(--ease), color var(--ease);
+            z-index: 20;
+        }
+        .img-modal-close:hover { background: var(--red-dim); color: var(--red); border-color: rgba(255,95,126,0.3); }
+
+        .img-modal-wrap {
+            position: relative;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 0;
+        }
+        .img-modal-wrap img,
+        .img-modal-video {
+            width: 70%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: var(--radius-sm);
+            display: block;
+            outline: none;
+        }
+
+        .img-nav {
+            position: absolute;
+            top: 0; bottom: 0;
+            width: 44px;
+            display: flex;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.18s ease;
+            z-index: 10;
+            cursor: pointer;
+            pointer-events: none;
+        }
+        .img-nav-left  { left: 0;  justify-content: flex-start; padding-left: 8px; }
+        .img-nav-right { right: 0; justify-content: flex-end;   padding-right: 8px; }
+        .img-modal-wrap:hover .img-nav { opacity: 1; }
+
+        .img-nav-btn {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            background: rgba(15,17,23,0.8);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 1.2em;
+            display: flex; align-items: center; justify-content: center;
+            transition: background var(--ease), transform var(--ease);
+            backdrop-filter: blur(6px);
+            cursor: pointer;
+            user-select: none;
+            pointer-events: all;
+        }
+        .img-nav-btn:hover { background: var(--surface-2); transform: scale(1.1); }
+        .img-nav.hidden { display: none; }
+
+        .img-modal-footer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            margin-top: 14px;
+            width: 100%;
+        }
+        .img-modal-dims {
+            font-size: 0.74em;
+            font-family: 'DM Mono', monospace;
+            color: var(--text-3);
+        }
+        .img-modal-name {
+            font-size: 0.82em;
+            font-family: 'DM Mono', monospace;
+            color: var(--text-2);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+        }
+        .img-modal-dl {
+            display: none; /* replaced by .img-modal-actions */
+        }
+
+        .img-modal-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .img-modal-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.8em;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: all var(--ease);
+            white-space: nowrap;
+        }
+        .img-modal-btn-image {
+            background: var(--accent-dim);
+            border-color: rgba(91,127,255,0.3);
+            color: var(--accent);
+        }
+        .img-modal-btn-image:hover { background: var(--accent); color: white; transform: translateY(-1px); }
+
+        .img-modal-btn-workflow {
+            background: var(--green-dim);
+            border-color: rgba(54,211,153,0.3);
+            color: var(--green);
+        }
+        .img-modal-btn-workflow:hover { background: var(--green); color: #0a1a13; transform: translateY(-1px); }
+
+        /* ─── Prompts panel ─── */
+        .img-prompts-panel {
+            width: 100%;
+            margin-top: 12px;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .img-prompts-panel::-webkit-scrollbar { width: 4px; }
+        .img-prompts-panel::-webkit-scrollbar-track { background: transparent; }
+        .img-prompts-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        .prompt-block {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .prompt-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.7em;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-3);
+        }
+        .prompt-label-positive { color: var(--green); }
+        .prompt-label-negative { color: var(--red); }
+
+        .prompt-copy-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.75em;
+            color: var(--text-3);
+            cursor: pointer;
+            font-family: inherit;
+            transition: all var(--ease);
+        }
+        .prompt-copy-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+        .prompt-copy-btn.copied { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+
+        .prompt-textarea {
+            width: 100%;
+            min-height: 64px;
+            max-height: 120px;
+            background: var(--bg);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-sm);
+            color: var(--text-2);
+            font-family: 'DM Mono', monospace;
+            font-size: 0.75em;
+            line-height: 1.5;
+            padding: 8px 10px;
+            resize: vertical;
+            outline: none;
+            transition: border-color var(--ease);
+        }
+        .prompt-textarea:focus { border-color: var(--accent); }
+        .prompt-textarea.is-negative { border-color: rgba(255,95,126,0.15); }
+        .prompt-textarea.is-negative:focus { border-color: var(--red); }
+
+        /* ─── Tile size slider ─── */
+        .tile-size-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .tile-size-control label {
+            font-size: 0.75em;
+            color: var(--text-3);
+            white-space: nowrap;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+        }
+        .tile-size-control input[type="range"] {
+            flex: 1;
+            max-width: 160px;
+            -webkit-appearance: none;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+        .tile-size-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid var(--bg);
+            box-shadow: 0 0 0 1px var(--accent);
+            cursor: pointer;
+            transition: transform var(--ease);
+        }
+        .tile-size-control input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        .tile-size-icon { font-size: 0.8em; color: var(--text-3); }
+
+        /* ─── Flash ─── */
+        .flash {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            margin-top: 12px;
+            border-radius: var(--radius-sm);
+            font-size: 0.85em;
+        }
+        .flash-success { background: var(--green-dim); color: var(--green); border: 1px solid rgba(54,211,153,0.2); }
+        .flash-error   { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(255,95,126,0.2); }
+{% endblock %}
+
+{% block page_header %}
+    <header class="page-header">
+        <div class="page-header-icon">📤</div>
+        <div>
+            <h1>Export File</h1>
+            <p>Browse, preview and download files from the workdir</p>
+        </div>
+    </header>
+{% endblock %}
+
+{% block content %}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;">
+        <!-- Path bar -->
+        <div class="export-path-bar">
+            <input type="text" id="export-path-input" placeholder="path/to/folder" autocomplete="off" spellcheck="false">
+            <button class="btn btn-ghost btn-sm" id="export-btn-browse" title="Browse">📁 Browse</button>
+            <button class="btn btn-primary btn-sm" id="export-btn-zip" title="Download ZIP">📦 Download ZIP</button>
+        </div>
+        <!-- Breadcrumb -->
+        <div id="export-breadcrumb" class="fb-breadcrumb">
+            <span class="crumb-root" data-path="">🏠 root</span>
+        </div>
+        <!-- Tile size slider -->
+        <div class="tile-size-control">
+            <span class="tile-size-icon">⊞</span>
+            <label for="tile-size-slider">Tile size</label>
+            <input type="range" id="tile-size-slider" min="80" max="280" value="120" step="10">
+            <span class="tile-size-icon">⊟</span>
+        </div>
+        <!-- File browser grid -->
+        <div id="export-browser" class="export-browser">
+            <div class="fb-empty" style="grid-column:1/-1">Enter a path or click Browse to explore folders.</div>
+        </div>
+        <div id="export-flash"></div>
+    </div>
+
+    <!-- Image / Video viewer modal -->
+    <div class="img-modal-backdrop" id="img-modal" onclick="imgModalBackdropClick(event)">
+        <div class="img-modal-panel">
+            <button class="img-modal-close" onclick="closeImageModal()" title="Close">✕</button>
+            <div class="img-modal-wrap">
+                <div class="img-nav img-nav-left"  id="img-nav-left">
+                    <div class="img-nav-btn" onclick="imgModalNav(-1)">‹</div>
+                </div>
+                <img id="img-modal-img" src="" alt="" onload="imgModalOnLoad(this)" style="display:none">
+                <video id="img-modal-video" class="img-modal-video" controls preload="metadata" style="display:none"></video>
+                <div class="img-nav img-nav-right" id="img-nav-right">
+                    <div class="img-nav-btn" onclick="imgModalNav(1)">›</div>
+                </div>
+            </div>
+            <div class="img-modal-footer">
+                <span class="img-modal-dims" id="img-modal-dims"></span>
+                <span class="img-modal-name" id="img-modal-name">—</span>
+                <div class="img-modal-actions">
+                    <button class="img-modal-btn img-modal-btn-workflow" id="img-modal-dl-workflow" style="display:none">
+                        ↓ Download Workflow
+                    </button>
+                    <a class="img-modal-btn img-modal-btn-image" id="img-modal-download" download>
+                        ↓ Download
+                    </a>
+                </div>
+                <!-- Prompts extracted from ComfyUI workflow -->
+                <div class="img-prompts-panel" id="img-prompts-panel"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Folder picker modal -->
+    <div class="img-modal-backdrop" id="folder-picker-modal" onclick="folderPickerBackdropClick(event)">
+        <div class="img-modal-panel" style="width:480px;height:auto;max-height:75vh;min-height:300px;">
+            <button class="img-modal-close" onclick="closeFolderPicker()" title="Close">✕</button>
+            <div style="width:100%;display:flex;flex-direction:column;gap:10px;overflow:hidden;flex:1;">
+                <div style="font-size:0.9em;font-weight:600;color:var(--text);padding-bottom:6px;border-bottom:1px solid var(--border);">
+                    📁 Select Folder
+                </div>
+                <div id="fp-breadcrumb" class="fb-breadcrumb" style="margin-bottom:0;"></div>
+                <div id="fp-list" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px;min-height:120px;max-height:340px;"></div>
+                <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:10px;border-top:1px solid var(--border);">
+                    <button class="btn btn-ghost btn-sm" onclick="closeFolderPicker()">Cancel</button>
+                    <button class="btn btn-primary btn-sm" onclick="confirmFolderPicker()">✓ Select This Folder</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+'use strict';
+
+const FLASH_TTL = 5000;
+let exportCurrentPath = '';
+
+const IMAGE_EXTS = new Set(['jpg','jpeg','png','gif','webp','bmp','svg','ico','tiff','avif']);
+const VIDEO_EXTS = new Set(['mp4','webm','ogg','mov','mkv','avi']);
+
+function extOf(name) {
+    const dot = name.lastIndexOf('.');
+    return dot >= 0 ? name.slice(dot + 1).toLowerCase() : '';
+}
+function isImage(name) { return IMAGE_EXTS.has(extOf(name)); }
+function isVideo(name) { return VIDEO_EXTS.has(extOf(name)); }
+
+function iconFor(name, isDir) {
+    if (isDir) return '📁';
+    const ext = extOf(name);
+    if (IMAGE_EXTS.has(ext)) return '🖼️';
+    const map = {
+        pdf: '📄', zip: '🗜️', tar: '🗜️', gz: '🗜️', '7z': '🗜️', rar: '🗜️',
+        mp4: '🎬', mkv: '🎬', avi: '🎬', mov: '🎬', webm: '🎬',
+        mp3: '🎵', wav: '🎵', flac: '🎵',
+        json: '📋', txt: '📝', md: '📝', csv: '📊',
+        py: '🐍', js: '📜', ts: '📜', html: '🌐', css: '🎨',
+        safetensors: '🧠', ckpt: '🧠', pt: '🧠', pth: '🧠',
+    };
+    return map[ext] ?? '📄';
+}
+
+function showFlash(message, type) {
+    const el = document.getElementById('export-flash');
+    el.innerHTML = `<div class="flash flash-${type}"><span>${type === 'success' ? '✓' : '✕'}</span><span>${message}</span></div>`;
+    setTimeout(() => { el.innerHTML = ''; }, FLASH_TTL);
+}
+
+async function apiFetch(url) {
+    const res = await fetch(url);
+    return res.json();
+}
+
+/* ── Browse ── */
+async function exportBrowse(path) {
+    exportCurrentPath = path ?? '';
+    document.getElementById('export-path-input').value = exportCurrentPath;
+    renderBreadcrumb(exportCurrentPath);
+
+    const browser = document.getElementById('export-browser');
+    browser.innerHTML = '<div class="fb-empty" style="grid-column:1/-1">Loading…</div>';
+
+    try {
+        const params = exportCurrentPath ? `?path=${encodeURIComponent(exportCurrentPath)}` : '';
+        const data = await apiFetch(`/api/files/browse${params}`);
+
+        if (data.error) {
+            browser.innerHTML = `<div class="fb-empty" style="grid-column:1/-1;color:var(--red)">${data.error}</div>`;
+            return;
+        }
+
+        const items = [
+            ...(data.folders ?? []).map(name => ({ name, isDir: true })),
+            ...(data.files   ?? []).map(name => ({ name, isDir: false })),
+        ];
+
+        if (items.length === 0) {
+            browser.innerHTML = '<div class="fb-empty" style="grid-column:1/-1">Empty folder</div>';
+            return;
+        }
+
+        browser.innerHTML = items.map(item => {
+            const isImg = !item.isDir && isImage(item.name);
+            const isVid = !item.isDir && isVideo(item.name);
+            const icon  = iconFor(item.name, item.isDir);
+            const filePath = (exportCurrentPath ? exportCurrentPath + '/' : '') + item.name;
+            const imgSrc = isImg ? `/api/files/preview?path=${encodeURIComponent(filePath)}` : null;
+            const vidSrc = isVid ? `/api/files/preview?path=${encodeURIComponent(filePath)}` : null;
+            const cls = `export-item${item.isDir ? ' is-dir' : ''}${isImg ? ' is-image' : ''}${isVid ? ' is-video' : ''}`;
+
+            return `<div class="${cls}"
+                         data-name="${item.name.replace(/"/g, '&quot;')}"
+                         data-src="${vidSrc ?? ''}"
+                         title="${item.name}${item.isDir ? '\nDouble-click to open' : ''}">
+                ${isImg
+                    ? `<img class="export-thumb" src="${imgSrc}" alt="${item.name}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'export-item-icon',textContent:'🖼️'}))">`
+                    : isVid
+                        ? `<canvas class="export-thumb export-vid-thumb" data-src="${vidSrc}"></canvas>`
+                        : `<span class="export-item-icon">${icon}</span>`}
+                <span class="export-item-name">${item.name}</span>
+            </div>`;
+        }).join('');
+
+        // Apply current tile size to newly rendered items
+        const sliderEl = document.getElementById('tile-size-slider');
+        if (sliderEl) {
+            const sz = +sliderEl.value;
+            browser.querySelectorAll('.export-item').forEach(el => {
+                el.style.width  = sz + 'px';
+                el.style.height = sz + 'px';
+            });
+        }
+
+        // Render first-frame thumbnails for videos
+        browser.querySelectorAll('canvas.export-vid-thumb').forEach(canvas => {
+            captureVideoFrame(canvas, canvas.dataset.src);
+        });
+
+        // Click — images & videos (unified list for navigation)
+        const mediaItems = [...browser.querySelectorAll('.export-item.is-image, .export-item.is-video')];
+        const mediaList  = mediaItems.map(e => ({
+            name: e.dataset.name,
+            path: (exportCurrentPath ? exportCurrentPath + '/' : '') + e.dataset.name,
+            src:  `/api/files/preview?path=${encodeURIComponent((exportCurrentPath ? exportCurrentPath + '/' : '') + e.dataset.name)}`,
+            type: e.classList.contains('is-video') ? 'video' : 'image',
+        }));
+
+        mediaItems.forEach((el, idx) => {
+            el.addEventListener('click', () => openMediaModal(mediaList, idx));
+        });
+
+        // Double-click — dirs
+        browser.querySelectorAll('.export-item.is-dir').forEach(el => {
+            el.addEventListener('dblclick', () => {
+                const next = exportCurrentPath ? `${exportCurrentPath}/${el.dataset.name}` : el.dataset.name;
+                exportBrowse(next);
+            });
+        });
+
+    } catch (e) {
+        browser.innerHTML = `<div class="fb-empty" style="grid-column:1/-1;color:var(--red)">Error: ${e.message}</div>`;
+    }
+}
+
+function renderBreadcrumb(path) {
+    const bc = document.getElementById('export-breadcrumb');
+    const parts = path ? path.split('/').filter(Boolean) : [];
+    let html = `<span class="crumb-root" data-path="">🏠 root</span>`;
+    parts.forEach((p, i) => {
+        const crumbPath = parts.slice(0, i + 1).join('/');
+        html += `<span class="crumb-sep">/</span><span class="crumb" data-path="${crumbPath}">${p}</span>`;
+    });
+    bc.innerHTML = html;
+    bc.querySelectorAll('[data-path]').forEach(el => {
+        el.addEventListener('click', () => exportBrowse(el.dataset.path));
+    });
+}
+
+/* ── ZIP download ── */
+async function exportDownloadZip() {
+    showFlash('Creating archive…', 'success');
+    try {
+        const params = exportCurrentPath ? `?path=${encodeURIComponent(exportCurrentPath)}` : '';
+        const res = await fetch(`/api/files/export-zip${params}`);
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: res.statusText }));
+            showFlash(err.error ?? 'Failed to create archive', 'error');
+            return;
+        }
+        const disposition = res.headers.get('Content-Disposition') ?? '';
+        const match = disposition.match(/filename[^;=\n]*=["']?([^"'\n]+)/i);
+        const filename = match ? match[1] : 'export.zip';
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), { href: url, download: filename });
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showFlash(`Downloaded: ${filename}`, 'success');
+    } catch (e) {
+        showFlash(`Error: ${e.message}`, 'error');
+    }
+}
+
+/* ── Media modal ── */
+let imgModalImages = [];
+let imgModalIndex  = 0;
+
+function openMediaModal(images, index) {
+    imgModalImages = images;
+    document.getElementById('img-modal').classList.add('open');
+    mediaShow(index);
+    document.addEventListener('keydown', imgModalKeyHandler);
+}
+
+function closeImageModal() {
+    const vidEl = document.getElementById('img-modal-video');
+    vidEl.pause(); vidEl.src = '';
+    document.getElementById('img-modal-img').src = '';
+    document.getElementById('img-modal').classList.remove('open');
+    document.removeEventListener('keydown', imgModalKeyHandler);
+}
+
+function imgModalBackdropClick(e) {
+    if (e.target === document.getElementById('img-modal')) closeImageModal();
+}
+
+function mediaShow(index) {
+    const item   = imgModalImages[index];
+    if (!item) return;
+    imgModalIndex = index;
+
+    const imgEl      = document.getElementById('img-modal-img');
+    const vidEl      = document.getElementById('img-modal-video');
+    const nameEl     = document.getElementById('img-modal-name');
+    const dimsEl     = document.getElementById('img-modal-dims');
+    const dlBtn      = document.getElementById('img-modal-download');
+    const wfBtn      = document.getElementById('img-modal-dl-workflow');
+
+    nameEl.textContent = item.name;
+    dimsEl.textContent = '';
+    dlBtn.href         = item.src;
+    dlBtn.download     = item.name;
+
+    // Hide workflow button while loading
+    wfBtn.style.display = 'none';
+    wfBtn.onclick = null;
+
+    if (item.type === 'video') {
+        imgEl.style.display = 'none';
+        vidEl.style.display = 'block';
+        dimsEl.textContent = 'Loading…';
+
+        // Clear prompts while loading
+        _currentPrompts = [];
+        renderPrompts([]);
+
+        vidEl.onloadedmetadata = null;
+        vidEl.onloadeddata = null;
+
+        const fillMeta = () => {
+            if (vidEl.videoWidth && vidEl.duration) imgModalOnVideoMeta(vidEl);
+        };
+        vidEl.onloadedmetadata = fillMeta;
+        vidEl.onloadeddata = fillMeta;
+
+        vidEl.src = item.src;
+        vidEl.load();
+        if (vidEl.readyState >= 1) fillMeta();
+
+        // Fetch server-side metadata (ffprobe) for ComfyUI prompt/workflow in Comment tag
+        const metaPath = item.path;
+        if (metaPath) {
+            fetch(`/api/files/meta?path=${encodeURIComponent(metaPath)}`)
+                .then(r => r.ok ? r.json() : null)
+                .then(meta => {
+                    if (!meta) return;
+
+                    // Show workflow download button — prefer meta.workflow, fall back to wrapping meta.prompt
+                    const workflowData = meta.workflow ?? (meta.prompt ? { prompt: meta.prompt } : null);
+                    if (workflowData) {
+                        wfBtn.style.display = 'inline-flex';
+                        wfBtn.onclick = () => downloadWorkflow(workflowData, item.name);
+                    }
+
+                    // Extract and render prompts.
+                    // VHS_VideoCombine stores the full workflow graph in Comment tag —
+                    // prefer extractPromptsFromWorkflow (handles WanVideoTextEncode + Textbox links).
+                    // Fall back to API prompt dict format if workflow graph is not available.
+                    let prompts = [];
+                    if (meta.workflow?.nodes) {
+                        prompts = extractPromptsFromWorkflow(meta.workflow);
+                    } else if (meta.prompt) {
+                        prompts = extractPromptsFromVideoMeta(meta.prompt);
+                    }
+                    if (prompts.length) {
+                        _currentPrompts = prompts;
+                        renderPrompts(_currentPrompts);
+                    }
+                })
+                .catch(() => {});
+        }
+    } else {
+        vidEl.style.display = 'none'; vidEl.pause(); vidEl.src = '';
+        imgEl.style.display = 'block';
+        imgEl.src = item.src;
+        imgEl.alt = item.name;
+
+        // Clear prompts while loading
+        _currentPrompts = [];
+        renderPrompts([]);
+
+        // Fetch image metadata from API (workflow, prompt, dims)
+        const metaPath = item.path;
+        if (metaPath) {
+            fetch(`/api/files/meta?path=${encodeURIComponent(metaPath)}`)
+                .then(r => r.ok ? r.json() : null)
+                .then(meta => {
+                    if (!meta) return;
+                    if (meta.width && meta.height) {
+                        dimsEl.textContent = `${meta.width} × ${meta.height} px`;
+                    }
+                    if (meta.workflow) {
+                        wfBtn.style.display = 'inline-flex';
+                        wfBtn.onclick = () => downloadWorkflow(meta.workflow, item.name);
+
+                        // Extract and render prompts
+                        _currentPrompts = extractPromptsFromWorkflow(meta.workflow);
+                        renderPrompts(_currentPrompts);
+                    }
+                })
+                .catch(() => {});
+        }
+    }
+
+    document.getElementById('img-nav-left').classList.toggle('hidden',  index === 0);
+    document.getElementById('img-nav-right').classList.toggle('hidden', index === imgModalImages.length - 1);
+}
+
+function imgModalOnLoad(img) {
+    // Only fill dims from natural size if meta API hasn't responded yet
+    const dimsEl = document.getElementById('img-modal-dims');
+    if (!dimsEl.textContent) {
+        dimsEl.textContent = `${img.naturalWidth} × ${img.naturalHeight} px`;
+    }
+}
+
+function downloadWorkflow(workflow, imageName) {
+    const baseName = imageName.replace(/\.[^.]+$/, '');
+    const json     = JSON.stringify(workflow, null, 2);
+    const blob     = new Blob([json], { type: 'application/json' });
+    const url      = URL.createObjectURL(blob);
+    const a        = Object.assign(document.createElement('a'), {
+        href:     url,
+        download: `${baseName}.json`,
+    });
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+/* ── Prompts extraction ── */
+
+/**
+ * Node types that carry text prompts, and how to extract them.
+ *
+ * prompt-format   = API dict { "node_id": { "class_type": "...", "inputs": {...} } }
+ * workflow-format = graph JSON { "nodes": [ { "type": "...", "widgets_values": [...] } ] }
+ *
+ * Supported encoders:
+ *   CLIPTextEncode          – standard; text in inputs.text / widgets_values[0]
+ *   WanVideoTextEncode      – WAN wrapper; positive_prompt & negative_prompt are separate
+ *                             named inputs; values may be inline strings or link refs
+ *   Textbox                 – plain text passthrough; widgets_values[0] is the text
+ *   CLIPTextEncodeSDXL      – SDXL variant; same layout as CLIPTextEncode
+ *   CLIPTextEncodeSD3       – SD3 variant; same layout as CLIPTextEncode
+ *   smZ CLIPTextEncode      – smZ fork; same layout as CLIPTextEncode
+ */
+
+const PROMPT_NODE_DESCRIPTORS = {
+    'CLIPTextEncode':     { kind: 'clip',    positiveInput: null,              negativeInput: null,              widgetIdx: 0 },
+    'CLIPTextEncodeSDXL': { kind: 'clip',    positiveInput: null,              negativeInput: null,              widgetIdx: 0 },
+    'CLIPTextEncodeSD3':  { kind: 'clip',    positiveInput: null,              negativeInput: null,              widgetIdx: 0 },
+    'smZ CLIPTextEncode': { kind: 'clip',    positiveInput: null,              negativeInput: null,              widgetIdx: 0 },
+    'WanVideoTextEncode': { kind: 'wan',     positiveInput: 'positive_prompt', negativeInput: 'negative_prompt', widgetIdx: null },
+    'Textbox':            { kind: 'textbox', positiveInput: null,              negativeInput: null,              widgetIdx: 0 },
+};
+
+/** Heuristic: does this text look like a negative prompt? */
+function looksNegative(text) {
+    return /worst quality|low quality|ugly|nsfw|censored|blurry|lowres|bad anatomy|[\u4e00-\u9fff]{3,}/.test(
+        text.toLowerCase()
+    );
+}
+
+/** Sort: positive first, negative last, others in between. */
+function sortPrompts(results) {
+    results.sort((a, b) => {
+        if (a.isPositive && !b.isPositive) return -1;
+        if (!a.isPositive && b.isPositive) return  1;
+        if (a.isNegative && !b.isNegative) return  1;
+        if (!a.isNegative && b.isNegative) return -1;
+        return 0;
+    });
+    return results;
+}
+
+// ── PROMPT-FORMAT parser ──────────────────────────────────────────────────────
+// API dict stored in MP4 Comment → meta.prompt
+// { "node_id": { "class_type": "...", "inputs": { ... } } }
+// Links inside inputs are [sourceNodeId, slotIndex] arrays.
+
+function resolvePromptValue(value, promptObj) {
+    if (typeof value === 'string') return value;
+
+    if (Array.isArray(value) && value.length >= 1) {
+        const srcId   = String(value[0]);
+        const srcNode = promptObj[srcId];
+        if (!srcNode) return null;
+
+        const srcClass = srcNode.class_type ?? '';
+        const desc     = PROMPT_NODE_DESCRIPTORS[srcClass];
+
+        // Textbox: follow its passthrough or text input recursively
+        if (desc?.kind === 'textbox') {
+            const pt = srcNode.inputs?.passthrough ?? srcNode.inputs?.text ?? null;
+            return resolvePromptValue(pt, promptObj);
+        }
+
+        // CLIPTextEncode-likes: text lives in inputs.text
+        if (srcNode.inputs?.text !== undefined) {
+            return resolvePromptValue(srcNode.inputs.text, promptObj);
+        }
+    }
+
+    return null;
+}
+
+function extractPromptsFromVideoMeta(promptObj) {
+    if (!promptObj || typeof promptObj !== 'object') return [];
+
+    const results = [];
+
+    for (const [nodeId, node] of Object.entries(promptObj)) {
+        const classType = node.class_type ?? '';
+        const desc      = PROMPT_NODE_DESCRIPTORS[classType];
+        if (!desc) continue;
+
+        // Textbox nodes are resolved as link targets only, not top-level prompts
+        if (desc.kind === 'textbox') continue;
+
+        if (desc.kind === 'wan') {
+            const posRaw  = node.inputs?.[desc.positiveInput];
+            const negRaw  = node.inputs?.[desc.negativeInput];
+            const posText = resolvePromptValue(posRaw, promptObj);
+            const negText = resolvePromptValue(negRaw, promptObj);
+
+            if (posText?.trim()) {
+                results.push({ title: 'Positive Prompt', text: posText.trim(), isPositive: true,  isNegative: false });
+            }
+            if (negText?.trim()) {
+                results.push({ title: 'Negative Prompt', text: negText.trim(), isPositive: false, isNegative: true  });
+            }
+        } else {
+            // clip / generic: single text input
+            const raw  = node.inputs?.text;
+            const text = resolvePromptValue(raw, promptObj);
+            if (!text?.trim()) continue;
+
+            results.push({
+                title:      `Prompt (node ${nodeId})`,
+                text:       text.trim(),
+                isPositive: false,
+                isNegative: looksNegative(text),
+            });
+        }
+    }
+
+    return sortPrompts(results);
+}
+
+// ── WORKFLOW-FORMAT parser ────────────────────────────────────────────────────
+// Graph JSON stored in PNG chunks or meta.workflow
+// { "nodes": [...], "links": [[linkId, srcNodeId, srcSlot, dstNodeId, dstSlot, type], ...] }
+
+function buildLinkMap(workflow) {
+    const nodeById = {};
+    for (const n of (workflow.nodes ?? [])) nodeById[n.id] = n;
+
+    const linkMap = {};
+    for (const link of (workflow.links ?? [])) {
+        const [linkId, srcNodeId] = link;
+        if (nodeById[srcNodeId]) linkMap[linkId] = nodeById[srcNodeId];
+    }
+    return linkMap;
+}
+
+function resolveWorkflowInput(inputDef, linkMap) {
+    if (!inputDef || inputDef.link == null) return null;
+
+    const srcNode = linkMap[inputDef.link];
+    if (!srcNode) return null;
+
+    const srcDesc = PROMPT_NODE_DESCRIPTORS[srcNode.type ?? '']
+                 ?? PROMPT_NODE_DESCRIPTORS[srcNode.properties?.['Node name for S&R'] ?? ''];
+
+    if (srcDesc) {
+        const text = srcNode.widgets_values?.[srcDesc.widgetIdx ?? 0];
+        return typeof text === 'string' ? text : null;
+    }
+
+    return null;
+}
+
+function extractPromptsFromWorkflow(workflow) {
+    const nodes   = workflow.nodes ?? [];
+    const linkMap = buildLinkMap(workflow);
+    const results = [];
+
+    for (const node of nodes) {
+        const nodeType = node.type ?? '';
+        const nodeSR   = node.properties?.['Node name for S&R'] ?? '';
+        const desc     = PROMPT_NODE_DESCRIPTORS[nodeType] ?? PROMPT_NODE_DESCRIPTORS[nodeSR];
+        if (!desc) continue;
+
+        // Textbox nodes are resolved as link targets only
+        if (desc.kind === 'textbox') continue;
+
+        if (desc.kind === 'wan') {
+            const inputsByName = {};
+            for (const inp of (node.inputs ?? [])) inputsByName[inp.name] = inp;
+
+            // widgets_values layout: [0] positive text, [1] negative text, [2+] other params
+            const posInput = inputsByName[desc.positiveInput];
+            const negInput = inputsByName[desc.negativeInput];
+
+            const posText = (posInput?.link != null ? resolveWorkflowInput(posInput, linkMap) : null)
+                         ?? (typeof node.widgets_values?.[0] === 'string' ? node.widgets_values[0] : null);
+            const negText = (negInput?.link != null ? resolveWorkflowInput(negInput, linkMap) : null)
+                         ?? (typeof node.widgets_values?.[1] === 'string' ? node.widgets_values[1] : null);
+
+            if (posText?.trim()) {
+                results.push({ title: node.title ?? 'Positive Prompt', text: posText.trim(), isPositive: true,  isNegative: false });
+            }
+            if (negText?.trim()) {
+                results.push({ title: 'Negative Prompt', text: negText.trim(), isPositive: false, isNegative: true  });
+            }
+        } else {
+            const text = node.widgets_values?.[desc.widgetIdx ?? 0];
+            if (typeof text !== 'string' || !text.trim()) continue;
+
+            const title      = node.title ?? 'Prompt';
+            const lowerTitle = title.toLowerCase();
+            results.push({
+                title,
+                text:       text.trim(),
+                isPositive: lowerTitle.includes('positive'),
+                isNegative: lowerTitle.includes('negative') || looksNegative(text),
+            });
+        }
+    }
+
+    return sortPrompts(results);
+}
+
+function renderPrompts(prompts) {
+    const panel = document.getElementById('img-prompts-panel');
+    if (!prompts.length) {
+        panel.style.display = 'none';
+        panel.innerHTML = '';
+        return;
+    }
+
+    panel.innerHTML = prompts.map((p, i) => {
+        const labelCls = p.isPositive
+            ? 'prompt-label prompt-label-positive'
+            : p.isNegative
+                ? 'prompt-label prompt-label-negative'
+                : 'prompt-label';
+        const areaCls = p.isNegative ? 'prompt-textarea is-negative' : 'prompt-textarea';
+        const escaped = p.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        return `<div class="prompt-block">
+            <div class="${labelCls}">
+                <span>${p.title}</span>
+                <button class="prompt-copy-btn" onclick="copyPrompt(this, ${i})">⎘ Copy</button>
+            </div>
+            <textarea class="${areaCls}" id="prompt-text-${i}" readonly>${escaped}</textarea>
+        </div>`;
+    }).join('');
+
+    panel.style.display = 'flex';
+}
+
+// Store prompts globally so copy handler can access them
+let _currentPrompts = [];
+
+function copyPrompt(btn, index) {
+    const text = _currentPrompts[index]?.text ?? '';
+    navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✓ Copied';
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.textContent = '⎘ Copy';
+            btn.classList.remove('copied');
+        }, 1800);
+    }).catch(() => {
+        // Fallback for non-HTTPS
+        const ta = document.getElementById(`prompt-text-${index}`);
+        if (ta) { ta.select(); document.execCommand('copy'); }
+    });
+}
+
+function imgModalOnVideoMeta(vid) {
+    const w   = vid.videoWidth;
+    const h   = vid.videoHeight;
+    const dur = vid.duration;
+    const dimsEl = document.getElementById('img-modal-dims');
+    if (!dimsEl) return;
+    const durStr = isFinite(dur)
+        ? new Date(dur * 1000).toISOString().slice(11, 19).replace(/^00:/, '')
+        : '?';
+    dimsEl.textContent = w && h ? `${w} × ${h} px  ·  ${durStr}` : `▶ ${durStr}`;
+}
+
+function imgModalNav(dir) {
+    const next = imgModalIndex + dir;
+    if (next >= 0 && next < imgModalImages.length) mediaShow(next);
+}
+
+function imgModalKeyHandler(e) {
+    if (!document.getElementById('img-modal').classList.contains('open')) return;
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); imgModalNav(-1); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); imgModalNav(1);  }
+    if (e.key === 'Escape')     { closeImageModal(); }
+}
+
+/* ── Video frame thumbnail ── */
+function captureVideoFrame(canvas, src) {
+    const vid = document.createElement('video');
+    vid.src = src;
+    vid.muted = true;
+    vid.preload = 'metadata';
+    vid.crossOrigin = 'anonymous';
+
+    const draw = () => {
+        if (!vid.videoWidth) return;
+        canvas.width  = vid.videoWidth;
+        canvas.height = vid.videoHeight;
+        canvas.getContext('2d').drawImage(vid, 0, 0);
+        // Override canvas intrinsic size attrs with CSS so flex can control sizing
+        canvas.style.width  = '100%';
+        canvas.style.height = '100%';
+        canvas.style.objectFit = 'cover';
+        vid.remove();
+    };
+
+    vid.addEventListener('loadeddata', () => {
+        vid.currentTime = 0;
+    });
+    vid.addEventListener('seeked', draw);
+    vid.addEventListener('loadedmetadata', () => {
+        // Some browsers fire seeked only after loadeddata; try draw immediately
+        if (vid.readyState >= 3) draw();
+    });
+    vid.addEventListener('error', () => {
+        // On failure replace canvas with icon
+        const icon = document.createElement('span');
+        icon.className = 'export-item-icon';
+        icon.textContent = '🎬';
+        canvas.replaceWith(icon);
+        vid.remove();
+    });
+
+    document.body.appendChild(vid);
+    vid.load();
+}
+
+
+/* ── Folder Picker Modal ── */
+let fpCurrentPath = '';
+
+async function openFolderPicker() {
+    fpCurrentPath = exportCurrentPath;
+    document.getElementById('folder-picker-modal').classList.add('open');
+    await fpLoad(fpCurrentPath);
+}
+
+function closeFolderPicker() {
+    document.getElementById('folder-picker-modal').classList.remove('open');
+}
+
+function folderPickerBackdropClick(e) {
+    if (e.target === document.getElementById('folder-picker-modal')) closeFolderPicker();
+}
+
+async function confirmFolderPicker() {
+    closeFolderPicker();
+    await exportBrowse(fpCurrentPath);
+}
+
+function fpRenderBreadcrumb(path) {
+    const bc = document.getElementById('fp-breadcrumb');
+    const parts = path ? path.split('/').filter(Boolean) : [];
+    let html = `<span class="crumb-root" style="cursor:pointer" onclick="fpLoad('')">🏠 root</span>`;
+    parts.forEach((p, i) => {
+        const cp = parts.slice(0, i + 1).join('/');
+        html += `<span class="crumb-sep">/</span><span class="crumb" style="cursor:pointer;color:var(--accent)" onclick="fpLoad('${cp.replace(/'/g, "\'")}')">${p}</span>`;
+    });
+    bc.innerHTML = html;
+}
+
+async function fpLoad(path) {
+    fpCurrentPath = path ?? '';
+    fpRenderBreadcrumb(fpCurrentPath);
+
+    const list = document.getElementById('fp-list');
+    list.innerHTML = '<div style="padding:12px;color:var(--text-3);font-size:0.82em;">Loading…</div>';
+
+    try {
+        const params = fpCurrentPath ? `?path=${encodeURIComponent(fpCurrentPath)}` : '';
+        const res = await fetch(`/api/files/browse${params}`);
+        const data = await res.json();
+
+        if (data.error) {
+            list.innerHTML = `<div style="padding:12px;color:var(--red);font-size:0.82em;">⚠ ${data.error}</div>`;
+            return;
+        }
+
+        const folders = data.folders ?? [];
+        if (folders.length === 0) {
+            list.innerHTML = '<div style="padding:12px;color:var(--text-3);font-size:0.82em;font-style:italic;">No subfolders here</div>';
+            return;
+        }
+
+        list.innerHTML = folders.map(name => {
+            const fp = fpCurrentPath ? `${fpCurrentPath}/${name}` : name;
+            return `<div onclick="fpLoad('${fp.replace(/'/g, "\'")}')"
+                        style="display:flex;align-items:center;gap:8px;padding:8px 10px;
+                               border-radius:var(--radius-sm);cursor:pointer;
+                               border:1px solid transparent;transition:all var(--ease);"
+                        onmouseover="this.style.background='var(--surface-2)';this.style.borderColor='var(--border)'"
+                        onmouseout="this.style.background='';this.style.borderColor='transparent'">
+                <span>📁</span>
+                <span style="font-size:0.85em;font-family:'DM Mono',monospace;color:var(--accent)">${name}</span>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        list.innerHTML = `<div style="padding:12px;color:var(--red);font-size:0.82em;">⚠ Error: ${e.message}</div>`;
+    }
+}
+
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('export-btn-browse').addEventListener('click', openFolderPicker);
+    document.getElementById('export-path-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') exportBrowse(e.target.value.trim());
+    });
+    document.getElementById('export-btn-zip').addEventListener('click', exportDownloadZip);
+
+    // Tile size slider
+    const slider = document.getElementById('tile-size-slider');
+    const browser = document.getElementById('export-browser');
+    function applyTileSize(val) {
+        browser.style.gridTemplateColumns = `repeat(auto-fill, ${val}px)`;
+        browser.querySelectorAll('.export-item').forEach(el => {
+            el.style.width  = val + 'px';
+            el.style.height = val + 'px';
+        });
+    }
+    slider.addEventListener('input', () => applyTileSize(+slider.value));
+
+    exportBrowse('');
+});
+</script>
+{% endblock %}

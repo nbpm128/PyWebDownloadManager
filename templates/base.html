@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ComfyDownloadManager{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
+          rel="stylesheet">
+    <style>
+        /* ─────────────────────────────────────────────────────────
+           DESIGN TOKENS
+        ───────────────────────────────────────────────────────── */
+        :root {
+            --bg:          #0f1117;
+            --surface:     #181c27;
+            --surface-2:   #1e2333;
+
+            --border:      #2a3048;
+            --border-soft: #222840;
+
+            --accent:      #5b7fff;
+            --accent-dim:  rgba(91, 127, 255, 0.12);
+            --accent-glow: rgba(91, 127, 255, 0.25);
+
+            --green:       #36d399;
+            --green-dim:   rgba(54, 211, 153, 0.12);
+            --red:         #ff5f7e;
+            --red-dim:     rgba(255, 95, 126, 0.12);
+            --yellow:      #fbbf24;
+            --yellow-dim:  rgba(251, 191, 36, 0.12);
+            --blue:        #60a5fa;
+            --blue-dim:    rgba(96, 165, 250, 0.10);
+            --purple:      #a78bfa;
+            --purple-dim:  rgba(167, 139, 250, 0.10);
+
+            --text:        #e2e8f8;
+            --text-2:      #8892b0;
+            --text-3:      #4a5580;
+
+            --radius:      12px;
+            --radius-sm:   8px;
+            --ease:        0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ─────────────────────────────────────────────────────────
+           RESET
+        ───────────────────────────────────────────────────────── */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px 16px 60px;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(91, 127, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(91, 127, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ─────────────────────────────────────────────────────────
+           NAVIGATION
+        ───────────────────────────────────────────────────────── */
+        .site-nav {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 20px;
+            padding: 6px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+        }
+
+        .site-nav a {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 0.82em;
+            font-weight: 500;
+            color: var(--text-2);
+            text-decoration: none;
+            transition: all var(--ease);
+            letter-spacing: 0.02em;
+        }
+
+        .site-nav a:hover {
+            background: var(--surface-2);
+            color: var(--text);
+        }
+
+        .site-nav a.active {
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid rgba(91, 127, 255, 0.2);
+        }
+
+        /* ─────────────────────────────────────────────────────────
+           PAGE HEADER
+        ───────────────────────────────────────────────────────── */
+        .page-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .page-header-icon {
+            width: 42px;
+            height: 42px;
+            flex-shrink: 0;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--accent-dim);
+            border: 1px solid rgba(91, 127, 255, 0.3);
+            border-radius: 10px;
+        }
+
+        .page-header h1 {
+            font-size: 1.5em;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .page-header p {
+            font-size: 0.85em;
+            color: var(--text-2);
+            margin-top: 2px;
+        }
+
+        .page-header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        /* ─────────────────────────────────────────────────────────
+           BUTTONS
+        ───────────────────────────────────────────────────────── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 18px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.85em;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            letter-spacing: 0.02em;
+            transition: all var(--ease);
+        }
+
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: #7093ff; transform: translateY(-1px); box-shadow: 0 4px 16px var(--accent-glow); }
+
+        .btn-success { background: var(--green); color: #0a1a13; }
+        .btn-success:hover { background: #4de8af; transform: translateY(-1px); }
+
+        .btn-ghost { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
+        .btn-ghost:hover { background: var(--border); color: var(--text); }
+
+        .btn-danger { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255, 95, 126, 0.2); }
+        .btn-danger:hover { background: rgba(255, 95, 126, 0.2); }
+
+        .btn-sm { padding: 6px 12px; font-size: 0.8em; }
+
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+
+        .btn-copy {
+            flex-shrink: 0;
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1px 5px;
+            font-size: 0.8em;
+            line-height: 1.4;
+            color: var(--text-3);
+            cursor: pointer;
+            transition: all var(--ease);
+        }
+        .btn-copy:hover  { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+        .btn-copy.copied { border-color: var(--green);  color: var(--green);  background: var(--green-dim); }
+
+        /* ─────────────────────────────────────────────────────────
+           FLASH MESSAGES
+        ───────────────────────────────────────────────────────── */
+        .flash {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            margin-top: 12px;
+            border-radius: var(--radius-sm);
+            font-size: 0.85em;
+        }
+        .flash-success { background: var(--green-dim);  color: var(--green); border: 1px solid rgba(54, 211, 153, 0.2); }
+        .flash-error   { background: var(--red-dim);    color: var(--red);   border: 1px solid rgba(255, 95, 126, 0.2); }
+
+        /* ─────────────────────────────────────────────────────────
+           SHARED COMPONENTS
+        ───────────────────────────────────────────────────────── */
+        .empty-state      { text-align: center; padding: 60px 20px; }
+        .empty-state-icon { font-size: 3em; margin-bottom: 12px; opacity: 0.25; }
+        .empty-state p    { font-size: 0.9em; color: var(--text-3); line-height: 1.7; }
+
+        .section-label {
+            font-size: 0.7em;
+            font-weight: 600;
+            color: var(--text-3);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding-bottom: 6px;
+            margin-bottom: 4px;
+            border-bottom: 1px solid var(--border-soft);
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--green-dim);
+            border: 1px solid rgba(54, 211, 153, 0.2);
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 500;
+            color: var(--green);
+        }
+
+        .status-pill-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: blink 2s ease infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ─── Delete modal ─── */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-backdrop.open { display: flex; }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            width: 360px;
+            max-width: calc(100vw - 32px);
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+            animation: modalIn 0.15s ease;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.96) translateY(-8px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .modal-title {
+            font-size: 0.95em;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        .modal-subtitle {
+            font-size: 0.78em;
+            color: var(--text-3);
+            font-family: 'DM Mono', monospace;
+            margin-bottom: 20px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .modal-checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            background: var(--red-dim);
+            border: 1px solid rgba(255, 95, 126, 0.2);
+            border-radius: var(--radius-sm);
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+        .modal-checkbox-row input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            accent-color: var(--red);
+            cursor: pointer;
+        }
+        .modal-checkbox-label {
+            font-size: 0.82em;
+            color: var(--red);
+            font-weight: 500;
+            user-select: none;
+        }
+
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+        {% block extra_styles %}{% endblock %}
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <nav class="site-nav">
+        <a href="/dashboard" {% if active_page== 'dashboard' %}class="active"{% endif %}>📊 Dashboard</a>
+        <a href="/dm" {% if active_page== 'dm' %}class="active"{% endif %}>📦 Downloads</a>
+        <a href="/export" {% if active_page== 'export' %}class="active"{% endif %}>📤 Export</a>
+    </nav>
+
+    {% block page_header %}{% endblock %}
+
+    {% block content %}{% endblock %}
+
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>
