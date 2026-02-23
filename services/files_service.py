@@ -134,25 +134,35 @@ class FilesService:
 
     def get_preview(self, path: str) -> PreviewResult:
         """
-        Read and return a previewable file.
+        Read and return a file for preview or download.
+
+        For image/video extensions the file is served directly (browser can render it).
+        For any other extension the file is served as ``application/octet-stream``
+        so the browser will offer a download — this enables the Download button in
+        the file modal for unsupported types like .bin, .safetensors, etc.
 
         Raises
         ------
         FileNotFoundError – path does not resolve to an existing file.
-        PermissionError   – extension not in PREVIEW_EXTS.
         """
         target = self.get_safe_path(path)
         if not target or not target.is_file():
             logger.warning("Preview requested for non-existent file | path=%s", path)
             raise FileNotFoundError(f"File not found: {path!r}")
-        if target.suffix.lower() not in PREVIEW_EXTS:
-            logger.warning(
-                "Preview not supported for extension | path=%s | ext=%s",
-                path, target.suffix,
-            )
-            raise PermissionError(f"Preview not supported for extension {target.suffix!r}")
 
         media_type, _ = mimetypes.guess_type(str(target))
+
+        if target.suffix.lower() not in PREVIEW_EXTS:
+            logger.debug(
+                "Serving binary download for unsupported extension | path=%s | ext=%s",
+                path, target.suffix,
+            )
+            return PreviewResult(
+                content=target.read_bytes(),
+                media_type=media_type or "application/octet-stream",
+                cache_max_age=0,
+            )
+
         logger.debug("Serving preview | path=%s | media_type=%s", path, media_type)
         return PreviewResult(
             content=target.read_bytes(),

@@ -639,12 +639,7 @@
                 </div>
             </div>
 
-            <div class="downloads-list" id="downloads-list">
-                <div class="empty-state">
-                    <div class="empty-state-icon">📭</div>
-                    <p>No downloads in queue</p>
-                </div>
-            </div>
+            <div class="downloads-list" id="downloads-list"></div>
             <div id="queue-flash"></div>
         </div>
 
@@ -1254,7 +1249,89 @@ document.getElementById('delete-modal-confirm').addEventListener('click', async 
 
 function renderDownloads() {
     const list = document.getElementById('downloads-list');
-    list.innerHTML = downloads.length === 0 ? emptyStateHtml('📭', 'No downloads in queue') : downloads.map(downloadCardHtml).join('');
+
+    if (downloads.length === 0) {
+        list.innerHTML = emptyStateHtml('📭', 'No downloads in queue');
+        return;
+    }
+
+    // Remove cards whose tasks are gone
+    const activeIds = new Set(downloads.map(d => d.task_id));
+    list.querySelectorAll('.download-card[data-task-id]').forEach(card => {
+        if (!activeIds.has(card.dataset.taskId)) card.remove();
+    });
+
+    downloads.forEach((dl, i) => {
+        const existing = list.querySelector(`.download-card[data-task-id="${dl.task_id}"]`);
+        if (!existing) {
+            // Insert new card at the correct position
+            const tmp = document.createElement('div');
+            tmp.innerHTML = downloadCardHtml(dl);
+            const newCard = tmp.firstElementChild;
+            const cards = list.querySelectorAll('.download-card');
+            if (cards[i]) list.insertBefore(newCard, cards[i]);
+            else list.appendChild(newCard);
+        } else {
+            // Patch only the parts that change — text selection is preserved
+            patchCard(existing, dl);
+        }
+    });
+}
+
+function patchCard(card, dl) {
+    const pct      = dl.total_bytes > 0 ? Math.round((dl.downloaded_bytes / dl.total_bytes) * 100) : Math.round(dl.percentage ?? 0);
+    const isActive = dl.status === 'downloading';
+
+    // Progress bar
+    const fill = card.querySelector('.progress-fill');
+    if (fill) {
+        fill.style.width = pct + '%';
+        fill.classList.toggle('active',    isActive);
+        fill.classList.toggle('completed', dl.status === 'completed');
+    }
+
+    // Progress text
+    const spans = card.querySelectorAll('.progress-text span');
+    if (spans.length >= 2) {
+        const chip = isActive
+            ? `<span class="dl-speed">⚡ ${formatSpeed(dl._speed)}</span>`
+            : `<span class="dl-speed idle">${dl.status === 'completed' ? '✓ done' : dl.status}</span>`;
+        spans[0].innerHTML = `${pct}% &nbsp;${chip}`;
+        spans[1].textContent = `${formatBytes(dl.downloaded_bytes)} / ${formatBytes(dl.total_bytes)}`;
+    }
+
+    // Status badge
+    const badge = card.querySelector('.badge');
+    if (badge && badge.textContent.trim() !== dl.status) {
+        badge.textContent = dl.status;
+        badge.className   = `badge badge-${dl.status}`;
+    }
+
+    // Action buttons — only re-render on status change
+    if (card.dataset.status !== dl.status) {
+        card.dataset.status = dl.status;
+        const actions = card.querySelector('.dl-actions');
+        if (actions) actions.innerHTML = buildActionsHtml(dl);
+    }
+
+    // Error message
+    let errEl = card.querySelector('.dl-error');
+    if (dl.error_message) {
+        if (!errEl) { errEl = document.createElement('div'); errEl.className = 'dl-error'; card.appendChild(errEl); }
+        if (errEl.textContent !== dl.error_message) errEl.textContent = dl.error_message;
+    } else if (errEl) {
+        errEl.remove();
+    }
+}
+
+function buildActionsHtml(dl) {
+    const isActive = dl.status === 'downloading';
+    return `
+        ${ dl.status === 'pending' || dl.status === 'paused' ? `<button class="btn btn-sm btn-ghost" onclick="resumeDownload('${dl.task_id}')">▶️</button>` : '' }
+        ${ isActive ? `<button class="btn btn-sm btn-ghost" onclick="pauseDownload('${dl.task_id}')">⏸️</button>` : '' }
+        ${ dl.status === 'completed' && (dl.file_name ?? '').toLowerCase().endsWith('.zip') ? `<button class="btn btn-sm btn-ghost" title="Extract ZIP" onclick="extractDownload('${dl.task_id}', this)">📦</button>` : '' }
+        <button class="btn btn-sm btn-danger" onclick="deleteDownload('${dl.task_id}')">🗑️</button>
+    `;
 }
 
 function downloadCardHtml(dl) {
@@ -1271,7 +1348,7 @@ function downloadCardHtml(dl) {
         : `<span class="dl-speed idle">${dl.status === 'completed' ? '✓ done' : dl.status}</span>`;
 
     return `
-        <div class="download-card">
+        <div class="download-card" data-task-id="${dl.task_id}" data-status="${dl.status}">
             <div class="dl-top">
                 <div class="dl-info">
                     <div class="dl-filename" title="${fileName}">${fileName}</div>
@@ -1295,10 +1372,7 @@ function downloadCardHtml(dl) {
                     </div>
                 </div>
                 <div class="dl-actions">
-                    ${ dl.status === 'pending' || dl.status === 'paused' ? `<button class="btn btn-sm btn-ghost" onclick="resumeDownload('${dl.task_id}')">▶️</button>` : '' }
-                    ${ isActive ? `<button class="btn btn-sm btn-ghost" onclick="pauseDownload('${dl.task_id}')">⏸️</button>` : '' }
-                    ${ dl.status === 'completed' && (dl.file_name ?? '').toLowerCase().endsWith('.zip') ? `<button class="btn btn-sm btn-ghost" title="Extract ZIP" onclick="extractDownload('${dl.task_id}', this)">📦</button>` : '' }
-                    <button class="btn btn-sm btn-danger" onclick="deleteDownload('${dl.task_id}')">🗑️</button>
+                    ${ buildActionsHtml(dl) }
                 </div>
             </div>
             ${ dl.error_message ? `<div class="dl-error">${dl.error_message}</div>` : '' }
