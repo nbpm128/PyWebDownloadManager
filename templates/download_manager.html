@@ -1255,6 +1255,10 @@ function renderDownloads() {
         return;
     }
 
+    // Clear empty state if present
+    const emptyState = list.querySelector('.empty-state');
+    if (emptyState) emptyState.remove();
+
     // Remove cards whose tasks are gone
     const activeIds = new Set(downloads.map(d => d.task_id));
     list.querySelectorAll('.download-card[data-task-id]').forEach(card => {
