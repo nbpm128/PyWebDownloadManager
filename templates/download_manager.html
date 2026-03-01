@@ -213,10 +213,48 @@
             background: var(--bg);
             border-top: 1px solid var(--border);
         }
+        /* Collapsed state for preset content */
+        .preset-node-content.collapsed { display: none; }
 
         .preset-node-info { flex: 1; min-width: 0; }
         .preset-node-name { font-size: 0.9em; font-weight: 600; color: var(--text); margin-bottom: 2px; }
         .preset-node-desc { font-size: 0.75em; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* ── Collapse/Expand button for presets ── */
+        .preset-collapse-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            flex-shrink: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.82em;
+            color: var(--text-2);
+            cursor: pointer;
+            user-select: none;
+            transition: background var(--ease), border-color var(--ease), color var(--ease), transform 0.2s ease;
+            z-index: 1;
+        }
+        .preset-collapse-btn:hover {
+            background: var(--accent-dim);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .preset-collapse-btn.is-collapsed {
+            color: var(--accent);
+            border-color: var(--accent);
+            background: var(--accent-dim);
+        }
+        /* SVG icons inside collapse btn */
+        .preset-collapse-btn svg {
+            width: 14px; height: 14px;
+            transition: transform 0.2s ease;
+            pointer-events: none;
+        }
+        .preset-collapse-btn.is-collapsed svg { transform: rotate(-90deg); }
 
         /* ─────────────────────────────────────────────────────────
            DOWNLOAD NODE (inside preset)
@@ -285,7 +323,7 @@
         .tree-empty { padding: 12px; text-align: center; font-size: 0.85em; font-style: italic; color: var(--text-3); }
 
         /* ─────────────────────────────────────────────────────────
-           SELECTION BAR (fixed bottom)
+           SELECTION BAR (fixed bottom) — Presets
         ───────────────────────────────────────────────────────── */
         .selection-bar {
             position: fixed;
@@ -374,6 +412,28 @@
 
         .queue-controls { display: flex; gap: 6px; flex-shrink: 0; }
 
+        /* ─── Queue multi-select toolbar ─── */
+        .queue-select-toolbar {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(91, 127, 255, 0.08);
+            border: 1px solid rgba(91, 127, 255, 0.25);
+            border-radius: var(--radius-sm);
+            margin-bottom: 12px;
+            animation: tabIn 0.15s ease;
+        }
+        .queue-select-toolbar.active { display: flex; }
+
+        .queue-select-count {
+            font-size: 0.82em;
+            font-weight: 600;
+            color: var(--accent);
+            font-family: 'DM Mono', monospace;
+            flex: 1;
+        }
+
         /* ─────────────────────────────────────────────────────────
            DOWNLOAD CARDS
         ───────────────────────────────────────────────────────── */
@@ -387,9 +447,25 @@
             transition: border-color var(--ease);
         }
         .download-card:hover { border-color: var(--accent); }
+        .download-card.queue-selected {
+            border-color: var(--accent);
+            background: rgba(91, 127, 255, 0.05);
+            box-shadow: 0 0 0 1px rgba(91, 127, 255, 0.2);
+        }
 
         .dl-top  { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
         .dl-info { flex: 1; min-width: 0; }
+
+        /* queue card checkbox */
+        .dl-select-checkbox {
+            width: 18px; height: 18px;
+            flex-shrink: 0;
+            margin-top: 1px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            display: none; /* shown when select mode active */
+        }
+        .queue-select-mode .dl-select-checkbox { display: block; }
 
         .dl-filename {
             font-size: 0.85em;
@@ -581,6 +657,15 @@
                 <button class="btn btn-primary" id="btn-load-presets"><span>🔄</span><span>Load Presets</span></button>
                 <button class="btn btn-ghost"   id="btn-select-all">  <span>☑️</span><span>Select All</span></button>
                 <button class="btn btn-ghost"   id="btn-deselect-all"><span>⬜</span><span>Deselect All</span></button>
+                <!-- Global collapse/expand all presets -->
+                <button class="btn btn-ghost"   id="btn-collapse-all" title="Collapse all presets">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="10" y1="14" x2="21" y2="3"></line><line x1="3" y1="21" x2="14" y2="10"></line></svg>
+                    <span>Collapse All</span>
+                </button>
+                <button class="btn btn-ghost"   id="btn-expand-all" title="Expand all presets">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                    <span>Expand All</span>
+                </button>
                 <input type="text" id="preset-search" class="preset-search" placeholder="🔍 Search presets...">
             </div>
             <div id="presets-container">
@@ -637,6 +722,34 @@
                     </div>
                     <div class="queue-row-spacer"></div>
                 </div>
+                <!-- Row 3: select-all checkbox + select mode toggle -->
+                <div class="queue-row" id="queue-select-row">
+                    <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.8em;color:var(--text-2);user-select:none;">
+                        <input type="checkbox" id="queue-select-all-cb" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
+                        <span>Select all</span>
+                    </label>
+                    <div class="queue-row-spacer"></div>
+                </div>
+            </div>
+
+            <!-- Multi-select action toolbar (appears when items selected) -->
+            <div class="queue-select-toolbar" id="queue-select-toolbar">
+                <span class="queue-select-count" id="queue-select-count-text">0 selected</span>
+                <button class="btn btn-success btn-sm" id="btn-queue-start-selected">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right:4px"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    Start Selected
+                </button>
+                <button class="btn btn-ghost btn-sm" id="btn-queue-stop-selected">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right:4px"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                    Stop Selected
+                </button>
+                <button class="btn btn-danger btn-sm" id="btn-queue-delete-selected">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4h6v2"></path></svg>
+                    Delete Selected
+                </button>
+                <button class="btn btn-ghost btn-sm" id="btn-queue-clear-selection" style="margin-left:auto;">
+                    ✕ Clear
+                </button>
             </div>
 
             <div class="downloads-list" id="downloads-list"></div>
@@ -726,7 +839,7 @@
 
     </div><!-- /.tab-card -->
 
-    <!-- Selection bar (fixed bottom) -->
+    <!-- Selection bar (fixed bottom) — Presets tab -->
     <div class="selection-bar" id="selection-bar">
         <div class="selection-info">
             <span class="selection-count"   id="selection-count">0 presets selected</span>
@@ -783,6 +896,12 @@ let globalAuthConfigs  = {};
 let selectedKeys       = new Set();
 let downloads          = [];
 let speedTracker       = {};
+
+/* ── Queue multi-select state ── */
+let queueSelectedIds = new Set();
+
+/* ── Preset collapse state (pid → collapsed bool) ── */
+let presetCollapseState = {};
 
 /* ── Formatting ── */
 function formatSize(bytes, suffix = '') {
@@ -943,19 +1062,27 @@ function renderPresets() {
     attachCheckboxListeners(container);
 }
 
+/* SVG icons for collapse button */
+const ICON_COLLAPSE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>`;
+const ICON_EXPAND   = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+
 function presetNodeHtml(preset, depth) {
     const pid        = String(preset.id ?? preset.name);
     const subPresets = preset.presets  ?? [];
     const dlList     = preset.downloads ?? [];
     const hasContent = subPresets.length > 0 || dlList.length > 0;
     const headerMod  = depth > 0 ? ' nested' : '';
+    const isCollapsed = !!presetCollapseState[pid];
+    const collapsedClass = isCollapsed ? ' collapsed' : '';
+    const collapseIcon   = isCollapsed ? ICON_EXPAND : ICON_COLLAPSE;
+    const collapseBtnClass = isCollapsed ? ' is-collapsed' : '';
 
     const contentHtml = hasContent
-        ? `<div class="preset-node-content">
+        ? `<div class="preset-node-content${collapsedClass}">
                 ${ subPresets.length > 0 ? `<div class="section-label">📁 Sub-presets (${subPresets.length})</div><div class="tree-list">${subPresets.map(s => presetNodeHtml(s, depth + 1)).join('')}</div>` : '' }
                 ${ dlList.length > 0     ? `<div class="section-label">⬇️ Downloads (${dlList.length})</div><div class="tree-list">${dlList.map((dl, i) => downloadNodeHtml(dl, pid, i)).join('')}</div>` : '' }
            </div>`
-        : `<div class="preset-node-content"><div class="tree-empty">No downloads or sub-presets</div></div>`;
+        : `<div class="preset-node-content${collapsedClass}"><div class="tree-empty">No downloads or sub-presets</div></div>`;
 
     return `
         <div class="preset-node" data-preset-id="${pid}">
@@ -966,6 +1093,7 @@ function presetNodeHtml(preset, depth) {
                     <div class="preset-node-name">${preset.name ?? pid}</div>
                     <div class="preset-node-desc">${preset.description ?? 'No description'}</div>
                 </div>
+                ${ hasContent ? `<button class="preset-collapse-btn${collapseBtnClass}" data-preset-id="${pid}" title="${isCollapsed ? 'Expand' : 'Collapse'}">${collapseIcon}</button>` : '' }
             </div>
             ${contentHtml}
         </div>`;
@@ -1014,13 +1142,82 @@ function emptyStateHtml(icon, text) {
     return `<div class="empty-state"><div class="empty-state-icon">${icon}</div><p>${text}</p></div>`;
 }
 
-/* ── Tree toggle ── */
+/* ── Tree toggle (download node detail expand/collapse) ── */
 function toggleNode(toggleEl) {
     const nodeEl    = toggleEl.closest('.preset-node, .download-node');
     const contentEl = nodeEl.querySelector(':scope > .preset-node-content, :scope > .download-node-content');
     const isOpen    = contentEl.style.display !== 'none';
     contentEl.style.display = isOpen ? 'none' : '';
     toggleEl.textContent    = isOpen ? '▶' : '▼';
+}
+
+/* ── Preset collapse/expand ── */
+function togglePresetCollapse(btn) {
+    const pid = btn.dataset.presetId;
+    const nodeEl = btn.closest('.preset-node');
+    if (!nodeEl) return;
+
+    const contentEl = nodeEl.querySelector(':scope > .preset-node-content');
+    if (!contentEl) return;
+
+    const isCollapsed = !presetCollapseState[pid];
+    presetCollapseState[pid] = isCollapsed;
+
+    // Ensure content itself is visible
+    contentEl.style.display = '';
+    contentEl.classList.remove('collapsed');
+
+    // Toggle all direct child preset-nodes and download-nodes
+    contentEl.querySelectorAll(':scope > .tree-list > .preset-node, :scope > .tree-list > .download-node').forEach(childNode => {
+        const childContent = childNode.querySelector(':scope > .preset-node-content, :scope > .download-node-content');
+        const childToggle  = childNode.querySelector(':scope > .preset-node-header > .tree-toggle, :scope > .download-node-header > .tree-toggle');
+        if (!childContent || !childToggle) return;
+
+        const isOpen = childContent.style.display !== 'none';
+        if (isCollapsed && isOpen) {
+            childContent.style.display = 'none';
+            childToggle.textContent = '▶';
+        } else if (!isCollapsed && childContent.style.display === 'none') {
+            childContent.style.display = '';
+            childToggle.textContent = '▼';
+        }
+    });
+
+    btn.classList.toggle('is-collapsed', isCollapsed);
+    btn.innerHTML = isCollapsed ? ICON_EXPAND : ICON_COLLAPSE;
+    btn.title = isCollapsed ? 'Expand' : 'Collapse';
+}
+
+function setAllPresetsCollapsed(collapsed) {
+    function walk(list) {
+        for (const p of list) {
+            presetCollapseState[String(p.id ?? p.name)] = collapsed;
+            walk(p.presets ?? []);
+        }
+    }
+    walk(presets);
+
+    document.querySelectorAll('.preset-collapse-btn').forEach(btn => {
+        const nodeEl   = btn.closest('.preset-node');
+        const contentEl = nodeEl?.querySelector(':scope > .preset-node-content');
+        if (!contentEl) return;
+
+        contentEl.style.display = '';
+        contentEl.classList.remove('collapsed');
+
+        contentEl.querySelectorAll(':scope > .tree-list > .preset-node, :scope > .tree-list > .download-node').forEach(childNode => {
+            const childContent = childNode.querySelector(':scope > .preset-node-content, :scope > .download-node-content');
+            const childToggle  = childNode.querySelector(':scope > .preset-node-header > .tree-toggle, :scope > .download-node-header > .tree-toggle');
+            if (!childContent || !childToggle) return;
+
+            childContent.style.display = collapsed ? 'none' : '';
+            childToggle.textContent    = collapsed ? '▶' : '▼';
+        });
+
+        btn.classList.toggle('is-collapsed', collapsed);
+        btn.innerHTML = collapsed ? ICON_EXPAND : ICON_COLLAPSE;
+        btn.title     = collapsed ? 'Expand' : 'Collapse';
+    });
 }
 
 /* ── Selection ── */
@@ -1111,9 +1308,14 @@ async function loadDownloads() {
         });
         const activeIds = new Set(data.tasks.map(d => d.task_id));
         Object.keys(speedTracker).forEach(id => { if (!activeIds.has(id)) delete speedTracker[id]; });
+        // Clean up selection for removed tasks
+        for (const id of [...queueSelectedIds]) {
+            if (!activeIds.has(id)) queueSelectedIds.delete(id);
+        }
         downloads = data.tasks;
         renderDownloads();
         updateQueueStats();
+        syncQueueSelectUI();
     } catch (err) { console.error('loadDownloads error:', err); }
 }
 
@@ -1137,6 +1339,50 @@ window.extractDownload = async (taskId, btn) => {
         btn.textContent = '📦';
     }
 };
+
+/* ── Queue multi-select ── */
+function syncQueueSelectUI() {
+    const list = document.getElementById('downloads-list');
+    const toolbar = document.getElementById('queue-select-toolbar');
+    const hasSelection = queueSelectedIds.size > 0;
+
+    // Show/hide toolbar
+    toolbar.classList.toggle('active', hasSelection);
+    document.getElementById('queue-select-count-text').textContent =
+        `${queueSelectedIds.size} item${queueSelectedIds.size !== 1 ? 's' : ''} selected`;
+
+    // Sync select mode class on list
+    list.classList.toggle('queue-select-mode', true);
+
+    // Sync checkboxes
+    list.querySelectorAll('.dl-select-checkbox').forEach(cb => {
+        const taskId = cb.dataset.taskId;
+        cb.checked = queueSelectedIds.has(taskId);
+    });
+
+    // Sync selected class on cards
+    list.querySelectorAll('.download-card').forEach(card => {
+        card.classList.toggle('queue-selected', queueSelectedIds.has(card.dataset.taskId));
+    });
+
+    // Sync select-all checkbox
+    const selectAllCb = document.getElementById('queue-select-all-cb');
+    if (downloads.length > 0 && queueSelectedIds.size === downloads.length) {
+        selectAllCb.checked = true;
+        selectAllCb.indeterminate = false;
+    } else if (queueSelectedIds.size > 0) {
+        selectAllCb.checked = false;
+        selectAllCb.indeterminate = true;
+    } else {
+        selectAllCb.checked = false;
+        selectAllCb.indeterminate = false;
+    }
+}
+
+function onQueueCheckboxChange(taskId, checked) {
+    checked ? queueSelectedIds.add(taskId) : queueSelectedIds.delete(taskId);
+    syncQueueSelectUI();
+}
 
 /* ── Folder browser ── */
 
@@ -1200,7 +1446,6 @@ function selectFolderItem(el, path) {
 function selectFolder() {
     const input = document.getElementById('download-path');
     const current = input.value.trim();
-    // Append folder path, preserve filename if present
     const fileName = current.split('/').pop();
     const hasExt = fileName.includes('.');
     input.value = hasExt ? `${_browserPath}/${fileName}` : _browserPath;
@@ -1212,37 +1457,62 @@ function selectFolder() {
 /* ── Delete with confirmation ── */
 
 let _deleteTaskId = null;
+let _deleteTaskIds = null; // for batch delete
 
 window.deleteDownload = (id) => {
     _deleteTaskId = id;
+    _deleteTaskIds = null;
     const dl = downloads.find(d => d.task_id === id);
     document.getElementById('delete-modal-filename').textContent = dl?.file_name ?? id;
     document.getElementById('delete-file-checkbox').checked = false;
     document.getElementById('delete-modal').classList.add('open');
 };
 
+function openBatchDeleteModal(ids) {
+    _deleteTaskIds = ids;
+    _deleteTaskId = null;
+    document.getElementById('delete-modal-filename').textContent = `${ids.length} download${ids.length !== 1 ? 's' : ''}`;
+    document.getElementById('delete-file-checkbox').checked = false;
+    document.getElementById('delete-modal').classList.add('open');
+}
+
 function closeDeleteModal(e) {
     if (e && e.target !== document.getElementById('delete-modal')) return;
     document.getElementById('delete-modal').classList.remove('open');
     _deleteTaskId = null;
+    _deleteTaskIds = null;
 }
 
 document.getElementById('delete-modal-confirm').addEventListener('click', async () => {
-    if (!_deleteTaskId) return;
     const deleteFile = document.getElementById('delete-file-checkbox').checked;
     document.getElementById('delete-modal').classList.remove('open');
-    try {
-        const data = await apiFetch(
-            `/api/downloads/${_deleteTaskId}/delete`,
-            'POST',
-            { delete_file: deleteFile }
-        );
-        if (data.success) await loadDownloads();
-        else showFlash('queue', data.message ?? 'Delete failed', 'error');
-    } catch {
-        showFlash('queue', 'Error deleting download', 'error');
+
+    if (_deleteTaskIds) {
+        // Batch delete
+        const ids = _deleteTaskIds;
+        _deleteTaskIds = null;
+        let errors = 0;
+        for (const id of ids) {
+            try {
+                const data = await apiFetch(`/api/downloads/${id}/delete`, 'POST', { delete_file: deleteFile });
+                if (!data.success) errors++;
+            } catch { errors++; }
+        }
+        queueSelectedIds.clear();
+        await loadDownloads();
+        if (errors) showFlash('queue', `Deleted with ${errors} error(s)`, 'error');
+        else showFlash('queue', `Deleted ${ids.length} download(s)`, 'success');
+    } else if (_deleteTaskId) {
+        const id = _deleteTaskId;
+        _deleteTaskId = null;
+        try {
+            const data = await apiFetch(`/api/downloads/${id}/delete`, 'POST', { delete_file: deleteFile });
+            if (data.success) await loadDownloads();
+            else showFlash('queue', data.message ?? 'Delete failed', 'error');
+        } catch {
+            showFlash('queue', 'Error deleting download', 'error');
+        }
     }
-    _deleteTaskId = null;
 });
 
 /* ── Render download queue ── */
@@ -1259,6 +1529,9 @@ function renderDownloads() {
     const emptyState = list.querySelector('.empty-state');
     if (emptyState) emptyState.remove();
 
+    // Always show checkboxes (select mode always active)
+    list.classList.add('queue-select-mode');
+
     // Remove cards whose tasks are gone
     const activeIds = new Set(downloads.map(d => d.task_id));
     list.querySelectorAll('.download-card[data-task-id]').forEach(card => {
@@ -1268,15 +1541,16 @@ function renderDownloads() {
     downloads.forEach((dl, i) => {
         const existing = list.querySelector(`.download-card[data-task-id="${dl.task_id}"]`);
         if (!existing) {
-            // Insert new card at the correct position
             const tmp = document.createElement('div');
             tmp.innerHTML = downloadCardHtml(dl);
             const newCard = tmp.firstElementChild;
             const cards = list.querySelectorAll('.download-card');
             if (cards[i]) list.insertBefore(newCard, cards[i]);
             else list.appendChild(newCard);
+            // Attach checkbox listener
+            const cb = newCard.querySelector('.dl-select-checkbox');
+            if (cb) cb.addEventListener('change', () => onQueueCheckboxChange(dl.task_id, cb.checked));
         } else {
-            // Patch only the parts that change — text selection is preserved
             patchCard(existing, dl);
         }
     });
@@ -1318,6 +1592,11 @@ function patchCard(card, dl) {
         if (actions) actions.innerHTML = buildActionsHtml(dl);
     }
 
+    // Sync selection state
+    card.classList.toggle('queue-selected', queueSelectedIds.has(dl.task_id));
+    const cb = card.querySelector('.dl-select-checkbox');
+    if (cb) cb.checked = queueSelectedIds.has(dl.task_id);
+
     // Error message
     let errEl = card.querySelector('.dl-error');
     if (dl.error_message) {
@@ -1346,14 +1625,16 @@ function downloadCardHtml(dl) {
     const url      = dl.url ?? '';
     const hash     = dl.expected_hash ?? dl.checksum ?? '';
     const safeUrl  = url.replace(/'/g, "\\'");
+    const isSelected = queueSelectedIds.has(dl.task_id);
 
     const speedChip = isActive
         ? `<span class="dl-speed">⚡ ${formatSpeed(dl._speed)}</span>`
         : `<span class="dl-speed idle">${dl.status === 'completed' ? '✓ done' : dl.status}</span>`;
 
     return `
-        <div class="download-card" data-task-id="${dl.task_id}" data-status="${dl.status}">
+        <div class="download-card${isSelected ? ' queue-selected' : ''}" data-task-id="${dl.task_id}" data-status="${dl.status}">
             <div class="dl-top">
+                <input type="checkbox" class="dl-select-checkbox" data-task-id="${dl.task_id}" ${isSelected ? 'checked' : ''}>
                 <div class="dl-info">
                     <div class="dl-filename" title="${fileName}">${fileName}</div>
                     ${ savePath ? `<div class="dl-meta-row"><span class="dl-meta-label">Path:</span><span class="dl-meta-val">${savePath}</span></div>` : '' }
@@ -1423,7 +1704,6 @@ async function submitAddDownloadForm(e) {
     try { if (hdrsRaw) headers = JSON.parse(hdrsRaw); } catch { showFlash('add', 'Invalid headers JSON', 'error'); return; }
     try { if (cookRaw) cookies = JSON.parse(cookRaw); } catch { showFlash('add', 'Invalid cookies JSON', 'error'); return; }
 
-    // Разбираем путь: пусто / только папка / папка+файл
     let folder_path = null, file_name = null;
     if (rawPath) {
         const parts = rawPath.split('/');
@@ -1434,7 +1714,6 @@ async function submitAddDownloadForm(e) {
             file_name   = last;
             folder_path = parts.slice(0, -1).join('/') || null;
         } else {
-            // нет расширения — всё считается папкой
             folder_path = rawPath;
         }
     }
@@ -1516,15 +1795,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    document.getElementById('presets-container').addEventListener('click', e => {
+    // Preset tree: toggle detail nodes + collapse buttons
+     document.getElementById('presets-container').addEventListener('click', e => {
+        // Collapse/expand button for preset — must check FIRST
+        const collapseBtn = e.target.closest('.preset-collapse-btn');
+        if (collapseBtn) {
+            e.stopPropagation();
+            togglePresetCollapse(collapseBtn);
+            return;
+        }
+        // Detail toggle — skip if inside preset header (only for download-node)
         const toggle = e.target.closest('.tree-toggle');
-        if (toggle) toggleNode(toggle);
+        if (toggle) {
+            // Only toggle download-node content, not preset-node content
+            const downloadNode = toggle.closest('.download-node');
+            if (downloadNode) {
+                toggleNode(toggle);
+            } else {
+                // For preset-node, tree-toggle also opens/closes content via toggleNode
+                toggleNode(toggle);
+            }
+        }
     });
 
     document.getElementById('btn-load-presets').addEventListener('click', loadPresets);
     document.getElementById('btn-select-all').addEventListener('click', () => { setSelectionAll(true); renderPresets(); updateSelectionBar(); });
     document.getElementById('btn-deselect-all').addEventListener('click', () => { selectedKeys.clear(); renderPresets(); updateSelectionBar(); });
     document.getElementById('preset-search').addEventListener('input', renderPresets);
+
+    // Global collapse/expand all
+    document.getElementById('btn-collapse-all').addEventListener('click', () => setAllPresetsCollapsed(true));
+    document.getElementById('btn-expand-all').addEventListener('click',   () => setAllPresetsCollapsed(false));
 
     document.getElementById('btn-add-selected').addEventListener('click', async () => {
         const toAdd = collectSelectedDownloads();
@@ -1553,6 +1854,54 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!val || val < 1) return;
         const data = await apiFetch('/api/downloads/set-concurrency', 'POST', { max_concurrent: val });
         showFlash('queue', data.success ? `Workers set to ${val}` : (data.error ?? 'Failed'), data.success ? 'success' : 'error');
+    });
+
+    // Queue select-all checkbox
+    document.getElementById('queue-select-all-cb').addEventListener('change', function() {
+        if (this.checked) {
+            downloads.forEach(dl => queueSelectedIds.add(dl.task_id));
+        } else {
+            queueSelectedIds.clear();
+        }
+        syncQueueSelectUI();
+    });
+
+    // Queue: delegate checkbox change on dynamically rendered cards
+    document.getElementById('downloads-list').addEventListener('change', e => {
+        const cb = e.target.closest('.dl-select-checkbox');
+        if (cb) onQueueCheckboxChange(cb.dataset.taskId, cb.checked);
+    });
+
+    // Queue multi-select action buttons
+    document.getElementById('btn-queue-stop-selected').addEventListener('click', async () => {
+        const ids = [...queueSelectedIds];
+        if (!ids.length) return;
+        for (const id of ids) {
+            try { await apiFetch(`/api/downloads/${id}/pause`, 'POST'); } catch {}
+        }
+        showFlash('queue', `Stopped ${ids.length} download(s)`, 'success');
+        await loadDownloads();
+    });
+
+    document.getElementById('btn-queue-start-selected').addEventListener('click', async () => {
+        const ids = [...queueSelectedIds];
+        if (!ids.length) return;
+        for (const id of ids) {
+            try { await apiFetch(`/api/downloads/${id}/resume`, 'POST'); } catch {}
+        }
+        showFlash('queue', `Started ${ids.length} download(s)`, 'success');
+        await loadDownloads();
+    });
+
+    document.getElementById('btn-queue-delete-selected').addEventListener('click', () => {
+        const ids = [...queueSelectedIds];
+        if (!ids.length) return;
+        openBatchDeleteModal(ids);
+    });
+
+    document.getElementById('btn-queue-clear-selection').addEventListener('click', () => {
+        queueSelectedIds.clear();
+        syncQueueSelectUI();
     });
 
     document.getElementById('add-download-form').addEventListener('submit', submitAddDownloadForm);
