@@ -1569,13 +1569,16 @@ function patchCard(card, dl) {
     }
 
     // Progress text
-    const spans = card.querySelectorAll('.progress-text span');
-    if (spans.length >= 2) {
+    const spanPct   = card.querySelector('.progress-text [data-pt="pct"]');
+    const spanBytes = card.querySelector('.progress-text [data-pt="bytes"]');
+    if (spanPct) {
         const chip = isActive
             ? `<span class="dl-speed">⚡ ${formatSpeed(dl._speed)}</span>`
             : `<span class="dl-speed idle">${dl.status === 'completed' ? '✓ done' : dl.status}</span>`;
-        spans[0].innerHTML = `${pct}% &nbsp;${chip}`;
-        spans[1].textContent = `${formatBytes(dl.downloaded_bytes)} / ${formatBytes(dl.total_bytes)}`;
+        spanPct.innerHTML = `${pct}% &nbsp;${chip}`;
+    }
+    if (spanBytes) {
+        spanBytes.textContent = `${formatBytes(dl.downloaded_bytes)} / ${formatBytes(dl.total_bytes)}`;
     }
 
     // Status badge
@@ -1652,8 +1655,8 @@ function downloadCardHtml(dl) {
                         <div class="progress-fill ${isActive ? 'active' : ''} ${dl.status === 'completed' ? 'completed' : ''}" style="width:${pct}%"></div>
                     </div>
                     <div class="progress-text">
-                        <span>${pct}% &nbsp;${speedChip}</span>
-                        <span>${formatBytes(dl.downloaded_bytes)} / ${formatBytes(dl.total_bytes)}</span>
+                        <span data-pt="pct">${pct}% &nbsp;${speedChip}</span>
+                        <span data-pt="bytes">${formatBytes(dl.downloaded_bytes)} / ${formatBytes(dl.total_bytes)}</span>
                     </div>
                 </div>
                 <div class="dl-actions">
