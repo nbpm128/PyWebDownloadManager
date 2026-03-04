@@ -1421,16 +1421,16 @@ function presetNodeHtml(preset, depth) {
     const hasContent = subPresets.length > 0 || dlList.length > 0;
     const headerMod  = depth > 0 ? ' nested' : '';
     const isCollapsed = !!presetCollapseState[pid];
-    const collapsedClass = isCollapsed ? ' collapsed' : '';
+    const collapsedStyle = isCollapsed ? ' style="display:none"' : '';
     const collapseIcon   = isCollapsed ? ICON_EXPAND : ICON_COLLAPSE;
     const collapseBtnClass = isCollapsed ? ' is-collapsed' : '';
 
     const contentHtml = hasContent
-        ? `<div class="preset-node-content${collapsedClass}">
-                ${ subPresets.length > 0 ? `<div class="section-label">📁 Sub-presets (${subPresets.length})</div><div class="tree-list">${subPresets.map(s => presetNodeHtml(s, depth + 1)).join('')}</div>` : '' }
-                ${ dlList.length > 0     ? `<div class="section-label">⬇️ Downloads (${dlList.length})</div><div class="tree-list">${dlList.map((dl, i) => downloadNodeHtml(dl, pid, i)).join('')}</div>` : '' }
-           </div>`
-        : `<div class="preset-node-content${collapsedClass}"><div class="tree-empty">No downloads or sub-presets</div></div>`;
+    ? `<div class="preset-node-content"${collapsedStyle}>
+            ${ subPresets.length > 0 ? `<div class="section-label">📁 Presets (${subPresets.length})</div><div class="tree-list">${subPresets.map(s => presetNodeHtml(s, depth + 1)).join('')}</div>` : '' }
+            ${ dlList.length > 0     ? `<div class="section-label">⬇️ Downloads (${dlList.length})</div><div class="tree-list">${dlList.map((dl, i) => downloadNodeHtml(dl, pid, i)).join('')}</div>` : '' }
+       </div>`
+    : `<div class="preset-node-content"${collapsedStyle}><div class="tree-empty">No downloads or presets</div></div>`;
 
     return `
         <div class="preset-node" data-preset-id="${pid}">
@@ -1492,11 +1492,31 @@ function emptyStateHtml(icon, text) {
 
 /* ── Tree toggle (download node detail expand/collapse) ── */
 function toggleNode(toggleEl) {
-    const nodeEl    = toggleEl.closest('.preset-node, .download-node');
-    const contentEl = nodeEl.querySelector(':scope > .preset-node-content, :scope > .download-node-content');
-    const isOpen    = contentEl.style.display !== 'none';
-    contentEl.style.display = isOpen ? 'none' : '';
-    toggleEl.textContent    = isOpen ? '▶' : '▼';
+    const presetNode = toggleEl.closest('.preset-node');
+    const downloadNode = toggleEl.closest('.download-node');
+
+    if (presetNode && toggleEl.closest('.preset-node-header')) {
+        const pid = presetNode.dataset.presetId;
+        const contentEl = presetNode.querySelector(':scope > .preset-node-content');
+        if (!contentEl) return;
+        const isNowOpen = contentEl.style.display !== 'none';
+        presetCollapseState[pid] = isNowOpen;
+        contentEl.style.display = isNowOpen ? 'none' : '';
+        toggleEl.textContent = isNowOpen ? '▶' : '▼';
+
+    /*    const collapseBtn = presetNode.querySelector(':scope > .preset-node-header > .preset-collapse-btn');
+        if (collapseBtn) {
+            collapseBtn.classList.toggle('is-collapsed', isNowOpen);
+            collapseBtn.innerHTML = isNowOpen ? ICON_EXPAND : ICON_COLLAPSE;
+            collapseBtn.title = isNowOpen ? 'Expand' : 'Collapse';
+        }*/
+    } else if (downloadNode) {
+        const contentEl = downloadNode.querySelector(':scope > .download-node-content');
+        if (!contentEl) return;
+        const isOpen = contentEl.style.display !== 'none';
+        contentEl.style.display = isOpen ? 'none' : '';
+        toggleEl.textContent = isOpen ? '▶' : '▼';
+    }
 }
 
 /* ── Preset collapse/expand ── */
@@ -1508,32 +1528,39 @@ function togglePresetCollapse(btn) {
     const contentEl = nodeEl.querySelector(':scope > .preset-node-content');
     if (!contentEl) return;
 
-    const isCollapsed = !presetCollapseState[pid];
-    presetCollapseState[pid] = isCollapsed;
+    const firstChild = contentEl.querySelector('.preset-node-content, .download-node-content');
+    const isCurrentlyCollapsed = firstChild ? firstChild.style.display === 'none' : false;
+    const willCollapse = !isCurrentlyCollapsed;
 
-    // Ensure content itself is visible
-    contentEl.style.display = '';
-    contentEl.classList.remove('collapsed');
-
-    // Toggle all direct child preset-nodes and download-nodes
-    contentEl.querySelectorAll(':scope > .tree-list > .preset-node, :scope > .tree-list > .download-node').forEach(childNode => {
-        const childContent = childNode.querySelector(':scope > .preset-node-content, :scope > .download-node-content');
-        const childToggle  = childNode.querySelector(':scope > .preset-node-header > .tree-toggle, :scope > .download-node-header > .tree-toggle');
-        if (!childContent || !childToggle) return;
-
-        const isOpen = childContent.style.display !== 'none';
-        if (isCollapsed && isOpen) {
-            childContent.style.display = 'none';
-            childToggle.textContent = '▶';
-        } else if (!isCollapsed && childContent.style.display === 'none') {
-            childContent.style.display = '';
-            childToggle.textContent = '▼';
-        }
+    contentEl.querySelectorAll('.preset-node-content').forEach(el => {
+        el.style.display = willCollapse ? 'none' : '';
     });
 
-    btn.classList.toggle('is-collapsed', isCollapsed);
-    btn.innerHTML = isCollapsed ? ICON_EXPAND : ICON_COLLAPSE;
-    btn.title = isCollapsed ? 'Expand' : 'Collapse';
+    contentEl.querySelectorAll('.download-node-content').forEach(el => {
+        el.style.display = willCollapse ? 'none' : '';
+    });
+
+    contentEl.querySelectorAll('.preset-node-header > .tree-toggle').forEach(t => {
+        t.textContent = willCollapse ? '▶' : '▼';
+    });
+    contentEl.querySelectorAll('.download-node-header > .tree-toggle').forEach(t => {
+        t.textContent = willCollapse ? '▶' : '▼';
+    });
+
+    contentEl.querySelectorAll('.preset-collapse-btn').forEach(b => {
+        b.classList.toggle('is-collapsed', willCollapse);
+        b.innerHTML = willCollapse ? ICON_EXPAND : ICON_COLLAPSE;
+        b.title = willCollapse ? 'Expand' : 'Collapse';
+    });
+
+    btn.classList.toggle('is-collapsed', willCollapse);
+    btn.innerHTML = willCollapse ? ICON_EXPAND : ICON_COLLAPSE;
+    btn.title = willCollapse ? 'Expand' : 'Collapse';
+
+    contentEl.querySelectorAll('.preset-node').forEach(childNode => {
+        const childPid = childNode.dataset.presetId;
+        if (childPid) presetCollapseState[childPid] = willCollapse;
+    });
 }
 
 function setAllPresetsCollapsed(collapsed) {
@@ -1545,26 +1572,23 @@ function setAllPresetsCollapsed(collapsed) {
     }
     walk(presets);
 
-    document.querySelectorAll('.preset-collapse-btn').forEach(btn => {
-        const nodeEl   = btn.closest('.preset-node');
-        const contentEl = nodeEl?.querySelector(':scope > .preset-node-content');
-        if (!contentEl) return;
+    document.querySelectorAll('.preset-node').forEach(nodeEl => {
+        const pid = nodeEl.dataset.presetId;
+        const contentEl = nodeEl.querySelector(':scope > .preset-node-content');
+        const treeToggle = nodeEl.querySelector(':scope > .preset-node-header > .tree-toggle');
+        const btn = nodeEl.querySelector(':scope > .preset-node-header > .preset-collapse-btn');
 
-        contentEl.style.display = '';
-        contentEl.classList.remove('collapsed');
-
-        contentEl.querySelectorAll(':scope > .tree-list > .preset-node, :scope > .tree-list > .download-node').forEach(childNode => {
-            const childContent = childNode.querySelector(':scope > .preset-node-content, :scope > .download-node-content');
-            const childToggle  = childNode.querySelector(':scope > .preset-node-header > .tree-toggle, :scope > .download-node-header > .tree-toggle');
-            if (!childContent || !childToggle) return;
-
-            childContent.style.display = collapsed ? 'none' : '';
-            childToggle.textContent    = collapsed ? '▶' : '▼';
-        });
-
-        btn.classList.toggle('is-collapsed', collapsed);
-        btn.innerHTML = collapsed ? ICON_EXPAND : ICON_COLLAPSE;
-        btn.title     = collapsed ? 'Expand' : 'Collapse';
+        if (contentEl) {
+            contentEl.style.display = collapsed ? 'none' : '';
+        }
+        if (treeToggle) {
+            treeToggle.textContent = collapsed ? '▶' : '▼';
+        }
+        if (btn) {
+            btn.classList.toggle('is-collapsed', collapsed);
+            btn.innerHTML = collapsed ? ICON_EXPAND : ICON_COLLAPSE;
+            btn.title = collapsed ? 'Expand' : 'Collapse';
+        }
     });
 }
 

@@ -5,2335 +5,457 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Preset Config Editor</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
     <style>
       :root {
-        --bg: #080a10;
-        --surface: #0e1118;
-        --surface-2: #141820;
-        --surface-3: #1a1f2c;
-        --surface-4: #1f2535;
-        --border: rgba(255, 255, 255, 0.06);
-        --border-soft: rgba(255, 255, 255, 0.035);
-        --border-mid: rgba(255, 255, 255, 0.1);
-        --text: #e8ecf4;
-        --text-2: #8fa0b8;
-        --text-3: #4a5670;
-        --accent: #4f7eff;
-        --accent-dim: rgba(79, 126, 255, 0.09);
-        --accent-glow: rgba(79, 126, 255, 0.2);
-        --green: #34d399;
-        --green-dim: rgba(52, 211, 153, 0.08);
-        --red: #f4637a;
-        --red-dim: rgba(244, 99, 122, 0.08);
-        --yellow: #f5bf4f;
-        --yellow-dim: rgba(245, 191, 79, 0.08);
-        --purple: #a78bfa;
-        --purple-dim: rgba(167, 139, 250, 0.09);
-        --orange: #f97316;
-        --orange-dim: rgba(249, 115, 22, 0.08);
-        --radius: 8px;
-        --radius-sm: 5px;
-        --ease: 0.15s ease;
-        --font-ui: "Inter", system-ui, sans-serif;
-        --font-mono: "JetBrains Mono", "Fira Code", monospace;
-      }
-      *,
-      *::before,
-      *::after {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-      html,
-      body,
-      #root {
-        height: 100%;
-      }
-      body {
-        background: var(--bg);
-        color: var(--text);
-        font-family: var(--font-ui);
-        font-size: 13.5px;
-        line-height: 1.6;
-        overflow: hidden;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
-      ::-webkit-scrollbar {
-        width: 3px;
-        height: 3px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: var(--surface-4);
-        border-radius: 99px;
-      }
-
-      /* ── Collapse animation ── */
-      .collapsible-wrapper {
-        display: grid;
-        grid-template-rows: 0fr;
-        transition: grid-template-rows 0.26s cubic-bezier(0.4, 0, 0.2, 1);
-        overflow: hidden;
-      }
-      .collapsible-wrapper.open {
-        grid-template-rows: 1fr;
-      }
-      .collapsible-inner {
-        min-height: 0;
-        overflow: hidden;
-      }
-
-      /* ── Layout ── */
-      .app {
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-      }
-      .header {
-        height: 50px;
-        background: var(--surface);
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        align-items: center;
-        padding: 0 18px;
-        gap: 10px;
-        flex-shrink: 0;
-      }
-      .header-title {
-        font-size: 14.5px;
-        font-weight: 700;
-        letter-spacing: -0.3px;
-        flex: 1;
-      }
-      .header-title b {
-        color: var(--accent);
-        font-weight: 800;
-      }
-      .header-title small {
-        font-family: var(--font-mono);
-        font-size: 10px;
-        color: var(--text-3);
-        font-weight: 400;
-        margin-left: 8px;
-      }
-      .body {
-        display: flex;
-        flex: 1;
-        overflow: hidden;
-      }
-      .sidebar {
-        width: 270px;
-        flex-shrink: 0;
-        background: var(--surface);
-        border-right: 1px solid var(--border);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      }
-      .sidebar-head {
-        padding: 10px 13px;
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        align-items: center;
-        font-size: 10.5px;
-        font-weight: 700;
-        color: var(--text-3);
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        gap: 6px;
-      }
-      .sidebar-head-actions {
-        margin-left: auto;
-      }
-      .tree {
-        flex: 1;
-        overflow-y: auto;
-        padding: 3px 0;
-      }
-      .main {
-        flex: 1;
-        overflow-y: auto;
-        padding: 24px 28px;
-      }
-
-      /* ── Buttons ── */
-      .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 6px 13px;
-        border-radius: var(--radius-sm);
-        border: 1px solid var(--border);
-        background: var(--surface-2);
-        color: var(--text-2);
-        font-family: var(--font-ui);
-        font-size: 12.5px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all var(--ease);
-        white-space: nowrap;
-        line-height: 1;
-        outline: none;
-        letter-spacing: -0.1px;
-      }
-      .btn:hover {
-        background: var(--surface-3);
-        color: var(--text);
-        border-color: var(--border-mid);
-      }
-      .btn.primary {
-        background: var(--accent);
-        color: #fff;
-        border-color: var(--accent);
-      }
-      .btn.primary:hover {
-        background: #3b6ef0;
-      }
-      .btn.success {
-        background: var(--green);
-        color: #021a0c;
-        border-color: var(--green);
-        font-weight: 700;
-      }
-      .btn.success:hover {
-        background: #28c487;
-      }
-      .btn.danger {
-        background: transparent;
-        color: var(--red);
-        border-color: rgba(244, 99, 122, 0.25);
-      }
-      .btn.danger:hover {
-        background: var(--red);
-        color: #fff;
-        border-color: var(--red);
-      }
-      .btn.ghost {
-        background: transparent;
-      }
-      .btn.add {
-        background: transparent;
-        color: var(--green);
-        border: 1px dashed rgba(52, 211, 153, 0.35);
-        font-size: 11.5px;
-        padding: 4px 9px;
-      }
-      .btn.add:hover {
-        background: var(--green-dim);
-        border-color: var(--green);
-      }
-      .btn.sm {
-        padding: 4px 9px;
-        font-size: 11.5px;
-      }
-      .btn.orange {
-        background: transparent;
-        color: var(--orange);
-        border-color: rgba(249, 115, 22, 0.25);
-      }
-      .btn.orange:hover {
-        background: var(--orange);
-        color: #fff;
-        border-color: var(--orange);
-      }
-
-      /* ── Tree nodes ── */
-      .tree-node {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        cursor: pointer;
-        border-left: 2px solid transparent;
-        color: var(--text-2);
-        font-size: 13px;
-        transition:
-          background var(--ease),
-          color var(--ease);
-        user-select: none;
-        position: relative;
-      }
-      .tree-node:hover {
-        background: var(--surface-2);
-        color: var(--text);
-      }
-      .tree-node.active {
-        background: var(--accent-dim);
-        color: var(--accent);
-        border-left-color: var(--accent);
-      }
-      .tree-node.special {
-        color: var(--yellow);
-      }
-      .tree-node.special:hover {
-        background: var(--yellow-dim);
-      }
-      .tree-node.special.active {
-        background: var(--yellow-dim);
-        border-left-color: var(--yellow);
-      }
-      .tree-node.d0 {
-        font-weight: 700;
-      }
-      .tree-node.d1 {
-        padding-left: 22px;
-      }
-      .tree-node.d2 {
-        padding-left: 36px;
-        font-size: 12.5px;
-      }
-      .tree-node.d3 {
-        padding-left: 50px;
-        font-size: 12px;
-      }
-      .tree-node.d4 {
-        padding-left: 64px;
-        font-size: 11.5px;
-      }
-      .tn-arrow {
-        font-size: 7px;
-        width: 10px;
-        text-align: center;
-        color: var(--text-3);
-        flex-shrink: 0;
-        transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      .tn-arrow.open {
-        transform: rotate(90deg);
-      }
-      .tn-icon {
-        font-size: 12px;
-        flex-shrink: 0;
-      }
-      .tn-label {
-        flex: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .tn-badge {
-        font-size: 10px;
-        color: var(--text-3);
-        background: var(--surface-3);
-        padding: 1px 5px;
-        border-radius: 3px;
-        flex-shrink: 0;
-        font-family: var(--font-mono);
-      }
-      .tree-sep {
-        height: 1px;
-        background: var(--border);
-        margin: 3px 10px;
-      }
-
-      /* ── Section card ── */
-      .card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        margin-bottom: 14px;
-        overflow: hidden;
-      }
-      .card-head {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 14px;
-        background: var(--surface-2);
-        border-bottom: 1px solid var(--border);
-      }
-      .card-title {
-        flex: 1;
-        font-size: 10.5px;
-        font-weight: 700;
-        color: var(--text-2);
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-      }
-      .card-body {
-        padding: 16px;
-      }
-
-      /* ── Fields ── */
-      .field {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-      }
-      .field label {
-        font-size: 10.5px;
-        font-weight: 600;
-        color: var(--text-3);
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-      }
-      .field input,
-      .field textarea,
-      .field select {
-        width: 100%;
-        background: var(--bg);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        padding: 8px 10px;
-        font-family: var(--font-mono);
-        font-size: 12.5px;
-        color: var(--text);
-        outline: none;
-        transition:
-          border-color var(--ease),
-          box-shadow var(--ease);
-      }
-      .field select {
-        appearance: none;
-        cursor: pointer;
-      }
-      .field select option {
-        background: var(--surface-2);
-        color: var(--text);
-      }
-      .field input:focus,
-      .field textarea:focus,
-      .field select:focus {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 3px var(--accent-glow);
-      }
-      .field input::placeholder,
-      .field textarea::placeholder {
-        color: var(--text-3);
-        font-size: 11.5px;
-      }
-      .grid2 {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-      }
-      .grid3 {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 10px;
-      }
-      .grid1 {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 10px;
-      }
-
-      /* ── Badges ── */
-      .badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 2px 6px;
-        border-radius: 3px;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-      }
-      .badge.blue {
-        background: var(--accent-dim);
-        color: var(--accent);
-      }
-      .badge.green {
-        background: var(--green-dim);
-        color: var(--green);
-      }
-      .badge.purple {
-        background: var(--purple-dim);
-        color: var(--purple);
-      }
-      .badge.yellow {
-        background: var(--yellow-dim);
-        color: var(--yellow);
-      }
-      .badge.orange {
-        background: var(--orange-dim);
-        color: var(--orange);
-      }
-      .badge.red {
-        background: var(--red-dim);
-        color: var(--red);
-      }
-
-      /* ── Breadcrumb ── */
-      .breadcrumb {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        font-size: 11.5px;
-        color: var(--text-3);
-        margin-bottom: 18px;
-        font-family: var(--font-mono);
-        flex-wrap: wrap;
-      }
-      .breadcrumb b {
-        color: var(--text-2);
-        font-weight: 500;
-      }
-      .breadcrumb-sep {
-        color: var(--border);
-      }
-
-      /* ── Divider ── */
-      .divider {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin: 14px 0 12px;
-      }
-      .divider span {
-        font-size: 10px;
-        font-weight: 700;
-        color: var(--text-3);
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-        white-space: nowrap;
-      }
-      .divider::before,
-      .divider::after {
-        content: "";
-        flex: 1;
-        height: 1px;
-        background: var(--border);
-      }
-
-      /* ── Empty state ── */
-      .empty {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 60%;
-        gap: 10px;
-        color: var(--text-3);
-        text-align: center;
-      }
-      .empty .ico {
-        font-size: 38px;
-        opacity: 0.2;
-      }
-      .empty p {
-        font-size: 14px;
-        font-weight: 500;
-      }
-      .empty small {
-        font-size: 12px;
-      }
-
-      /* ── Preset rows (sub-presets) ── */
-      .sp-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        background: var(--surface-2);
-        border: 1px solid var(--border-soft);
-        border-radius: var(--radius-sm);
-        cursor: pointer;
-        margin-bottom: 6px;
-        transition:
-          border-color var(--ease),
-          background var(--ease);
-      }
-      .sp-row:last-child {
-        margin-bottom: 0;
-      }
-      .sp-row:hover {
-        border-color: var(--accent);
-        background: var(--accent-dim);
-      }
-      .sp-row:hover .sp-name {
-        color: var(--accent);
-      }
-      .sp-name {
-        flex: 1;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--text);
-      }
-      .sp-id {
-        font-size: 11px;
-        color: var(--text-3);
-        font-family: var(--font-mono);
-      }
-
-      /* ── Download cards ── */
-      .dl-list {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .dl-card {
-        background: var(--surface-2);
-        border: 1px solid var(--border-soft);
-        border-radius: var(--radius-sm);
-        overflow: hidden;
-        transition: border-color var(--ease);
-      }
-      .dl-card:hover {
-        border-color: rgba(79, 126, 255, 0.2);
-      }
-      .dl-card-head {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 9px 12px;
-        background: rgba(79, 126, 255, 0.035);
-        border-bottom: 1px solid var(--border-soft);
-        cursor: pointer;
-        transition: background var(--ease);
-      }
-      .dl-card-head:hover {
-        background: rgba(79, 126, 255, 0.08);
-      }
-      .dl-fname {
-        flex: 1;
-        font-family: var(--font-mono);
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--accent);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .dl-fsize {
-        font-size: 10.5px;
-        color: var(--text-3);
-        font-family: var(--font-mono);
-        flex-shrink: 0;
-      }
-      .dl-body {
-        padding: 14px;
-      }
-
-      /* ── Mirror row ── */
-      .mirror-row {
-        display: grid;
-        grid-template-columns: 1fr 140px auto;
-        gap: 8px;
-        align-items: flex-end;
-        margin-bottom: 8px;
-      }
-
-      /* ── Auth configs ── */
-      .auth-card {
-        background: var(--surface-2);
-        border: 1px solid var(--border-soft);
-        border-radius: var(--radius-sm);
-        margin-bottom: 8px;
-        overflow: hidden;
-      }
-      .auth-card-head {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 9px 12px;
-        background: rgba(249, 115, 22, 0.04);
-        border-bottom: 1px solid var(--border-soft);
-        cursor: pointer;
-        transition: background var(--ease);
-      }
-      .auth-card-head:hover {
-        background: rgba(249, 115, 22, 0.08);
-      }
-      .auth-card-name {
-        flex: 1;
-        font-family: var(--font-mono);
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--orange);
-      }
-      .auth-card-body {
-        padding: 12px;
-      }
-      .kv-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr auto;
-        gap: 8px;
-        align-items: flex-end;
-        margin-bottom: 6px;
-      }
-
-      /* ── Tag pills ── */
-      .tag-container {
-        background: var(--bg);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        padding: 8px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-        min-height: 38px;
-      }
-      .tag-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        background: var(--accent-dim);
-        color: var(--accent);
-        border: 1px solid rgba(79, 126, 255, 0.25);
-        border-radius: 4px;
-        padding: 2px 7px;
-        font-size: 11px;
-        font-family: var(--font-mono);
-      }
-      .tag-pill.purple {
-        background: var(--purple-dim);
-        color: var(--purple);
-        border-color: rgba(167, 139, 250, 0.25);
-      }
-      .tag-remove {
-        cursor: pointer;
-        color: var(--text-3);
-        font-size: 13px;
-        line-height: 1;
-        transition: color var(--ease);
-        background: none;
-        border: none;
-        padding: 0;
-      }
-      .tag-remove:hover {
-        color: var(--red);
-      }
-      .tag-input-row {
-        display: flex;
-        gap: 8px;
-        margin-top: 8px;
-      }
-      .tag-input-row input {
-        flex: 1;
-        background: var(--bg);
-        border: 1px solid var(--border);
-        color: var(--text);
-        font-family: var(--font-mono);
-        font-size: 12px;
-        padding: 6px 9px;
-        border-radius: var(--radius-sm);
-        outline: none;
-      }
-      .tag-input-row input:focus {
-        border-color: var(--accent);
-      }
-
-      /* ── Extract card ── */
-      .extract-card {
-        background: var(--bg);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        padding: 12px;
-        margin-top: 10px;
-      }
-      .extract-head {
-        font-size: 10.5px;
-        font-weight: 700;
-        color: var(--yellow);
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      /* ── Meta grid ── */
-      .meta-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-      }
-
-      /* ── Toast ── */
-      .toast {
-        position: fixed;
-        bottom: 16px;
-        right: 16px;
-        padding: 9px 15px;
-        border-radius: var(--radius-sm);
-        font-size: 12.5px;
-        font-weight: 700;
-        opacity: 0;
-        transform: translateY(6px);
-        transition: all 0.2s;
-        pointer-events: none;
-        z-index: 9999;
-        font-family: var(--font-ui);
-      }
-      .toast.show {
-        opacity: 1;
-        transform: translateY(0);
-      }
-
-      /* ── Modal ── */
-      .modal-backdrop {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.8);
-        z-index: 200;
-        align-items: center;
-        justify-content: center;
-      }
-      .modal-backdrop.show {
-        display: flex;
-      }
-      .modal {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        width: 90vw;
-        max-width: 860px;
-        max-height: 85vh;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      }
-      .modal-head {
-        padding: 12px 14px;
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        align-items: center;
-        gap: 9px;
-        font-weight: 700;
-        font-size: 14px;
-      }
-      .modal-head span {
-        flex: 1;
-      }
-      .modal-body {
-        flex: 1;
-        overflow: auto;
-        padding: 14px;
-      }
-      .modal-body textarea {
-        width: 100%;
-        min-height: 400px;
-        background: var(--bg);
-        border: 1px solid var(--border);
-        color: var(--text-2);
-        font-family: var(--font-mono);
-        font-size: 11.5px;
-        padding: 12px;
-        border-radius: var(--radius-sm);
-        outline: none;
-        resize: none;
-        line-height: 1.7;
-      }
-
-      /* ── Transfer modal ── */
-      .transfer-modal {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        width: 92vw;
-        max-width: 720px;
-        max-height: 88vh;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      }
-      .transfer-section {
-        padding: 12px 14px;
-        border-bottom: 1px solid var(--border);
-      }
-      .transfer-section h3 {
-        font-size: 10.5px;
-        font-weight: 700;
-        color: var(--text-3);
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        margin-bottom: 8px;
-      }
-      .transfer-preset-list {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        max-height: 150px;
-        overflow-y: auto;
-      }
-      .tpt-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 10px;
-        background: var(--surface-2);
-        border: 1px solid var(--border-soft);
-        border-radius: var(--radius-sm);
-        cursor: pointer;
-        font-size: 12.5px;
-        transition: all var(--ease);
-      }
-      .tpt-item:hover,
-      .tpt-item.selected {
-        border-color: var(--accent);
-        background: var(--accent-dim);
-        color: var(--accent);
-      }
-      .transfer-items-area {
-        padding: 12px 14px;
-        flex: 1;
-        overflow-y: auto;
-      }
-      .transfer-items-area h3 {
-        font-size: 10.5px;
-        font-weight: 700;
-        color: var(--text-3);
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        margin-bottom: 8px;
-      }
-      .ti-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 10px;
-        background: var(--surface-2);
-        border: 1px solid var(--border-soft);
-        border-radius: var(--radius-sm);
-        margin-bottom: 4px;
-      }
-      .ti-row input[type="checkbox"] {
-        accent-color: var(--accent);
-        width: 13px;
-        height: 13px;
-        cursor: pointer;
-        flex-shrink: 0;
-      }
-      .ti-label {
-        flex: 1;
-        font-size: 12px;
-        font-family: var(--font-mono);
-        color: var(--text);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .ti-type {
-        font-size: 10px;
-        color: var(--text-3);
-        background: var(--surface-3);
-        padding: 1px 5px;
-        border-radius: 3px;
-        flex-shrink: 0;
-      }
-      .tg-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin: 8px 0 5px;
-        font-size: 10px;
-        font-weight: 700;
-        color: var(--text-3);
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-      }
-      .tg-header::after {
-        content: "";
-        flex: 1;
-        height: 1px;
-        background: var(--border);
-      }
-      .tg-select-all {
-        background: none;
-        border: none;
-        color: var(--accent);
-        font-size: 10.5px;
-        font-family: var(--font-ui);
-        cursor: pointer;
-        padding: 0;
-      }
-      .tg-select-all:hover {
-        text-decoration: underline;
-      }
-      .transfer-footer {
-        padding: 10px 14px;
-        border-top: 1px solid var(--border);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .transfer-footer .sel-info {
-        flex: 1;
-        font-size: 11.5px;
-        color: var(--text-3);
-      }
-
-      /* drag states */
-      .drag-over-top {
-        box-shadow: inset 0 2px 0 var(--accent);
-      }
-      .drag-over-bot {
-        box-shadow: inset 0 -2px 0 var(--accent);
-      }
-      .drag-over-mid {
-        background: var(--accent-dim) !important;
-      }
-      .dragging {
-        opacity: 0.35;
-      }
+        --bg: #080a10; --surface: #0e1118; --surface-2: #141820; --surface-3: #1a1f2c; --surface-4: #1f2535;
+        --border: rgba(255,255,255,.06); --border-soft: rgba(255,255,255,.035); --border-mid: rgba(255,255,255,.1);
+        --text: #e8ecf4; --text-2: #8fa0b8; --text-3: #4a5670;
+        --accent: #4f7eff; --accent-dim: rgba(79,126,255,.09); --accent-glow: rgba(79,126,255,.2);
+        --green: #34d399; --green-dim: rgba(52,211,153,.08);
+        --red: #f4637a; --red-dim: rgba(244,99,122,.08);
+        --yellow: #f5bf4f; --yellow-dim: rgba(245,191,79,.08);
+        --purple: #a78bfa; --purple-dim: rgba(167,139,250,.09);
+        --orange: #f97316; --orange-dim: rgba(249,115,22,.08);
+        --radius: 8px; --radius-sm: 5px; --ease: .15s ease;
+        --font-ui: 'Inter', system-ui, sans-serif;
+        --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      }
+      *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+      html,body,#root{height:100%}
+      body{background:var(--bg);color:var(--text);font-family:var(--font-ui);font-size:13.5px;line-height:1.6;overflow:hidden;-webkit-font-smoothing:antialiased}
+      ::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--surface-4);border-radius:99px}
+      .collapsible-wrapper{display:grid;grid-template-rows:0fr;transition:grid-template-rows .26s cubic-bezier(.4,0,.2,1);overflow:hidden}
+      .collapsible-wrapper.open{grid-template-rows:1fr}
+      .collapsible-inner{min-height:0;overflow:hidden}
+      .app{display:flex;flex-direction:column;height:100vh}
+      .header{height:50px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:10px;flex-shrink:0}
+      .header-title{font-size:14.5px;font-weight:700;letter-spacing:-.3px;flex:1}
+      .header-title b{color:var(--accent);font-weight:800}
+      .header-title small{font-family:var(--font-mono);font-size:10px;color:var(--text-3);font-weight:400;margin-left:8px}
+      .body{display:flex;flex:1;overflow:hidden}
+      .sidebar{width:270px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+      .sidebar-head{padding:10px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;font-size:10.5px;font-weight:700;color:var(--text-3);letter-spacing:.1em;text-transform:uppercase;gap:6px}
+      .sidebar-head-actions{margin-left:auto}
+      .tree{flex:1;overflow-y:auto;padding:3px 0}
+      .main{flex:1;overflow-y:auto;padding:24px 28px}
+      .btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);font-family:var(--font-ui);font-size:12.5px;font-weight:600;cursor:pointer;transition:all var(--ease);white-space:nowrap;line-height:1;outline:none;letter-spacing:-.1px}
+      .btn:hover{background:var(--surface-3);color:var(--text);border-color:var(--border-mid)}
+      .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}.btn.primary:hover{background:#3b6ef0}
+      .btn.success{background:var(--green);color:#021a0c;border-color:var(--green);font-weight:700}.btn.success:hover{background:#28c487}
+      .btn.danger{background:transparent;color:var(--red);border-color:rgba(244,99,122,.25)}.btn.danger:hover{background:var(--red);color:#fff;border-color:var(--red)}
+      .btn.ghost{background:transparent}
+      .btn.add{background:transparent;color:var(--green);border:1px dashed rgba(52,211,153,.35);font-size:11.5px;padding:4px 9px}.btn.add:hover{background:var(--green-dim);border-color:var(--green)}
+      .btn.sm{padding:4px 9px;font-size:11.5px}
+      .btn.orange{background:transparent;color:var(--orange);border-color:rgba(249,115,22,.25)}.btn.orange:hover{background:var(--orange);color:#fff;border-color:var(--orange)}
+      .tree-node{display:flex;align-items:center;gap:6px;padding:6px 12px;cursor:pointer;border-left:2px solid transparent;color:var(--text-2);font-size:13px;transition:background var(--ease),color var(--ease);user-select:none;position:relative}
+      .tree-node:hover{background:var(--surface-2);color:var(--text)}
+      .tree-node.active{background:var(--accent-dim);color:var(--accent);border-left-color:var(--accent)}
+      .tree-node.special{color:var(--yellow)}.tree-node.special:hover{background:var(--yellow-dim)}.tree-node.special.active{background:var(--yellow-dim);border-left-color:var(--yellow)}
+      .tree-node.d0{font-weight:700}.tree-node.d1{padding-left:22px}.tree-node.d2{padding-left:36px;font-size:12.5px}.tree-node.d3{padding-left:50px;font-size:12px}.tree-node.d4{padding-left:64px;font-size:11.5px}
+      .tn-arrow{font-size:7px;width:10px;text-align:center;color:var(--text-3);flex-shrink:0;transition:transform .18s cubic-bezier(.4,0,.2,1)}
+      .tn-arrow.open{transform:rotate(90deg)}
+      .tn-icon{font-size:12px;flex-shrink:0}.tn-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .tn-badge{font-size:10px;color:var(--text-3);background:var(--surface-3);padding:1px 5px;border-radius:3px;flex-shrink:0;font-family:var(--font-mono)}
+      .tree-sep{height:1px;background:var(--border);margin:3px 10px}
+      .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;overflow:hidden}
+      .card-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface-2);border-bottom:1px solid var(--border)}
+      .card-title{flex:1;font-size:10.5px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em}
+      .card-body{padding:16px}
+      .field{display:flex;flex-direction:column;gap:5px}
+      .field label{font-size:10.5px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em}
+      .field input,.field textarea,.field select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;font-family:var(--font-mono);font-size:12.5px;color:var(--text);outline:none;transition:border-color var(--ease),box-shadow var(--ease)}
+      .field select{appearance:none;cursor:pointer}.field select option{background:var(--surface-2);color:var(--text)}
+      .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+      .field input::placeholder,.field textarea::placeholder{color:var(--text-3);font-size:11.5px}
+      .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.grid1{display:grid;grid-template-columns:1fr;gap:10px}
+      .badge{display:inline-flex;align-items:center;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.02em}
+      .badge.blue{background:var(--accent-dim);color:var(--accent)}.badge.green{background:var(--green-dim);color:var(--green)}.badge.purple{background:var(--purple-dim);color:var(--purple)}.badge.yellow{background:var(--yellow-dim);color:var(--yellow)}.badge.orange{background:var(--orange-dim);color:var(--orange)}.badge.red{background:var(--red-dim);color:var(--red)}
+      .breadcrumb{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-3);margin-bottom:18px;font-family:var(--font-mono);flex-wrap:wrap}
+      .breadcrumb b{color:var(--text-2);font-weight:500}.breadcrumb-sep{color:var(--border)}
+      .divider{display:flex;align-items:center;gap:8px;margin:14px 0 12px}
+      .divider span{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap}
+      .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+      .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60%;gap:10px;color:var(--text-3);text-align:center}
+      .empty .ico{font-size:38px;opacity:.2}.empty p{font-size:14px;font-weight:500}.empty small{font-size:12px}
+      .sp-row{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:var(--radius-sm);cursor:pointer;margin-bottom:6px;transition:border-color var(--ease),background var(--ease)}
+      .sp-row:last-child{margin-bottom:0}.sp-row:hover{border-color:var(--accent);background:var(--accent-dim)}.sp-row:hover .sp-name{color:var(--accent)}
+      .sp-name{flex:1;font-size:13px;font-weight:600;color:var(--text)}.sp-id{font-size:11px;color:var(--text-3);font-family:var(--font-mono)}
+      .dl-list{display:flex;flex-direction:column;gap:8px}
+      .dl-card{background:var(--surface-2);border:1px solid var(--border-soft);border-radius:var(--radius-sm);overflow:hidden;transition:border-color var(--ease)}.dl-card:hover{border-color:rgba(79,126,255,.2)}
+      .dl-card-head{display:flex;align-items:center;gap:8px;padding:9px 12px;background:rgba(79,126,255,.035);border-bottom:1px solid var(--border-soft);cursor:pointer;transition:background var(--ease)}.dl-card-head:hover{background:rgba(79,126,255,.08)}
+      .dl-fname{flex:1;font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .dl-fsize{font-size:10.5px;color:var(--text-3);font-family:var(--font-mono);flex-shrink:0}.dl-body{padding:14px}
+      .mirror-row{display:grid;grid-template-columns:1fr 140px auto;gap:8px;align-items:flex-end;margin-bottom:8px}
+      .auth-card{background:var(--surface-2);border:1px solid var(--border-soft);border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden}
+      .auth-card-head{display:flex;align-items:center;gap:8px;padding:9px 12px;background:rgba(249,115,22,.04);border-bottom:1px solid var(--border-soft);cursor:pointer;transition:background var(--ease)}.auth-card-head:hover{background:rgba(249,115,22,.08)}
+      .auth-card-name{flex:1;font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--orange)}.auth-card-body{padding:12px}
+      .kv-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:flex-end;margin-bottom:6px}
+      .tag-container{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;display:flex;flex-wrap:wrap;gap:5px;min-height:38px}
+      .tag-pill{display:inline-flex;align-items:center;gap:4px;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(79,126,255,.25);border-radius:4px;padding:2px 7px;font-size:11px;font-family:var(--font-mono)}
+      .tag-pill.purple{background:var(--purple-dim);color:var(--purple);border-color:rgba(167,139,250,.25)}
+      .tag-remove{cursor:pointer;color:var(--text-3);font-size:13px;line-height:1;transition:color var(--ease);background:none;border:none;padding:0}.tag-remove:hover{color:var(--red)}
+      .tag-input-row{display:flex;gap:8px;margin-top:8px}
+      .tag-input-row input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font-mono);font-size:12px;padding:6px 9px;border-radius:var(--radius-sm);outline:none}.tag-input-row input:focus{border-color:var(--accent)}
+      .extract-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-top:10px}
+      .extract-head{font-size:10.5px;font-weight:700;color:var(--yellow);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+      .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+      .toast{position:fixed;bottom:16px;right:16px;padding:9px 15px;border-radius:var(--radius-sm);font-size:12.5px;font-weight:700;opacity:0;transform:translateY(6px);transition:all .2s;pointer-events:none;z-index:9999;font-family:var(--font-ui)}
+      .toast.show{opacity:1;transform:translateY(0)}
+      .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center}.modal-backdrop.show{display:flex}
+      .modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);width:90vw;max-width:860px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
+      .modal-head{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px}.modal-head span{flex:1}
+      .modal-body{flex:1;overflow:auto;padding:14px}
+      .modal-body textarea{width:100%;min-height:400px;background:var(--bg);border:1px solid var(--border);color:var(--text-2);font-family:var(--font-mono);font-size:11.5px;padding:12px;border-radius:var(--radius-sm);outline:none;resize:none;line-height:1.7}
+      .transfer-modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);width:92vw;max-width:720px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+      .transfer-section{padding:12px 14px;border-bottom:1px solid var(--border)}
+      .transfer-section h3{font-size:10.5px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+      .transfer-preset-list{display:flex;flex-direction:column;gap:4px;max-height:150px;overflow-y:auto}
+      .tpt-item{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:var(--radius-sm);cursor:pointer;font-size:12.5px;transition:all var(--ease)}
+      .tpt-item:hover,.tpt-item.selected{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+      .transfer-items-area{padding:12px 14px;flex:1;overflow-y:auto}
+      .transfer-items-area h3{font-size:10.5px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+      .ti-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:var(--radius-sm);margin-bottom:4px}
+      .ti-row input[type=checkbox]{accent-color:var(--accent);width:13px;height:13px;cursor:pointer;flex-shrink:0}
+      .ti-label{flex:1;font-size:12px;font-family:var(--font-mono);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .ti-type{font-size:10px;color:var(--text-3);background:var(--surface-3);padding:1px 5px;border-radius:3px;flex-shrink:0}
+      .tg-header{display:flex;align-items:center;gap:8px;margin:8px 0 5px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em}.tg-header::after{content:'';flex:1;height:1px;background:var(--border)}
+      .tg-select-all{background:none;border:none;color:var(--accent);font-size:10.5px;font-family:var(--font-ui);cursor:pointer;padding:0}.tg-select-all:hover{text-decoration:underline}
+      .transfer-footer{padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px}
+      .transfer-footer .sel-info{flex:1;font-size:11.5px;color:var(--text-3)}
     </style>
   </head>
   <body>
     <div id="root"></div>
-
     <script type="text/babel">
-      const { useState, useEffect, useRef, useCallback } = React;
-
-      // ── Helpers ──
-      const uid = () => Math.random().toString(36).slice(2, 6).toUpperCase();
-      const fmtBytes = (b) => {
-        if (!b && b !== 0) return "";
-        if (b >= 1e9) return (b / 1e9).toFixed(2) + " GB";
-        if (b >= 1e6) return (b / 1e6).toFixed(1) + " MB";
-        if (b > 0) return Math.round(b / 1e3) + " KB";
-        return "0";
-      };
-      const deepClone = (o) => JSON.parse(JSON.stringify(o));
-      const pstr = (p) => JSON.stringify(p);
+      const { useState, useRef, useCallback } = React;
+      const uid = () => Math.random().toString(36).slice(2,6).toUpperCase();
+      const fmtBytes = b => { if(!b&&b!==0)return''; if(b>=1e9)return(b/1e9).toFixed(2)+' GB'; if(b>=1e6)return(b/1e6).toFixed(1)+' MB'; if(b>0)return Math.round(b/1e3)+' KB'; return'0'; };
+      const deepClone = o => JSON.parse(JSON.stringify(o));
+      const pstr = p => JSON.stringify(p);
 
       function getNodeFromData(data, path) {
         let cur = data;
-        for (const k of path) {
-          if (cur === undefined || cur === null)
-            throw new Error("Bad path at key=" + k);
-          cur = cur[k];
-        }
+        for(const k of path){ if(cur===undefined||cur===null) throw new Error('Bad path at key='+k); cur=cur[k]; }
         return cur;
       }
-
-      function setNodeInData(data, path, value) {
-        const d = deepClone(data);
-        if (path.length === 0) return value;
-        let cur = d;
-        for (let i = 0; i < path.length - 1; i++) cur = cur[path[i]];
-        cur[path[path.length - 1]] = value;
-        return d;
-      }
-
       function cleanNode(obj) {
-        if (Array.isArray(obj)) return obj.map(cleanNode);
-        if (typeof obj !== "object" || obj === null) return obj;
-        const out = {};
-        for (const k of Object.keys(obj)) {
-          const v = obj[k];
-          if (k === "id") {
-            out[k] = v;
-            continue;
-          }
-          if (v === "" || v === null || v === undefined) continue;
-          if (Array.isArray(v)) {
-            if (v.length > 0) out[k] = cleanNode(v);
-            continue;
-          }
-          if (typeof v === "object") {
-            const c = cleanNode(v);
-            if (Object.keys(c).length > 0) out[k] = c;
-            continue;
-          }
-          out[k] = v;
-        }
+        if(Array.isArray(obj)) return obj.map(cleanNode);
+        if(typeof obj!=='object'||obj===null) return obj;
+        const out={};
+        for(const k of Object.keys(obj)){ const v=obj[k]; if(k==='id'){out[k]=v;continue} if(v===''||v===null||v===undefined)continue; if(Array.isArray(v)){if(v.length>0)out[k]=cleanNode(v);continue} if(typeof v==='object'){const c=cleanNode(v);if(Object.keys(c).length>0)out[k]=c;continue} out[k]=v; }
         return out;
       }
 
-      // ── Collapsible component with smooth animation ──
       function Collapsible({ open, children }) {
-        return (
-          <div className={`collapsible-wrapper${open ? " open" : ""}`}>
-            <div className="collapsible-inner">{children}</div>
-          </div>
-        );
+        return <div className={`collapsible-wrapper${open?' open':''}`}><div className="collapsible-inner">{children}</div></div>;
       }
 
-      // ── Toast ──
       function useToast() {
-        const [toast, setToast] = useState({ msg: "", ok: true, show: false });
+        const [toast, setToast] = useState({msg:'',ok:true,show:false});
         const timerRef = useRef();
-        const show = useCallback((msg, ok = true) => {
-          clearTimeout(timerRef.current);
-          setToast({ msg, ok, show: true });
-          timerRef.current = setTimeout(
-            () => setToast((t) => ({ ...t, show: false })),
-            2200,
-          );
-        }, []);
+        const show = useCallback((msg,ok=true)=>{ clearTimeout(timerRef.current); setToast({msg,ok,show:true}); timerRef.current=setTimeout(()=>setToast(t=>({...t,show:false})),2200); },[]);
         return [toast, show];
       }
 
-      // ── Main App ──
       function App() {
-        const [data, setData] = useState({
-          version: "1.0",
-          authConfigs: {},
-          presets: [],
-          metadata: {},
-        });
+        const [data, setData] = useState({version:'1.0',authConfigs:{},presets:[],metadata:{}});
         const [sel, setSel] = useState(null);
         const [expanded, setExpanded] = useState({});
         const [rawModal, setRawModal] = useState(false);
-        const [rawText, setRawText] = useState("");
+        const [rawText, setRawText] = useState('');
         const [transferModal, setTransferModal] = useState(null);
         const [toast, showToast] = useToast();
         const fileRef = useRef();
 
         const navigate = useCallback((path) => {
-          if (typeof path === "object" && path !== null) {
-            const exps = {};
-            for (let i = 2; i <= path.length; i += 2)
-              exps[pstr(path.slice(0, i))] = true;
-            setExpanded((prev) => ({ ...prev, ...exps }));
-          }
+          if(typeof path==='object'&&path!==null){ const exps={}; for(let i=2;i<=path.length;i+=2) exps[pstr(path.slice(0,i))]=true; setExpanded(prev=>({...prev,...exps})); }
           setSel(path);
-        }, []);
+        },[]);
+        const toggleExpand = useCallback((path)=>{ const k=pstr(path); setExpanded(prev=>({...prev,[k]:!prev[k]})); },[]);
+        const updateData = useCallback((updater)=>{ setData(prev=>{ const next=deepClone(prev); updater(next); return next; }); },[]);
 
-        const toggleExpand = useCallback((path) => {
-          const k = pstr(path);
-          setExpanded((prev) => ({ ...prev, [k]: !prev[k] }));
-        }, []);
-
-        const updateData = useCallback((updater) => {
-          setData((prev) => {
-            const next = deepClone(prev);
-            updater(next);
-            return next;
-          });
-        }, []);
-
-        const handleImport = (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          const r = new FileReader();
-          r.onload = (ev) => {
-            try {
-              const d = JSON.parse(ev.target.result);
-              if (!d.authConfigs) d.authConfigs = {};
-              if (!d.presets) d.presets = [];
-              if (!d.metadata) d.metadata = {};
-              setData(d);
-              setSel(null);
-              setExpanded({});
-              showToast("Imported!");
-            } catch (ex) {
-              showToast("JSON error: " + ex.message, false);
-            }
-          };
-          r.readAsText(file);
-          e.target.value = "";
+        const handleImport = e => {
+          const file=e.target.files[0]; if(!file)return;
+          const r=new FileReader();
+          r.onload=ev=>{ try{ const d=JSON.parse(ev.target.result); if(!d.authConfigs)d.authConfigs={}; if(!d.presets)d.presets=[]; if(!d.metadata)d.metadata={}; setData(d);setSel(null);setExpanded({});showToast('Imported!'); }catch(ex){showToast('JSON error: '+ex.message,false);} };
+          r.readAsText(file); e.target.value='';
         };
-
-        const handleExport = () => {
-          const clean = cleanNode(data);
-          const a = document.createElement("a");
-          a.href = URL.createObjectURL(
-            new Blob([JSON.stringify(clean, null, 2)], {
-              type: "application/json",
-            }),
-          );
-          a.download = "presets.json";
-          a.click();
-          showToast("Exported!");
-        };
-
-        const openRaw = () => {
-          setRawText(JSON.stringify(cleanNode(data), null, 2));
-          setRawModal(true);
-        };
-
-        const applyRaw = () => {
-          try {
-            const d = JSON.parse(rawText);
-            if (!d.authConfigs) d.authConfigs = {};
-            if (!d.presets) d.presets = [];
-            if (!d.metadata) d.metadata = {};
-            setData(d);
-            setSel(null);
-            setRawModal(false);
-            showToast("Applied!");
-          } catch (e) {
-            showToast("JSON error", false);
-          }
-        };
+        const handleExport = () => { const clean=cleanNode(data); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(clean,null,2)],{type:'application/json'})); a.download='presets.json'; a.click(); showToast('Exported!'); };
+        const openRaw = () => { setRawText(JSON.stringify(cleanNode(data),null,2)); setRawModal(true); };
+        const applyRaw = () => { try{ const d=JSON.parse(rawText); if(!d.authConfigs)d.authConfigs={}; if(!d.presets)d.presets=[]; if(!d.metadata)d.metadata={}; setData(d);setSel(null);setRawModal(false);showToast('Applied!'); }catch(e){showToast('JSON error',false);} };
 
         return (
           <div className="app">
-            {/* Header */}
             <header className="header">
-              <div className="header-title">
-                Preset <b>Config</b> Editor
-                <small>v{data.version || "1.0"}</small>
-              </div>
-              <button
-                className="btn ghost sm"
-                onClick={() => fileRef.current.click()}
-              >
-                ⬆ Import
-              </button>
-              <button className="btn ghost sm" onClick={openRaw}>
-                {"{ }"} Raw
-              </button>
-              <button className="btn success sm" onClick={handleExport}>
-                ⬇ Export
-              </button>
-              <input
-                type="file"
-                accept=".json"
-                ref={fileRef}
-                style={{ display: "none" }}
-                onChange={handleImport}
-              />
+              <div className="header-title">Preset <b>Config</b> Editor<small>v{data.version||'1.0'}</small></div>
+              <button className="btn ghost sm" onClick={()=>fileRef.current.click()}>⬆ Import</button>
+              <button className="btn ghost sm" onClick={openRaw}>{'{ }'} Raw</button>
+              <button className="btn success sm" onClick={handleExport}>⬇ Export</button>
+              <input type="file" accept=".json" ref={fileRef} style={{display:'none'}} onChange={handleImport} />
             </header>
-
             <div className="body">
-              {/* Sidebar */}
               <aside className="sidebar">
                 <div className="sidebar-head">
                   <span>Presets</span>
                   <div className="sidebar-head-actions">
-                    <button
-                      className="btn add"
-                      onClick={() => {
-                        updateData((d) => {
-                          if (!d.presets) d.presets = [];
-                          d.presets.push({
-                            id: "PRESET_" + uid(),
-                            name: "New Preset",
-                            presets: [],
-                          });
-                        });
-                        showToast("Preset added");
-                      }}
-                    >
-                      + Preset
-                    </button>
+                    <button className="btn add" onClick={()=>{ updateData(d=>{ if(!d.presets)d.presets=[]; d.presets.push({id:'PRESET_'+uid(),name:'New Preset',presets:[]}); }); showToast('Preset added'); }}>+ Preset</button>
                   </div>
                 </div>
                 <div className="tree">
-                  <SpecialNode
-                    label="🔑 Auth Configs"
-                    id="auth"
-                    sel={sel}
-                    onSelect={() => navigate("auth")}
-                  />
-                  <SpecialNode
-                    label="📋 Metadata"
-                    id="meta"
-                    sel={sel}
-                    onSelect={() => navigate("meta")}
-                  />
+                  <SpecialNode label="🔑 Auth Configs" id="auth" sel={sel} onSelect={()=>navigate('auth')} />
+                  <SpecialNode label="📋 Metadata" id="meta" sel={sel} onSelect={()=>navigate('meta')} />
                   <div className="tree-sep" />
-                  <TreeLevel
-                    arr={data.presets || []}
-                    path={["presets"]}
-                    depth={0}
-                    sel={sel}
-                    expanded={expanded}
-                    onNavigate={navigate}
-                    onToggle={toggleExpand}
-                  />
+                  <TreeLevel arr={data.presets||[]} path={['presets']} depth={0} sel={sel} expanded={expanded} onNavigate={navigate} onToggle={toggleExpand} onDeselect={()=>setSel(null)} />
                 </div>
               </aside>
-
-              {/* Main panel */}
               <main className="main">
-                {sel === null && (
-                  <div className="empty">
-                    <div className="ico">⚙</div>
-                    <p>Select an item in the tree on the left</p>
-                    <small>or import a JSON file</small>
-                  </div>
-                )}
-                {sel === "auth" && (
-                  <AuthPanel
-                    data={data}
-                    updateData={updateData}
-                    showToast={showToast}
-                  />
-                )}
-                {sel === "meta" && (
-                  <MetaPanel data={data} updateData={updateData} />
-                )}
-                {sel !== null && sel !== "auth" && sel !== "meta" && (
-                  <PresetPanel
-                    data={data}
-                    sel={sel}
-                    updateData={updateData}
-                    onNavigate={navigate}
-                    showToast={showToast}
-                    onOpenTransfer={(type) =>
-                      setTransferModal({ type, srcPath: sel })
-                    }
-                    onDelete={() => {
-                      updateData((d) => {
-                        const parentPath = sel.slice(0, -2);
-                        const arrKey = sel[sel.length - 2];
-                        const idx = sel[sel.length - 1];
-                        const parent = parentPath.length
-                          ? getNodeFromData(d, parentPath)
-                          : d;
-                        parent[arrKey].splice(idx, 1);
-                      });
-                      setSel(null);
-                      showToast("Deleted", false);
-                    }}
+                {sel===null && <div className="empty"><div className="ico">⚙</div><p>Select an item in the tree on the left</p><small>or import a JSON file</small></div>}
+                {sel==='auth' && <AuthPanel data={data} updateData={updateData} showToast={showToast} />}
+                {sel==='meta' && <MetaPanel data={data} updateData={updateData} />}
+                {sel!==null&&sel!=='auth'&&sel!=='meta' && (
+                  <PresetPanel data={data} sel={sel} updateData={updateData} onNavigate={navigate} showToast={showToast}
+                    onOpenTransfer={type=>setTransferModal({type,srcPath:sel})}
+                    onDelete={()=>{ updateData(d=>{ const parentPath=sel.slice(0,-2); const arrKey=sel[sel.length-2]; const idx=sel[sel.length-1]; const parent=parentPath.length?getNodeFromData(d,parentPath):d; parent[arrKey].splice(idx,1); }); setSel(null); showToast('Deleted',false); }}
                   />
                 )}
               </main>
             </div>
-
-            {/* Toast */}
-            <div
-              className={"toast" + (toast.show ? " show" : "")}
-              style={{
-                background: toast.ok ? "var(--green)" : "var(--red)",
-                color: toast.ok ? "#021a0c" : "#fff",
-              }}
-            >
-              {toast.msg}
-            </div>
-
-            {/* Raw Modal */}
-            <div
-              className={"modal-backdrop" + (rawModal ? " show" : "")}
-              onClick={(e) => {
-                if (e.target === e.currentTarget) setRawModal(false);
-              }}
-            >
+            <div className={'toast'+(toast.show?' show':'')} style={{background:toast.ok?'var(--green)':'var(--red)',color:toast.ok?'#021a0c':'#fff'}}>{toast.msg}</div>
+            <div className={'modal-backdrop'+(rawModal?' show':'')} onClick={e=>{if(e.target===e.currentTarget)setRawModal(false);}}>
               <div className="modal">
-                <div className="modal-head">
-                  <span>Raw JSON</span>
-                  <button
-                    className="btn ghost sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText(rawText);
-                      showToast("Copied!");
-                    }}
-                  >
-                    ⎘ Copy
-                  </button>
-                  <button className="btn primary sm" onClick={applyRaw}>
-                    Apply
-                  </button>
-                  <button
-                    className="btn ghost sm"
-                    onClick={() => setRawModal(false)}
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="modal-body">
-                  <textarea
-                    spellCheck="false"
-                    value={rawText}
-                    onChange={(e) => setRawText(e.target.value)}
-                  />
-                </div>
+                <div className="modal-head"><span>Raw JSON</span><button className="btn ghost sm" onClick={()=>{navigator.clipboard.writeText(rawText);showToast('Copied!');}}>⎘ Copy</button><button className="btn primary sm" onClick={applyRaw}>Apply</button><button className="btn ghost sm" onClick={()=>setRawModal(false)}>✕</button></div>
+                <div className="modal-body"><textarea spellCheck="false" value={rawText} onChange={e=>setRawText(e.target.value)} /></div>
               </div>
             </div>
-
-            {/* Transfer Modal */}
-            {transferModal && (
-              <TransferModal
-                data={data}
-                type={transferModal.type}
-                srcPath={transferModal.srcPath}
-                updateData={updateData}
-                showToast={showToast}
-                onClose={() => setTransferModal(null)}
-              />
-            )}
+            {transferModal && <TransferModal data={data} type={transferModal.type} srcPath={transferModal.srcPath} updateData={updateData} showToast={showToast} onClose={()=>setTransferModal(null)} />}
           </div>
         );
       }
 
-      // ── Special tree node ──
       function SpecialNode({ label, id, sel, onSelect }) {
-        const active = sel === id;
-        return (
-          <div
-            className={`tree-node d0 special${active ? " active" : ""}`}
-            onClick={onSelect}
-          >
-            <span className="tn-arrow" />
-            <span className="tn-label">{label}</span>
-          </div>
-        );
+        return <div className={`tree-node d0 special${sel===id?' active':''}`} onClick={onSelect}><span className="tn-arrow"/><span className="tn-label">{label}</span></div>;
       }
 
-      // ── Recursive tree level ──
-      function TreeLevel({
-        arr,
-        path,
-        depth,
-        sel,
-        expanded,
-        onNavigate,
-        onToggle,
-      }) {
+      // ── KEY FIX: clicking an open+selected node collapses it and deselects ──
+      function TreeLevel({ arr, path, depth, sel, expanded, onNavigate, onToggle, onDeselect }) {
         return arr.map((node, i) => {
           const npath = path.concat([i]);
-          const hasKids = (node.presets || []).length > 0;
-          const cnt =
-            (node.downloads || []).length + (node.presets || []).length || null;
-          const icon =
-            depth === 0 ? "📁" : depth === 1 ? "📄" : depth === 2 ? "⚙" : "◦";
+          const hasKids = (node.presets||[]).length > 0;
+          const cnt = (node.downloads||[]).length + (node.presets||[]).length || null;
+          const icon = depth===0?'📁':depth===1?'📄':depth===2?'⚙':'◦';
           const isExp = !!expanded[pstr(npath)];
-          const isSel = pstr(sel) === pstr(npath);
+          const isSel = pstr(sel)===pstr(npath);
           const d = Math.min(depth, 4);
+
+          const handleClick = () => {
+            if (isSel && hasKids) {
+              // Re-clicking the selected node: toggle expand.
+              // If it was open → close it and clear selection.
+              // If it was closed → open it (keep selected).
+              onToggle(npath);
+              if (isExp) onDeselect();
+            } else {
+              if (hasKids) onToggle(npath);
+              onNavigate(npath);
+            }
+          };
 
           return (
             <React.Fragment key={i}>
-              <div
-                className={`tree-node d${d}${isSel ? " active" : ""}`}
-                onClick={() => {
-                  if (hasKids) onToggle(npath);
-                  onNavigate(npath);
-                }}
-              >
-                <span className={`tn-arrow${hasKids && isExp ? " open" : ""}`}>
-                  {hasKids ? "▶" : ""}
-                </span>
+              <div className={`tree-node d${d}${isSel?' active':''}`} onClick={handleClick}>
+                <span className={`tn-arrow${hasKids&&isExp?' open':''}`}>{hasKids?'▶':''}</span>
                 <span className="tn-icon">{icon}</span>
-                <span className="tn-label">{node.name || node.id || "—"}</span>
-                {cnt ? <span className="tn-badge">{cnt}</span> : null}
+                <span className="tn-label">{node.name||node.id||'—'}</span>
+                {cnt?<span className="tn-badge">{cnt}</span>:null}
               </div>
-              <Collapsible open={isExp && hasKids}>
-                <TreeLevel
-                  arr={node.presets || []}
-                  path={npath.concat(["presets"])}
-                  depth={depth + 1}
-                  sel={sel}
-                  expanded={expanded}
-                  onNavigate={onNavigate}
-                  onToggle={onToggle}
-                />
+              <Collapsible open={isExp&&hasKids}>
+                <TreeLevel arr={node.presets||[]} path={npath.concat(['presets'])} depth={depth+1} sel={sel} expanded={expanded} onNavigate={onNavigate} onToggle={onToggle} onDeselect={onDeselect} />
               </Collapsible>
             </React.Fragment>
           );
         });
       }
 
-      // ── Auth Panel ──
       function AuthPanel({ data, updateData, showToast }) {
         const [openCards, setOpenCards] = useState({});
-        const ac = data.authConfigs || {};
-        const keys = Object.keys(ac);
-
-        const toggleCard = (k) =>
-          setOpenCards((prev) => ({ ...prev, [k]: !prev[k] }));
-
+        const ac = data.authConfigs||{}; const keys = Object.keys(ac);
+        const toggleCard = k => setOpenCards(prev=>({...prev,[k]:!prev[k]}));
         return (
           <div>
-            <div className="breadcrumb">
-              root <span className="breadcrumb-sep">/</span> <b>authConfigs</b>
-            </div>
+            <div className="breadcrumb">root <span className="breadcrumb-sep">/</span> <b>authConfigs</b></div>
             <div className="card">
-              <div className="card-head">
-                <span className="card-title">🔑 Auth Configs</span>
-                <span className="badge orange" style={{ marginRight: 4 }}>
-                  {keys.length}
-                </span>
-                <button
-                  className="btn add"
-                  onClick={() => {
-                    const name = "auth_" + uid().toLowerCase();
-                    updateData((d) => {
-                      d.authConfigs[name] = { headers: {}, cookies: {} };
-                    });
-                    setOpenCards((prev) => ({ ...prev, [name]: true }));
-                    showToast("Auth config added");
-                  }}
-                >
-                  + Auth
-                </button>
+              <div className="card-head"><span className="card-title">🔑 Auth Configs</span><span className="badge orange" style={{marginRight:4}}>{keys.length}</span>
+                <button className="btn add" onClick={()=>{ const name='auth_'+uid().toLowerCase(); updateData(d=>{d.authConfigs[name]={headers:{},cookies:{}};}); setOpenCards(prev=>({...prev,[name]:true})); showToast('Auth config added'); }}>+ Auth</button>
               </div>
               <div className="card-body">
-                {!keys.length && (
-                  <div style={{ color: "var(--text-3)", fontSize: 12.5 }}>
-                    No auth configurations
-                  </div>
-                )}
-                {keys.map((key) => (
-                  <AuthCard
-                    key={key}
-                    cfgKey={key}
-                    cfg={ac[key]}
-                    open={!!openCards[key]}
-                    onToggle={() => toggleCard(key)}
-                    updateData={updateData}
-                    showToast={showToast}
-                  />
-                ))}
+                {!keys.length&&<div style={{color:'var(--text-3)',fontSize:12.5}}>No auth configurations</div>}
+                {keys.map(key=><AuthCard key={key} cfgKey={key} cfg={ac[key]} open={!!openCards[key]} onToggle={()=>toggleCard(key)} updateData={updateData} showToast={showToast} />)}
               </div>
             </div>
           </div>
         );
       }
 
-      function AuthCard({
-        cfgKey,
-        cfg,
-        open,
-        onToggle,
-        updateData,
-        showToast,
-      }) {
-        const headers = cfg.headers || {};
-        const cookies = cfg.cookies || {};
-        const hkeys = Object.keys(headers);
-        const ckeys = Object.keys(cookies);
-
+      function AuthCard({ cfgKey, cfg, open, onToggle, updateData, showToast }) {
+        const headers=cfg.headers||{}; const cookies=cfg.cookies||{};
+        const hkeys=Object.keys(headers); const ckeys=Object.keys(cookies);
         return (
           <div className="auth-card">
             <div className="auth-card-head" onClick={onToggle}>
-              <span style={{ fontSize: 14 }}>🔑</span>
-              <span className="auth-card-name">{cfgKey}</span>
-              {hkeys.length > 0 && (
-                <span className="badge blue">{hkeys.length} headers</span>
-              )}
-              {ckeys.length > 0 && (
-                <span className="badge yellow">{ckeys.length} cookies</span>
-              )}
-              <button
-                className="btn danger sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!confirm(`Delete auth config "${cfgKey}"?`)) return;
-                  updateData((d) => {
-                    delete d.authConfigs[cfgKey];
-                  });
-                  showToast("Deleted", false);
-                }}
-              >
-                ✕
-              </button>
+              <span style={{fontSize:14}}>🔑</span><span className="auth-card-name">{cfgKey}</span>
+              {hkeys.length>0&&<span className="badge blue">{hkeys.length} headers</span>}
+              {ckeys.length>0&&<span className="badge yellow">{ckeys.length} cookies</span>}
+              <button className="btn danger sm" onClick={e=>{e.stopPropagation();if(!confirm(`Delete auth config "${cfgKey}"?`))return;updateData(d=>{delete d.authConfigs[cfgKey];});showToast('Deleted',false);}}>✕</button>
             </div>
             <Collapsible open={open}>
               <div className="auth-card-body">
-                <div className="grid1" style={{ marginBottom: 12 }}>
-                  <div className="field">
-                    <label>Config Name (Key)</label>
-                    <input
-                      defaultValue={cfgKey}
-                      onBlur={(e) => {
-                        const nk = e.target.value.trim();
-                        if (!nk || nk === cfgKey) return;
-                        updateData((d) => {
-                          if (d.authConfigs[nk]) return;
-                          d.authConfigs[nk] = d.authConfigs[cfgKey];
-                          delete d.authConfigs[cfgKey];
-                        });
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="divider">
-                  <span>Headers</span>
-                  <button
-                    className="btn add sm"
-                    onClick={() => {
-                      updateData((d) => {
-                        if (!d.authConfigs[cfgKey].headers)
-                          d.authConfigs[cfgKey].headers = {};
-                        d.authConfigs[cfgKey].headers[
-                          "key_" + uid().toLowerCase()
-                        ] = "";
-                      });
-                    }}
-                  >
-                    + Header
-                  </button>
-                </div>
-                {hkeys.map((k) => (
-                  <KVRow
-                    key={k}
-                    sectionKey={k}
-                    value={headers[k]}
-                    onChangeKey={(nk) =>
-                      updateData((d) => {
-                        const v = d.authConfigs[cfgKey].headers[k];
-                        delete d.authConfigs[cfgKey].headers[k];
-                        d.authConfigs[cfgKey].headers[nk] = v;
-                      })
-                    }
-                    onChangeVal={(v) =>
-                      updateData((d) => {
-                        d.authConfigs[cfgKey].headers[k] = v;
-                      })
-                    }
-                    onRemove={() =>
-                      updateData((d) => {
-                        delete d.authConfigs[cfgKey].headers[k];
-                      })
-                    }
-                  />
-                ))}
-
-                <div className="divider">
-                  <span>Cookies</span>
-                  <button
-                    className="btn add sm"
-                    onClick={() => {
-                      updateData((d) => {
-                        if (!d.authConfigs[cfgKey].cookies)
-                          d.authConfigs[cfgKey].cookies = {};
-                        d.authConfigs[cfgKey].cookies[
-                          "ck_" + uid().toLowerCase()
-                        ] = "";
-                      });
-                    }}
-                  >
-                    + Cookie
-                  </button>
-                </div>
-                {ckeys.map((k) => (
-                  <KVRow
-                    key={k}
-                    sectionKey={k}
-                    value={cookies[k]}
-                    onChangeKey={(nk) =>
-                      updateData((d) => {
-                        const v = d.authConfigs[cfgKey].cookies[k];
-                        delete d.authConfigs[cfgKey].cookies[k];
-                        d.authConfigs[cfgKey].cookies[nk] = v;
-                      })
-                    }
-                    onChangeVal={(v) =>
-                      updateData((d) => {
-                        d.authConfigs[cfgKey].cookies[k] = v;
-                      })
-                    }
-                    onRemove={() =>
-                      updateData((d) => {
-                        delete d.authConfigs[cfgKey].cookies[k];
-                      })
-                    }
-                  />
-                ))}
+                <div className="grid1" style={{marginBottom:12}}><div className="field"><label>Config Name (Key)</label><input defaultValue={cfgKey} onBlur={e=>{const nk=e.target.value.trim();if(!nk||nk===cfgKey)return;updateData(d=>{if(d.authConfigs[nk])return;d.authConfigs[nk]=d.authConfigs[cfgKey];delete d.authConfigs[cfgKey];});}} /></div></div>
+                <div className="divider"><span>Headers</span><button className="btn add sm" onClick={()=>updateData(d=>{if(!d.authConfigs[cfgKey].headers)d.authConfigs[cfgKey].headers={};d.authConfigs[cfgKey].headers['key_'+uid().toLowerCase()]='';})}>+ Header</button></div>
+                {hkeys.map(k=><KVRow key={k} sectionKey={k} value={headers[k]} onChangeKey={nk=>updateData(d=>{const v=d.authConfigs[cfgKey].headers[k];delete d.authConfigs[cfgKey].headers[k];d.authConfigs[cfgKey].headers[nk]=v;})} onChangeVal={v=>updateData(d=>{d.authConfigs[cfgKey].headers[k]=v;})} onRemove={()=>updateData(d=>{delete d.authConfigs[cfgKey].headers[k];})} />)}
+                <div className="divider"><span>Cookies</span><button className="btn add sm" onClick={()=>updateData(d=>{if(!d.authConfigs[cfgKey].cookies)d.authConfigs[cfgKey].cookies={};d.authConfigs[cfgKey].cookies['ck_'+uid().toLowerCase()]='';})}>+ Cookie</button></div>
+                {ckeys.map(k=><KVRow key={k} sectionKey={k} value={cookies[k]} onChangeKey={nk=>updateData(d=>{const v=d.authConfigs[cfgKey].cookies[k];delete d.authConfigs[cfgKey].cookies[k];d.authConfigs[cfgKey].cookies[nk]=v;})} onChangeVal={v=>updateData(d=>{d.authConfigs[cfgKey].cookies[k]=v;})} onRemove={()=>updateData(d=>{delete d.authConfigs[cfgKey].cookies[k];})} />)}
               </div>
             </Collapsible>
           </div>
         );
       }
 
-      function KVRow({
-        sectionKey,
-        value,
-        onChangeKey,
-        onChangeVal,
-        onRemove,
-      }) {
-        return (
-          <div className="kv-row">
-            <div className="field">
-              <label>Key</label>
-              <input
-                defaultValue={sectionKey}
-                onBlur={(e) => {
-                  const nk = e.target.value.trim();
-                  if (nk && nk !== sectionKey) onChangeKey(nk);
-                }}
-              />
-            </div>
-            <div className="field">
-              <label>Value</label>
-              <input
-                defaultValue={value}
-                onBlur={(e) => onChangeVal(e.target.value)}
-              />
-            </div>
-            <button
-              className="btn danger sm"
-              style={{ alignSelf: "flex-end" }}
-              onClick={onRemove}
-            >
-              ✕
-            </button>
-          </div>
-        );
+      function KVRow({ sectionKey, value, onChangeKey, onChangeVal, onRemove }) {
+        return <div className="kv-row"><div className="field"><label>Key</label><input defaultValue={sectionKey} onBlur={e=>{const nk=e.target.value.trim();if(nk&&nk!==sectionKey)onChangeKey(nk);}} /></div><div className="field"><label>Value</label><input defaultValue={value} onBlur={e=>onChangeVal(e.target.value)} /></div><button className="btn danger sm" style={{alignSelf:'flex-end'}} onClick={onRemove}>✕</button></div>;
       }
 
-      // ── Metadata Panel ──
       function MetaPanel({ data, updateData }) {
-        const m = data.metadata || {};
-        const upd = (f, v) =>
-          updateData((d) => {
-            if (!d.metadata) d.metadata = {};
-            if (v === "") delete d.metadata[f];
-            else d.metadata[f] = v;
-          });
+        const m=data.metadata||{};
+        const upd=(f,v)=>updateData(d=>{if(!d.metadata)d.metadata={};if(v==='')delete d.metadata[f];else d.metadata[f]=v;});
         return (
           <div>
-            <div className="breadcrumb">
-              root <span className="breadcrumb-sep">/</span> <b>metadata</b>
-            </div>
-            <div className="card">
-              <div className="card-head">
-                <span className="card-title">📋 Metadata</span>
-              </div>
-              <div className="card-body">
-                <div className="meta-grid">
-                  {[
-                    ["version", "1.0.0"],
-                    ["author", "author name"],
-                    ["created", "2026-01-01T00:00:00Z"],
-                    ["notes", "optional notes"],
-                  ].map(([f, ph]) => (
-                    <div key={f} className="field">
-                      <label>{f.charAt(0).toUpperCase() + f.slice(1)}</label>
-                      <input
-                        defaultValue={m[f] || ""}
-                        placeholder={ph}
-                        onBlur={(e) => upd(f, e.target.value)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <div className="breadcrumb">root <span className="breadcrumb-sep">/</span> <b>metadata</b></div>
+            <div className="card"><div className="card-head"><span className="card-title">📋 Metadata</span></div>
+              <div className="card-body"><div className="meta-grid">
+                {[['version','1.0.0'],['author','author name'],['created','2026-01-01T00:00:00Z'],['notes','optional notes']].map(([f,ph])=>(
+                  <div key={f} className="field"><label>{f.charAt(0).toUpperCase()+f.slice(1)}</label><input defaultValue={m[f]||''} placeholder={ph} onBlur={e=>upd(f,e.target.value)} /></div>
+                ))}
+              </div></div>
             </div>
           </div>
         );
       }
 
-      // ── Preset Panel ──
-      function PresetPanel({
-        data,
-        sel,
-        updateData,
-        onNavigate,
-        showToast,
-        onOpenTransfer,
-        onDelete,
-      }) {
-        let node;
-        try {
-          node = getNodeFromData(data, sel);
-        } catch (e) {
-          return (
-            <div className="empty">
-              <div className="ico">⚠</div>
-              <p>Error: {e.message}</p>
-            </div>
-          );
-        }
-        if (!node || typeof node !== "object")
-          return (
-            <div className="empty">
-              <div className="ico">⚠</div>
-              <p>Node not found</p>
-            </div>
-          );
-
-        const subs = node.presets || [];
-        const dls = node.downloads || [];
-
-        const upd = (f, v) =>
-          updateData((d) => {
-            getNodeFromData(d, sel)[f] = v;
-          });
-
-        // Breadcrumb
-        const bcParts = [];
-        let cum = [];
-        for (let i = 0; i < sel.length; i++) {
-          cum = cum.concat([sel[i]]);
-          try {
-            const cn = getNodeFromData(data, cum);
-            if (cn && typeof cn === "object" && (cn.name || cn.id))
-              bcParts.push(cn.name || cn.id);
-          } catch (e2) {}
-        }
-
+      function PresetPanel({ data, sel, updateData, onNavigate, showToast, onOpenTransfer, onDelete }) {
+        let node; try{node=getNodeFromData(data,sel);}catch(e){return<div className="empty"><div className="ico">⚠</div><p>Error: {e.message}</p></div>;}
+        if(!node||typeof node!=='object') return<div className="empty"><div className="ico">⚠</div><p>Node not found</p></div>;
+        const subs=node.presets||[]; const dls=node.downloads||[];
+        const upd=(f,v)=>updateData(d=>{getNodeFromData(d,sel)[f]=v;});
+        const bcParts=[]; let cum=[];
+        for(let i=0;i<sel.length;i++){ cum=cum.concat([sel[i]]); try{const cn=getNodeFromData(data,cum);if(cn&&typeof cn==='object'&&(cn.name||cn.id))bcParts.push(cn.name||cn.id);}catch(e2){} }
         return (
           <div>
-            <div className="breadcrumb">
-              root
-              {bcParts.map((b, i) => (
-                <React.Fragment key={i}>
-                  <span className="breadcrumb-sep">/</span>
-                  <b>{b}</b>
-                </React.Fragment>
-              ))}
-            </div>
-
-            {/* Info */}
+            <div className="breadcrumb">root{bcParts.map((b,i)=><React.Fragment key={i}><span className="breadcrumb-sep">/</span><b>{b}</b></React.Fragment>)}</div>
             <div className="card">
-              <div className="card-head">
-                <span className="card-title">Info</span>
-                <button className="btn danger sm" onClick={onDelete}>
-                  ✕ Delete
-                </button>
-              </div>
+              <div className="card-head"><span className="card-title">Info</span><button className="btn danger sm" onClick={onDelete}>✕ Delete</button></div>
               <div className="card-body">
-                {[
-                  ["id", "unique identifier", true],
-                  ["name", "display name", false],
-                  ["description", "short description", false],
-                ].map(([f, ph, req]) => (
-                  <div key={f} className="grid1" style={{ marginBottom: 10 }}>
-                    <div className="field">
-                      <label>
-                        {f === "id" ? (
-                          <>
-                            ID{" "}
-                            <span style={{ color: "var(--red)", fontSize: 9 }}>
-                              *required
-                            </span>
-                          </>
-                        ) : (
-                          f.charAt(0).toUpperCase() + f.slice(1)
-                        )}
-                      </label>
-                      <input
-                        defaultValue={node[f] || ""}
-                        placeholder={ph}
-                        key={pstr(sel) + f + node[f]}
-                        onBlur={(e) => upd(f, e.target.value)}
-                      />
-                    </div>
-                  </div>
+                {[['id','unique identifier',true],['name','display name',false],['description','short description',false]].map(([f,ph])=>(
+                  <div key={f} className="grid1" style={{marginBottom:10}}><div className="field">
+                    <label>{f==='id'?<>ID <span style={{color:'var(--red)',fontSize:9}}>*required</span></>:f.charAt(0).toUpperCase()+f.slice(1)}</label>
+                    <input defaultValue={node[f]||''} placeholder={ph} key={pstr(sel)+f+node[f]} onBlur={e=>upd(f,e.target.value)} />
+                  </div></div>
                 ))}
               </div>
             </div>
-
-            {/* Sub-presets */}
             <div className="card">
-              <div className="card-head">
-                <span className="card-title">Nested Presets</span>
-                <span className="badge purple" style={{ marginRight: 4 }}>
-                  {subs.length}
-                </span>
-                {subs.length > 0 && (
-                  <button
-                    className="btn ghost sm"
-                    onClick={() => onOpenTransfer("presets")}
-                    style={{ marginRight: 4 }}
-                  >
-                    ⇄ Transfer
-                  </button>
-                )}
-                <button
-                  className="btn add"
-                  onClick={() => {
-                    updateData((d) => {
-                      const n = getNodeFromData(d, sel);
-                      if (!n.presets) n.presets = [];
-                      n.presets.push({
-                        id: "PRESET_" + uid(),
-                        name: "New Preset",
-                        downloads: [],
-                      });
-                    });
-                    showToast("Preset added");
-                  }}
-                >
-                  + Preset
-                </button>
+              <div className="card-head"><span className="card-title">Nested Presets</span><span className="badge purple" style={{marginRight:4}}>{subs.length}</span>
+                {subs.length>0&&<button className="btn ghost sm" onClick={()=>onOpenTransfer('presets')} style={{marginRight:4}}>⇄ Transfer</button>}
+                <button className="btn add" onClick={()=>{updateData(d=>{const n=getNodeFromData(d,sel);if(!n.presets)n.presets=[];n.presets.push({id:'PRESET_'+uid(),name:'New Preset',downloads:[]});});showToast('Preset added');}}>+ Preset</button>
               </div>
               <div className="card-body">
-                {!subs.length && (
-                  <div style={{ color: "var(--text-3)", fontSize: 12.5 }}>
-                    No nested presets
-                  </div>
-                )}
-                {subs.map((sub, i) => (
-                  <div
-                    key={i}
-                    className="sp-row"
-                    onClick={() => onNavigate(sel.concat(["presets", i]))}
-                  >
-                    <span className="sp-name">
-                      {sub.name || sub.id || "Unnamed"}
-                    </span>
-                    <span className="sp-id">{sub.id || ""}</span>
-                    <span className="badge blue">
-                      {(sub.downloads || []).length} files
-                    </span>
-                    {(sub.presets || []).length > 0 && (
-                      <span className="badge purple">
-                        {sub.presets.length} sub
-                      </span>
-                    )}
-                  </div>
-                ))}
+                {!subs.length&&<div style={{color:'var(--text-3)',fontSize:12.5}}>No nested presets</div>}
+                {subs.map((sub,i)=><div key={i} className="sp-row" onClick={()=>onNavigate(sel.concat(['presets',i]))}><span className="sp-name">{sub.name||sub.id||'Unnamed'}</span><span className="sp-id">{sub.id||''}</span><span className="badge blue">{(sub.downloads||[]).length} files</span>{(sub.presets||[]).length>0&&<span className="badge purple">{sub.presets.length} sub</span>}</div>)}
               </div>
             </div>
-
-            {/* Downloads */}
             <div className="card">
-              <div className="card-head">
-                <span className="card-title">Downloads</span>
-                <span className="badge green" style={{ marginRight: 4 }}>
-                  {dls.length}
-                </span>
-                {dls.length > 0 && (
-                  <button
-                    className="btn ghost sm"
-                    onClick={() => onOpenTransfer("downloads")}
-                    style={{ marginRight: 4 }}
-                  >
-                    ⇄ Transfer
-                  </button>
-                )}
-                <button
-                  className="btn add"
-                  onClick={() => {
-                    updateData((d) => {
-                      const n = getNodeFromData(d, sel);
-                      if (!n.downloads) n.downloads = [];
-                      n.downloads.push({
-                        id: "new_" + uid() + ".safetensors",
-                        mirrors: [],
-                      });
-                    });
-                    showToast("File added");
-                  }}
-                >
-                  + File
-                </button>
+              <div className="card-head"><span className="card-title">Downloads</span><span className="badge green" style={{marginRight:4}}>{dls.length}</span>
+                {dls.length>0&&<button className="btn ghost sm" onClick={()=>onOpenTransfer('downloads')} style={{marginRight:4}}>⇄ Transfer</button>}
+                <button className="btn add" onClick={()=>{updateData(d=>{const n=getNodeFromData(d,sel);if(!n.downloads)n.downloads=[];n.downloads.push({id:'new_'+uid()+'.safetensors',mirrors:[]});});showToast('File added');}}>+ File</button>
               </div>
-              <div className="card-body">
-                <div className="dl-list">
-                  {dls.map((dl, di) => (
-                    <DownloadCard
-                      key={di}
-                      dl={dl}
-                      di={di}
-                      authConfigs={data.authConfigs || {}}
-                      updateData={updateData}
-                      sel={sel}
-                      showToast={showToast}
-                    />
-                  ))}
-                </div>
-              </div>
+              <div className="card-body"><div className="dl-list">{dls.map((dl,di)=><DownloadCard key={di} dl={dl} di={di} authConfigs={data.authConfigs||{}} updateData={updateData} sel={sel} showToast={showToast} />)}</div></div>
             </div>
-
-            {/* Preset IDs — now ABOVE Download IDs */}
-            <TagsSection
-              title="Preset IDs"
-              items={node.preset_ids}
-              badgeClass="purple"
-              pillClass="purple"
-              onToggle={() =>
-                updateData((d) => {
-                  const n = getNodeFromData(d, sel);
-                  if (n.preset_ids !== undefined) delete n.preset_ids;
-                  else n.preset_ids = [];
-                })
-              }
-              onAdd={(val) =>
-                updateData((d) => {
-                  const n = getNodeFromData(d, sel);
-                  if (!n.preset_ids) n.preset_ids = [];
-                  n.preset_ids.push(val);
-                })
-              }
-              onRemove={(i) =>
-                updateData((d) => {
-                  getNodeFromData(d, sel).preset_ids.splice(i, 1);
-                })
-              }
-              inputId="PID_IN"
-              onTransfer={
-                node.preset_ids && node.preset_ids.length > 0
-                  ? () => onOpenTransfer("preset_ids")
-                  : null
-              }
+            <TagsSection title="Preset IDs" items={node.preset_ids} badgeClass="purple" pillClass="purple"
+              onToggle={()=>updateData(d=>{const n=getNodeFromData(d,sel);if(n.preset_ids!==undefined)delete n.preset_ids;else n.preset_ids=[];})}
+              onAdd={val=>updateData(d=>{const n=getNodeFromData(d,sel);if(!n.preset_ids)n.preset_ids=[];n.preset_ids.push(val);})}
+              onRemove={i=>updateData(d=>{getNodeFromData(d,sel).preset_ids.splice(i,1);})}
+              inputId="PID_IN" onTransfer={node.preset_ids&&node.preset_ids.length>0?()=>onOpenTransfer('preset_ids'):null}
             />
-
-            <TagsSection
-              title="Download IDs"
-              items={node.download_ids}
-              badgeClass="blue"
-              pillClass=""
-              onToggle={() =>
-                updateData((d) => {
-                  const n = getNodeFromData(d, sel);
-                  if (n.download_ids !== undefined) delete n.download_ids;
-                  else n.download_ids = [];
-                })
-              }
-              onAdd={(val) =>
-                updateData((d) => {
-                  const n = getNodeFromData(d, sel);
-                  if (!n.download_ids) n.download_ids = [];
-                  n.download_ids.push(val);
-                })
-              }
-              onRemove={(i) =>
-                updateData((d) => {
-                  getNodeFromData(d, sel).download_ids.splice(i, 1);
-                })
-              }
-              inputId="TAG_IN"
-              onTransfer={
-                node.download_ids && node.download_ids.length > 0
-                  ? () => onOpenTransfer("download_ids")
-                  : null
-              }
+            <TagsSection title="Download IDs" items={node.download_ids} badgeClass="blue" pillClass=""
+              onToggle={()=>updateData(d=>{const n=getNodeFromData(d,sel);if(n.download_ids!==undefined)delete n.download_ids;else n.download_ids=[];})}
+              onAdd={val=>updateData(d=>{const n=getNodeFromData(d,sel);if(!n.download_ids)n.download_ids=[];n.download_ids.push(val);})}
+              onRemove={i=>updateData(d=>{getNodeFromData(d,sel).download_ids.splice(i,1);})}
+              inputId="TAG_IN" onTransfer={node.download_ids&&node.download_ids.length>0?()=>onOpenTransfer('download_ids'):null}
             />
           </div>
         );
       }
 
-      // ── Tags Section ──
-      function TagsSection({
-        title,
-        items,
-        badgeClass,
-        pillClass,
-        onToggle,
-        onAdd,
-        onRemove,
-        inputId,
-        onTransfer,
-      }) {
-        const [input, setInput] = useState("");
-        const doAdd = () => {
-          const v = input.trim();
-          if (!v) return;
-          onAdd(v);
-          setInput("");
-        };
+      function TagsSection({ title, items, badgeClass, pillClass, onToggle, onAdd, onRemove, inputId, onTransfer }) {
+        const [input, setInput] = useState('');
+        const doAdd = () => { const v=input.trim(); if(!v)return; onAdd(v); setInput(''); };
         return (
           <div className="card">
-            <div className="card-head">
-              <span className="card-title">{title}</span>
-              {items !== undefined && (
-                <span
-                  className={`badge ${badgeClass}`}
-                  style={{ marginRight: 4 }}
-                >
-                  {items.length}
-                </span>
-              )}
-              {onTransfer && (
-                <button
-                  className="btn ghost sm"
-                  onClick={onTransfer}
-                  style={{ marginRight: 4 }}
-                >
-                  ⇄ Transfer
-                </button>
-              )}
-              <button className="btn ghost sm" onClick={onToggle}>
-                {items !== undefined ? "Remove field" : "Add field"}
-              </button>
+            <div className="card-head"><span className="card-title">{title}</span>
+              {items!==undefined&&<span className={`badge ${badgeClass}`} style={{marginRight:4}}>{items.length}</span>}
+              {onTransfer&&<button className="btn ghost sm" onClick={onTransfer} style={{marginRight:4}}>⇄ Transfer</button>}
+              <button className="btn ghost sm" onClick={onToggle}>{items!==undefined?'Remove field':'Add field'}</button>
             </div>
-            <Collapsible open={items !== undefined}>
+            <Collapsible open={items!==undefined}>
               <div className="card-body">
-                <div className="tag-container">
-                  {(items || []).map((id, i) => (
-                    <span key={i} className={`tag-pill ${pillClass}`}>
-                      {id}
-                      <button
-                        className="tag-remove"
-                        onClick={() => onRemove(i)}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-                <div className="tag-input-row">
-                  <input
-                    id={inputId}
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="ID → Enter"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") doAdd();
-                    }}
-                  />
-                  <button className="btn ghost sm" onClick={doAdd}>
-                    + Add
-                  </button>
-                </div>
+                <div className="tag-container">{(items||[]).map((id,i)=><span key={i} className={`tag-pill ${pillClass}`}>{id}<button className="tag-remove" onClick={()=>onRemove(i)}>×</button></span>)}</div>
+                <div className="tag-input-row"><input id={inputId} value={input} onChange={e=>setInput(e.target.value)} placeholder="ID → Enter" onKeyDown={e=>{if(e.key==='Enter')doAdd();}} /><button className="btn ghost sm" onClick={doAdd}>+ Add</button></div>
               </div>
             </Collapsible>
           </div>
         );
       }
 
-      // ── Download Card ──
-      function DownloadCard({
-        dl,
-        di,
-        authConfigs,
-        updateData,
-        sel,
-        showToast,
-      }) {
+      function DownloadCard({ dl, di, authConfigs, updateData, sel, showToast }) {
         const [open, setOpen] = useState(false);
-        const upd = (f, v) =>
-          updateData((d) => {
-            const n = getNodeFromData(d, sel);
-            if ((v === "" || v === undefined) && f !== "id")
-              delete n.downloads[di][f];
-            else n.downloads[di][f] = v;
-          });
-
+        const upd=(f,v)=>updateData(d=>{const n=getNodeFromData(d,sel);if((v===''||v===undefined)&&f!=='id')delete n.downloads[di][f];else n.downloads[di][f]=v;});
         return (
           <div className="dl-card">
-            <div className="dl-card-head" onClick={() => setOpen((o) => !o)}>
-              <span style={{ fontSize: 13 }}>📦</span>
-              <span className="dl-fname">
-                {dl.file_name || dl.id || "unnamed"}
-              </span>
-              {dl.file_size && (
-                <span className="dl-fsize">{fmtBytes(dl.file_size)}</span>
-              )}
-              <button
-                className="btn danger sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!confirm("Delete file?")) return;
-                  updateData((d) => {
-                    getNodeFromData(d, sel).downloads.splice(di, 1);
-                  });
-                  showToast("Deleted", false);
-                }}
-              >
-                ✕
-              </button>
+            <div className="dl-card-head" onClick={()=>setOpen(o=>!o)}>
+              <span style={{fontSize:13}}>📦</span><span className="dl-fname">{dl.file_name||dl.id||'unnamed'}</span>
+              {dl.file_size&&<span className="dl-fsize">{fmtBytes(dl.file_size)}</span>}
+              <button className="btn danger sm" onClick={e=>{e.stopPropagation();if(!confirm('Delete file?'))return;updateData(d=>{getNodeFromData(d,sel).downloads.splice(di,1);});showToast('Deleted',false);}}>✕</button>
             </div>
             <Collapsible open={open}>
               <div className="dl-body">
-                <div className="grid1" style={{ marginBottom: 10 }}>
-                  <div className="field">
-                    <label>
-                      ID{" "}
-                      <span style={{ color: "var(--red)", fontSize: 9 }}>
-                        *required
-                      </span>
-                    </label>
-                    <input
-                      key={`id-${di}-${dl.id}`}
-                      defaultValue={dl.id || ""}
-                      onBlur={(e) => upd("id", e.target.value)}
-                      placeholder="unique file ID"
-                    />
-                  </div>
+                <div className="grid1" style={{marginBottom:10}}><div className="field"><label>ID <span style={{color:'var(--red)',fontSize:9}}>*required</span></label><input key={`id-${di}-${dl.id}`} defaultValue={dl.id||''} onBlur={e=>upd('id',e.target.value)} placeholder="unique file ID" /></div></div>
+                <div className="grid1" style={{marginBottom:10}}><div className="field"><label>File Name</label><input key={`fn-${di}-${dl.file_name}`} defaultValue={dl.file_name||''} onBlur={e=>upd('file_name',e.target.value)} placeholder="filename.safetensors" /></div></div>
+                <div className="grid1" style={{marginBottom:10}}><div className="field"><label>Folder Path</label><input key={`fp-${di}-${dl.folder_path}`} defaultValue={dl.folder_path||''} onBlur={e=>upd('folder_path',e.target.value)} placeholder="/workspace/ComfyUI/models/" /></div></div>
+                <div className="grid2" style={{marginBottom:10}}>
+                  <div className="field"><label>File Size (bytes)</label><input type="number" key={`fs-${di}`} defaultValue={dl.file_size||''} onBlur={e=>{updateData(d=>{const n=getNodeFromData(d,sel);if(!e.target.value)delete n.downloads[di].file_size;else n.downloads[di].file_size=+e.target.value;});}} placeholder="optional" /></div>
+                  <div className="field"><label>Hash Algorithm</label><select value={dl.hash_algorithm||''} onChange={e=>{updateData(d=>{const n=getNodeFromData(d,sel);if(!e.target.value)delete n.downloads[di].hash_algorithm;else n.downloads[di].hash_algorithm=e.target.value;});}}>
+                    <option value="">— None —</option>{['sha256','sha1','md5'].map(h=><option key={h} value={h}>{h}</option>)}</select></div>
                 </div>
-                <div className="grid1" style={{ marginBottom: 10 }}>
-                  <div className="field">
-                    <label>File Name</label>
-                    <input
-                      key={`fn-${di}-${dl.file_name}`}
-                      defaultValue={dl.file_name || ""}
-                      onBlur={(e) => upd("file_name", e.target.value)}
-                      placeholder="filename.safetensors"
-                    />
-                  </div>
+                <div className="grid1" style={{marginBottom:10}}><div className="field"><label>Checksum</label><input key={`cs-${di}`} defaultValue={dl.checksum||''} onBlur={e=>upd('checksum',e.target.value)} placeholder="hash value (optional)" style={{fontFamily:'var(--font-mono)',fontSize:11.5}} /></div></div>
+                <div className="divider"><span>Mirrors</span></div>
+                {(dl.mirrors||[]).map((m,mi)=><MirrorRow key={mi} mirror={m} di={di} mi={mi} authConfigs={authConfigs} updateData={updateData} sel={sel} />)}
+                <button className="btn add sm" style={{marginTop:6}} onClick={()=>updateData(d=>{const n=getNodeFromData(d,sel);if(!n.downloads[di].mirrors)n.downloads[di].mirrors=[];n.downloads[di].mirrors.push({url:''});})}>+ Mirror</button>
+                <div className="divider"><span>Extract</span>
+                  <button className="btn ghost sm" style={{marginLeft:8}} onClick={()=>updateData(d=>{const n=getNodeFromData(d,sel).downloads[di];if(n.extract!==undefined)delete n.extract;else n.extract={format:'zip',destination:'',remove_archive:false};})}>{dl.extract!==undefined?'Remove':'Add'}</button>
                 </div>
-                <div className="grid1" style={{ marginBottom: 10 }}>
-                  <div className="field">
-                    <label>Folder Path</label>
-                    <input
-                      key={`fp-${di}-${dl.folder_path}`}
-                      defaultValue={dl.folder_path || ""}
-                      onBlur={(e) => upd("folder_path", e.target.value)}
-                      placeholder="/workspace/ComfyUI/models/"
-                    />
-                  </div>
-                </div>
-                <div className="grid2" style={{ marginBottom: 10 }}>
-                  <div className="field">
-                    <label>File Size (bytes)</label>
-                    <input
-                      type="number"
-                      key={`fs-${di}`}
-                      defaultValue={dl.file_size || ""}
-                      onBlur={(e) => {
-                        updateData((d) => {
-                          const n = getNodeFromData(d, sel);
-                          if (!e.target.value) delete n.downloads[di].file_size;
-                          else n.downloads[di].file_size = +e.target.value;
-                        });
-                      }}
-                      placeholder="optional"
-                    />
-                  </div>
-                  <div className="field">
-                    <label>Hash Algorithm</label>
-                    <select
-                      value={dl.hash_algorithm || ""}
-                      onChange={(e) => {
-                        updateData((d) => {
-                          const n = getNodeFromData(d, sel);
-                          if (!e.target.value)
-                            delete n.downloads[di].hash_algorithm;
-                          else n.downloads[di].hash_algorithm = e.target.value;
-                        });
-                      }}
-                    >
-                      <option value="">— None —</option>
-                      {["sha256", "sha1", "md5"].map((h) => (
-                        <option key={h} value={h}>
-                          {h}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="grid1" style={{ marginBottom: 10 }}>
-                  <div className="field">
-                    <label>Checksum</label>
-                    <input
-                      key={`cs-${di}`}
-                      defaultValue={dl.checksum || ""}
-                      onBlur={(e) => upd("checksum", e.target.value)}
-                      placeholder="hash value (optional)"
-                      style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}
-                    />
-                  </div>
-                </div>
-
-                {/* Mirrors */}
-                <div className="divider">
-                  <span>Mirrors</span>
-                </div>
-                {(dl.mirrors || []).map((m, mi) => (
-                  <MirrorRow
-                    key={mi}
-                    mirror={m}
-                    di={di}
-                    mi={mi}
-                    authConfigs={authConfigs}
-                    updateData={updateData}
-                    sel={sel}
-                  />
-                ))}
-                <button
-                  className="btn add sm"
-                  style={{ marginTop: 6 }}
-                  onClick={() =>
-                    updateData((d) => {
-                      const n = getNodeFromData(d, sel);
-                      if (!n.downloads[di].mirrors)
-                        n.downloads[di].mirrors = [];
-                      n.downloads[di].mirrors.push({ url: "" });
-                    })
-                  }
-                >
-                  + Mirror
-                </button>
-
-                {/* Extract */}
-                <div className="divider">
-                  <span>Extract</span>
-                  <button
-                    className="btn ghost sm"
-                    style={{ marginLeft: 8 }}
-                    onClick={() =>
-                      updateData((d) => {
-                        const n = getNodeFromData(d, sel).downloads[di];
-                        if (n.extract !== undefined) delete n.extract;
-                        else
-                          n.extract = {
-                            format: "zip",
-                            destination: "",
-                            remove_archive: false,
-                          };
-                      })
-                    }
-                  >
-                    {dl.extract !== undefined ? "Remove" : "Add"}
-                  </button>
-                </div>
-                <Collapsible open={dl.extract !== undefined}>
+                <Collapsible open={dl.extract!==undefined}>
                   <div className="extract-card">
                     <div className="extract-head">📦 Extract Settings</div>
-                    <div className="grid2" style={{ marginBottom: 10 }}>
-                      <div className="field">
-                        <label>Format</label>
-                        <select
-                          value={
-                            dl.extract ? dl.extract.format || "zip" : "zip"
-                          }
-                          onChange={(e) =>
-                            updateData((d) => {
-                              getNodeFromData(d, sel).downloads[
-                                di
-                              ].extract.format = e.target.value;
-                            })
-                          }
-                        >
-                          {["zip", "tar", "tar.gz", "tar.bz2", "rar", "7z"].map(
-                            (f) => (
-                              <option key={f} value={f}>
-                                {f}
-                              </option>
-                            ),
-                          )}
-                        </select>
-                      </div>
-                      <div className="field">
-                        <label>Destination</label>
-                        <input
-                          key={`ex-dst-${di}`}
-                          defaultValue={
-                            dl.extract ? dl.extract.destination || "" : ""
-                          }
-                          onBlur={(e) =>
-                            updateData((d) => {
-                              getNodeFromData(d, sel).downloads[
-                                di
-                              ].extract.destination = e.target.value;
-                            })
-                          }
-                          placeholder="/path/to/folder"
-                        />
-                      </div>
+                    <div className="grid2" style={{marginBottom:10}}>
+                      <div className="field"><label>Format</label><select value={dl.extract?dl.extract.format||'zip':'zip'} onChange={e=>updateData(d=>{getNodeFromData(d,sel).downloads[di].extract.format=e.target.value;})}>{['zip','tar','tar.gz','tar.bz2','rar','7z'].map(f=><option key={f} value={f}>{f}</option>)}</select></div>
+                      <div className="field"><label>Destination</label><input key={`ex-dst-${di}`} defaultValue={dl.extract?dl.extract.destination||'':''} onBlur={e=>updateData(d=>{getNodeFromData(d,sel).downloads[di].extract.destination=e.target.value;})} placeholder="/path/to/folder" /></div>
                     </div>
                     <div className="grid2">
-                      <div className="field">
-                        <label>Password</label>
-                        <input
-                          key={`ex-pw-${di}`}
-                          defaultValue={
-                            dl.extract ? dl.extract.password || "" : ""
-                          }
-                          onBlur={(e) =>
-                            updateData((d) => {
-                              getNodeFromData(d, sel).downloads[
-                                di
-                              ].extract.password = e.target.value;
-                            })
-                          }
-                          placeholder="optional"
-                        />
-                      </div>
-                      <div className="field">
-                        <label>Remove Archive</label>
-                        <select
-                          value={
-                            dl.extract
-                              ? dl.extract.remove_archive
-                                ? "true"
-                                : "false"
-                              : "false"
-                          }
-                          onChange={(e) =>
-                            updateData((d) => {
-                              getNodeFromData(d, sel).downloads[
-                                di
-                              ].extract.remove_archive =
-                                e.target.value === "true";
-                            })
-                          }
-                        >
-                          <option value="false">false</option>
-                          <option value="true">true</option>
-                        </select>
-                      </div>
+                      <div className="field"><label>Password</label><input key={`ex-pw-${di}`} defaultValue={dl.extract?dl.extract.password||'':''} onBlur={e=>updateData(d=>{getNodeFromData(d,sel).downloads[di].extract.password=e.target.value;})} placeholder="optional" /></div>
+                      <div className="field"><label>Remove Archive</label><select value={dl.extract?(dl.extract.remove_archive?'true':'false'):'false'} onChange={e=>updateData(d=>{getNodeFromData(d,sel).downloads[di].extract.remove_archive=e.target.value==='true';})}><option value="false">false</option><option value="true">true</option></select></div>
                     </div>
                   </div>
                 </Collapsible>
@@ -2344,302 +466,51 @@
       }
 
       function MirrorRow({ mirror, di, mi, authConfigs, updateData, sel }) {
-        const authKeys = Object.keys(authConfigs);
-        return (
-          <div className="mirror-row">
-            <div className="field">
-              <label>URL</label>
-              <input
-                key={`mir-url-${di}-${mi}`}
-                defaultValue={mirror.url || ""}
-                onBlur={(e) =>
-                  updateData((d) => {
-                    getNodeFromData(d, sel).downloads[di].mirrors[mi].url =
-                      e.target.value;
-                  })
-                }
-                placeholder="https://…"
-              />
-            </div>
-            <div className="field">
-              <label>Auth</label>
-              <select
-                value={mirror.auth || ""}
-                onChange={(e) =>
-                  updateData((d) => {
-                    const m = getNodeFromData(d, sel).downloads[di].mirrors[mi];
-                    if (!e.target.value) delete m.auth;
-                    else m.auth = e.target.value;
-                  })
-                }
-              >
-                <option value="">— None —</option>
-                {authKeys.map((k) => (
-                  <option key={k} value={k}>
-                    {k}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              className="btn danger sm"
-              style={{ alignSelf: "flex-end" }}
-              onClick={() =>
-                updateData((d) => {
-                  getNodeFromData(d, sel).downloads[di].mirrors.splice(mi, 1);
-                })
-              }
-            >
-              ✕
-            </button>
-          </div>
-        );
+        const authKeys=Object.keys(authConfigs);
+        return <div className="mirror-row"><div className="field"><label>URL</label><input key={`mir-url-${di}-${mi}`} defaultValue={mirror.url||''} onBlur={e=>updateData(d=>{getNodeFromData(d,sel).downloads[di].mirrors[mi].url=e.target.value;})} placeholder="https://…" /></div><div className="field"><label>Auth</label><select value={mirror.auth||''} onChange={e=>updateData(d=>{const m=getNodeFromData(d,sel).downloads[di].mirrors[mi];if(!e.target.value)delete m.auth;else m.auth=e.target.value;})}><option value="">— None —</option>{authKeys.map(k=><option key={k} value={k}>{k}</option>)}</select></div><button className="btn danger sm" style={{alignSelf:'flex-end'}} onClick={()=>updateData(d=>{getNodeFromData(d,sel).downloads[di].mirrors.splice(mi,1);})}>✕</button></div>;
       }
 
-      // ── Transfer Modal ──
-      function getAllPresetPaths(arr, path, result = []) {
-        for (let i = 0; i < arr.length; i++) {
-          const np = path.concat([i]);
-          result.push({ path: np, node: arr[i] });
-          if (arr[i].presets && arr[i].presets.length)
-            getAllPresetPaths(arr[i].presets, np.concat(["presets"]), result);
-        }
+      function getAllPresetPaths(arr, path, result=[]) {
+        for(let i=0;i<arr.length;i++){ const np=path.concat([i]); result.push({path:np,node:arr[i]}); if(arr[i].presets&&arr[i].presets.length) getAllPresetPaths(arr[i].presets,np.concat(['presets']),result); }
         return result;
       }
 
-      function TransferModal({
-        data,
-        type,
-        srcPath,
-        updateData,
-        showToast,
-        onClose,
-      }) {
+      function TransferModal({ data, type, srcPath, updateData, showToast, onClose }) {
         const [targetPath, setTargetPath] = useState(null);
         const [checked, setChecked] = useState({});
-
-        const typeLabels = {
-          presets: "Presets",
-          downloads: "Downloads",
-          download_ids: "Download IDs",
-          preset_ids: "Preset IDs",
-        };
-        let srcNode;
-        try {
-          srcNode = getNodeFromData(data, srcPath);
-        } catch (e) {
-          return null;
-        }
-
-        const allPresets = getAllPresetPaths(data.presets || [], ["presets"]);
-        const srcStr = pstr(srcPath);
-
-        const items =
-          type === "presets"
-            ? srcNode.presets || []
-            : type === "downloads"
-              ? srcNode.downloads || []
-              : type === "download_ids"
-                ? srcNode.download_ids || []
-                : srcNode.preset_ids || [];
-
-        const getLabel = (item) => {
-          if (type === "presets") return item.name || item.id || "Unnamed";
-          if (type === "downloads")
-            return item.file_name || item.id || "unnamed";
-          return item;
-        };
-
-        const toggleAll = () => {
-          const allChecked = items.every((_, i) => checked[i]);
-          const next = {};
-          if (!allChecked) items.forEach((_, i) => (next[i] = true));
-          setChecked(next);
-        };
-
-        const checkedIndices = Object.keys(checked)
-          .filter((k) => checked[k])
-          .map(Number)
-          .sort((a, b) => a - b);
-
-        const doTransfer = (isMove) => {
-          if (!targetPath) {
-            showToast("Select a target preset", false);
-            return;
-          }
-          if (!checkedIndices.length) {
-            showToast("Select items", false);
-            return;
-          }
-          updateData((d) => {
-            const src = getNodeFromData(d, srcPath);
-            const tgt = getNodeFromData(d, targetPath);
-            const srcArr =
-              type === "presets"
-                ? src.presets
-                : type === "downloads"
-                  ? src.downloads
-                  : type === "download_ids"
-                    ? src.download_ids
-                    : src.preset_ids;
-            const tgtKey =
-              type === "presets"
-                ? "presets"
-                : type === "downloads"
-                  ? "downloads"
-                  : type === "download_ids"
-                    ? "download_ids"
-                    : "preset_ids";
-            if (!tgt[tgtKey]) tgt[tgtKey] = [];
-            const copies = checkedIndices.map((i) => deepClone(srcArr[i]));
-            copies.forEach((item) => tgt[tgtKey].push(item));
-            if (isMove) {
-              for (let i = checkedIndices.length - 1; i >= 0; i--)
-                srcArr.splice(checkedIndices[i], 1);
-            }
-          });
-          onClose();
-          showToast(
-            (isMove ? "Moved" : "Copied") +
-              " " +
-              checkedIndices.length +
-              " item(s) ✓",
-          );
-        };
-
+        const typeLabels={presets:'Presets',downloads:'Downloads',download_ids:'Download IDs',preset_ids:'Preset IDs'};
+        let srcNode; try{srcNode=getNodeFromData(data,srcPath);}catch(e){return null;}
+        const allPresets=getAllPresetPaths(data.presets||[],['presets']); const srcStr=pstr(srcPath);
+        const items=type==='presets'?(srcNode.presets||[]):type==='downloads'?(srcNode.downloads||[]):type==='download_ids'?(srcNode.download_ids||[]):(srcNode.preset_ids||[]);
+        const getLabel=item=>{ if(type==='presets')return item.name||item.id||'Unnamed'; if(type==='downloads')return item.file_name||item.id||'unnamed'; return item; };
+        const toggleAll=()=>{ const allChecked=items.every((_,i)=>checked[i]); const next={}; if(!allChecked)items.forEach((_,i)=>next[i]=true); setChecked(next); };
+        const checkedIndices=Object.keys(checked).filter(k=>checked[k]).map(Number).sort((a,b)=>a-b);
+        const doTransfer=isMove=>{ if(!targetPath){showToast('Select a target preset',false);return;} if(!checkedIndices.length){showToast('Select items',false);return;} updateData(d=>{ const src=getNodeFromData(d,srcPath); const tgt=getNodeFromData(d,targetPath); const srcArr=type==='presets'?src.presets:type==='downloads'?src.downloads:type==='download_ids'?src.download_ids:src.preset_ids; const tgtKey=type==='presets'?'presets':type==='downloads'?'downloads':type==='download_ids'?'download_ids':'preset_ids'; if(!tgt[tgtKey])tgt[tgtKey]=[]; const copies=checkedIndices.map(i=>deepClone(srcArr[i])); copies.forEach(item=>tgt[tgtKey].push(item)); if(isMove){for(let i=checkedIndices.length-1;i>=0;i--)srcArr.splice(checkedIndices[i],1);} }); onClose(); showToast((isMove?'Moved':'Copied')+' '+checkedIndices.length+' item(s) ✓'); };
         return (
-          <div
-            className="modal-backdrop show"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) onClose();
-            }}
-          >
+          <div className="modal-backdrop show" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
             <div className="transfer-modal">
-              <div className="modal-head">
-                <span>Transfer: {typeLabels[type] || type}</span>
-                <button className="btn ghost sm" onClick={onClose}>
-                  ✕
-                </button>
-              </div>
-
-              <div className="transfer-section">
-                <h3>Target Preset</h3>
+              <div className="modal-head"><span>Transfer: {typeLabels[type]||type}</span><button className="btn ghost sm" onClick={onClose}>✕</button></div>
+              <div className="transfer-section"><h3>Target Preset</h3>
                 <div className="transfer-preset-list">
-                  {allPresets
-                    .filter((p) => {
-                      if (pstr(p.path) === srcStr) return false;
-                      if (pstr(p.path).startsWith(srcStr.slice(0, -1)))
-                        return false;
-                      return true;
-                    })
-                    .map((p, i) => {
-                      const depth = Math.floor(p.path.length / 2) - 1;
-                      return (
-                        <div
-                          key={i}
-                          className={`tpt-item${pstr(targetPath) === pstr(p.path) ? " selected" : ""}`}
-                          onClick={() => setTargetPath(p.path)}
-                        >
-                          {depth > 0 && (
-                            <span
-                              style={{ color: "var(--text-3)", marginRight: 4 }}
-                            >
-                              {"  ".repeat(depth)}↳
-                            </span>
-                          )}
-                          <span style={{ flex: 1 }}>
-                            {p.node.name || p.node.id || "Unnamed"}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 10.5,
-                              color: "var(--text-3)",
-                              fontFamily: "var(--font-mono)",
-                            }}
-                          >
-                            {p.node.id || ""}
-                          </span>
-                        </div>
-                      );
-                    })}
+                  {allPresets.filter(p=>{ if(pstr(p.path)===srcStr)return false; if(pstr(p.path).startsWith(srcStr.slice(0,-1)))return false; return true; }).map((p,i)=>{ const depth=Math.floor(p.path.length/2)-1; return <div key={i} className={`tpt-item${pstr(targetPath)===pstr(p.path)?' selected':''}`} onClick={()=>setTargetPath(p.path)}>{depth>0&&<span style={{color:'var(--text-3)',marginRight:4}}>{'  '.repeat(depth)}↳</span>}<span style={{flex:1}}>{p.node.name||p.node.id||'Unnamed'}</span><span style={{fontSize:10.5,color:'var(--text-3)',fontFamily:'var(--font-mono)'}}>{p.node.id||''}</span></div>; })}
                 </div>
               </div>
-
-              <div className="transfer-items-area">
-                <h3>Select Items</h3>
-                {items.length > 0 && (
-                  <>
-                    <div className="tg-header">
-                      <span>{typeLabels[type]}</span>
-                      <button className="tg-select-all" onClick={toggleAll}>
-                        Select all
-                      </button>
-                    </div>
-                    {items.map((item, i) => (
-                      <div key={i} className="ti-row">
-                        <input
-                          type="checkbox"
-                          checked={!!checked[i]}
-                          onChange={(e) =>
-                            setChecked((prev) => ({
-                              ...prev,
-                              [i]: e.target.checked,
-                            }))
-                          }
-                        />
-                        <span className="ti-label">{getLabel(item)}</span>
-                        <span className="ti-type">
-                          {type.replace("_", " ")}
-                        </span>
-                      </div>
-                    ))}
-                  </>
-                )}
-                {!items.length && (
-                  <div style={{ color: "var(--text-3)", fontSize: 12.5 }}>
-                    No items
-                  </div>
-                )}
+              <div className="transfer-items-area"><h3>Select Items</h3>
+                {items.length>0&&<><div className="tg-header"><span>{typeLabels[type]}</span><button className="tg-select-all" onClick={toggleAll}>Select all</button></div>{items.map((item,i)=><div key={i} className="ti-row"><input type="checkbox" checked={!!checked[i]} onChange={e=>setChecked(prev=>({...prev,[i]:e.target.checked}))} /><span className="ti-label">{getLabel(item)}</span><span className="ti-type">{type.replace('_',' ')}</span></div>)}</>}
+                {!items.length&&<div style={{color:'var(--text-3)',fontSize:12.5}}>No items</div>}
               </div>
-
               <div className="transfer-footer">
-                <span className="sel-info">
-                  Selected: {checkedIndices.length} of {items.length}
-                  {targetPath
-                    ? " → " +
-                      (() => {
-                        try {
-                          const n = getNodeFromData(data, targetPath);
-                          return n.name || n.id || "?";
-                        } catch (e) {
-                          return "?";
-                        }
-                      })()
-                    : " (choose a target)"}
-                </span>
-                <button className="btn ghost sm" onClick={onClose}>
-                  Cancel
-                </button>
-                <button
-                  className="btn primary sm"
-                  onClick={() => doTransfer(false)}
-                >
-                  ⎘ Copy
-                </button>
-                <button
-                  className="btn orange sm"
-                  onClick={() => doTransfer(true)}
-                >
-                  → Move
-                </button>
+                <span className="sel-info">Selected: {checkedIndices.length} of {items.length}{targetPath?' → '+(()=>{try{const n=getNodeFromData(data,targetPath);return n.name||n.id||'?';}catch(e){return'?';}})():' (choose a target)'}</span>
+                <button className="btn ghost sm" onClick={onClose}>Cancel</button>
+                <button className="btn primary sm" onClick={()=>doTransfer(false)}>⎘ Copy</button>
+                <button className="btn orange sm" onClick={()=>doTransfer(true)}>→ Move</button>
               </div>
             </div>
           </div>
         );
       }
 
-      // ── Mount ──
-      const root = ReactDOM.createRoot(document.getElementById("root"));
+      const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(<App />);
     </script>
   </body>
