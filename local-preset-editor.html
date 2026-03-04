@@ -1201,15 +1201,15 @@
                         updateData((d) => {
                           if (!d.presets) d.presets = [];
                           d.presets.push({
-                            id: "GROUP_" + uid(),
-                            name: "New Group",
+                            id: "PRESET_" + uid(),
+                            name: "New Preset",
                             presets: [],
                           });
                         });
-                        showToast("Group added");
+                        showToast("Preset added");
                       }}
                     >
-                      + Group
+                      + Preset
                     </button>
                   </div>
                 </div>
@@ -1948,7 +1948,6 @@
               }
             />
 
-            {/* Download IDs — now BELOW Preset IDs */}
             <TagsSection
               title="Download IDs"
               items={node.download_ids}
