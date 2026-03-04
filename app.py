@@ -1,3 +1,4 @@
+import uvicorn
 from fastapi import FastAPI
 
 from routers.dashboard import router as dashboard_router
@@ -9,7 +10,7 @@ from settings import settings
 
 app = FastAPI(
     title="PyWebDownloadManager",
-    description="A web-based asynchronous download manager built with FastAPI and PyDownLib.",
+    description="Simple Download Manager",
     version="0.1.0",
 )
 
@@ -20,8 +21,6 @@ app.include_router(download_manager_router)
 
 
 if __name__ == "__main__":
-    import uvicorn
-
     setup_logger(
         level=settings.log_level.upper(),
         log_dir=settings.log_dir,

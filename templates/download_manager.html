@@ -599,6 +599,171 @@
         .configs-section-title { font-size: 0.78em; font-weight: 600; color: var(--text-3); letter-spacing: 0.06em; text-transform: uppercase; margin: 20px 0 10px; }
         .configs-list          { display: flex; flex-direction: column; gap: 6px; }
 
+        /* ─────────────────────────────────────────────────────────
+           EDIT PRESET TAB — EDITOR LAYOUT
+        ───────────────────────────────────────────────────────── */
+        .editor-layout {
+            display: flex;
+            gap: 0;
+            min-height: 600px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+        }
+        .editor-sidebar {
+            width: 240px;
+            min-width: 200px;
+            flex-shrink: 0;
+            background: var(--surface-2);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+        .editor-sidebar-head {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.72em;
+            font-weight: 600;
+            color: var(--text-3);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .editor-tree { overflow-y: auto; flex: 1; padding: 4px 0; }
+        .editor-main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: var(--bg);
+        }
+
+        /* Tree nodes */
+        .etn {
+            display: flex; align-items: center; gap: 6px;
+            padding: 6px 12px; cursor: pointer;
+            border-left: 2px solid transparent;
+            color: var(--text-2); font-size: 0.82em;
+            transition: background var(--ease), color var(--ease);
+            user-select: none;
+        }
+        .etn:hover { background: var(--surface); color: var(--text); }
+        .etn.active { background: var(--accent-dim); color: var(--accent); border-left-color: var(--accent); }
+        .etn.d0 { font-weight: 600; }
+        .etn.d1 { padding-left: 24px; }
+        .etn.d2 { padding-left: 38px; font-size: 0.78em; color: var(--text-3); }
+        .etn.d2:hover, .etn.d2.active { color: var(--accent); }
+        .etn.d3 { padding-left: 52px; font-size: 0.75em; color: var(--text-3); }
+        .etn.d3:hover, .etn.d3.active { color: var(--accent); }
+        .etn-arrow { font-size: 8px; width: 10px; text-align: center; color: var(--text-3); flex-shrink: 0; transition: transform var(--ease); }
+        .etn-arrow.open { transform: rotate(90deg); }
+        .etn-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .etn-badge { font-size: 0.72em; color: var(--text-3); background: var(--surface); padding: 1px 5px; border-radius: 3px; flex-shrink: 0; font-family: 'DM Mono', monospace; }
+        .etn.special { color: var(--yellow); }
+        .etn.special:hover { background: var(--yellow-dim); }
+        .etn.special.active { background: var(--yellow-dim); border-left-color: var(--yellow); }
+
+        /* Editor section cards */
+        .esec { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 14px; overflow: hidden; }
+        .esec-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+        .esec-title { flex: 1; font-size: 0.72em; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.06em; }
+        .esec-body { padding: 14px; }
+
+        /* Editor fields */
+        .ef { display: flex; flex-direction: column; gap: 5px; }
+        .ef label { font-size: 0.72em; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; }
+        .ef input, .ef select {
+            width: 100%; background: var(--bg); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); padding: 8px 10px;
+            font-family: 'DM Mono', monospace; font-size: 0.82em; color: var(--text);
+            outline: none; transition: border-color var(--ease);
+        }
+        .ef input:focus, .ef select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .ef input::placeholder { color: var(--text-3); font-size: 0.9em; }
+        .ef select option { background: var(--surface-2); }
+        .ef input.xs { font-size: 0.75em; color: var(--text-3); }
+
+        .efg { display: grid; gap: 10px; }
+        .efg-1 { grid-template-columns: 1fr; }
+        .efg-2 { grid-template-columns: 1fr 1fr; }
+
+        /* Download card */
+        .edl-card { background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); margin-bottom: 8px; overflow: hidden; }
+        .edl-card-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--accent-dim); border-bottom: 1px solid var(--border-soft); cursor: pointer; }
+        .edl-fname { flex: 1; font-family: 'DM Mono', monospace; font-size: 0.78em; font-weight: 500; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* edl-card-body animated via CSS transitions (see animations section) */
+
+        .emirror-row { display: grid; grid-template-columns: 1fr 130px auto; gap: 8px; align-items: flex-end; margin-bottom: 6px; }
+
+        .eextract-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-top: 8px; }
+        .eextract-head { font-size: 0.72em; font-weight: 600; color: var(--yellow); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+
+        .efdiv { display: flex; align-items: center; gap: 8px; margin: 12px 0 10px; }
+        .efdiv span { font-size: 0.7em; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
+        .efdiv::before, .efdiv::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+        .esp-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); cursor: pointer; margin-bottom: 5px; transition: border-color var(--ease); }
+        .esp-row:hover { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+        .esp-name { flex: 1; font-size: 0.85em; font-weight: 500; }
+        .esp-id { font-size: 0.75em; color: var(--text-3); font-family: 'DM Mono', monospace; }
+
+        .etag-container { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px; display: flex; flex-wrap: wrap; gap: 4px; min-height: 34px; }
+        .etag-container:focus-within { border-color: var(--accent); }
+        .etag-pill { display: inline-flex; align-items: center; gap: 3px; background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(91,127,255,.3); border-radius: 4px; padding: 1px 7px; font-size: 0.75em; font-family: 'DM Mono', monospace; }
+        .etag-rm { cursor: pointer; color: var(--text-3); font-size: 14px; line-height: 1; }
+        .etag-rm:hover { color: var(--red); }
+        .etag-input-row { display: flex; gap: 6px; margin-top: 6px; }
+        .etag-input-row input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.78em; padding: 6px 8px; border-radius: var(--radius-sm); outline: none; }
+        .etag-input-row input:focus { border-color: var(--accent); }
+
+        /* Auth config rows */
+        .eauth-row { background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); margin-bottom: 8px; overflow: hidden; }
+        .eauth-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(251,146,60,.06); border-bottom: 1px solid var(--border-soft); cursor: pointer; }
+        .eauth-head:hover { background: rgba(251,146,60,.1); }
+        .eauth-name { flex: 1; font-family: 'DM Mono', monospace; font-size: 0.78em; font-weight: 500; color: var(--yellow); }
+        /* eauth-body animated via CSS transitions (see animations section) */
+        .ekv-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 7px; align-items: flex-end; margin-bottom: 5px; }
+
+        /* Preset selector (load from API) */
+        .editor-preset-bar {
+            display: flex; gap: 8px; align-items: center; margin-bottom: 16px;
+            padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+        }
+        .editor-preset-bar select { flex: 1; max-width: 260px; }
+        .editor-badge { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 4px; font-size: 0.72em; font-weight: 600; }
+        .ebadge-blue   { background: var(--accent-dim); color: var(--accent); }
+        .ebadge-green  { background: var(--green-dim);  color: var(--green); }
+        .ebadge-purple { background: var(--purple-dim); color: var(--purple); }
+        .ebadge-yellow { background: var(--yellow-dim); color: var(--yellow); }
+        .ebadge-orange { background: rgba(251,146,60,.12); color: var(--yellow); }
+
+        /* Raw modal textarea */
+        #EDITOR_RAW_TA { width: 100%; min-height: 360px; background: var(--bg); border: 1px solid var(--border); color: var(--text-2); font-family: 'DM Mono', monospace; font-size: 0.78em; padding: 10px; border-radius: var(--radius-sm); outline: none; resize: none; line-height: 1.6; }
+        #EDITOR_RAW_TA:focus { border-color: var(--accent); }
+
+        /* Drag styles for editor */
+        .edl-card.edl-drag-top { border-top: 2px solid var(--accent) !important; }
+        .edl-card.edl-drag-bot { border-bottom: 2px solid var(--accent) !important; }
+        .esp-row.esp-drag-top  { border-top: 2px solid var(--accent) !important; }
+        .esp-row.esp-drag-bot  { border-bottom: 2px solid var(--accent) !important; }
+
+        /* Transfer modal */
+        .etransfer-modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 92vw; max-width: 680px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
+        .etransfer-section { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+        .etransfer-section h3 { font-size: 0.72em; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+        .etransfer-preset-list { display: flex; flex-direction: column; gap: 4px; max-height: 130px; overflow-y: auto; }
+        .etransfer-preset-item { display: flex; align-items: center; gap: 7px; padding: 6px 10px; background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); cursor: pointer; font-size: 0.82em; transition: all var(--ease); }
+        .etransfer-preset-item:hover, .etransfer-preset-item.selected { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+        .etransfer-items-area { padding: 12px 14px; flex: 1; overflow-y: auto; }
+        .etransfer-items-area h3 { font-size: 0.72em; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+        .etransfer-item-row { display: flex; align-items: center; gap: 7px; padding: 5px 10px; background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); margin-bottom: 4px; }
+        .etransfer-item-row input[type=checkbox] { accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer; }
+        .etransfer-item-label { flex: 1; font-size: 0.78em; font-family: 'DM Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .etransfer-item-type { font-size: 0.7em; color: var(--text-3); background: var(--surface); padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
+        .etransfer-footer { padding: 10px 14px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+        .etransfer-footer .sel-info { flex: 1; font-size: 0.78em; color: var(--text-3); }
+
         .config-item      { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
         .config-item-icon { font-size: 1em; opacity: 0.6; }
         .config-item-name { flex: 1; font-size: 0.85em; font-family: 'DM Mono', monospace; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -615,6 +780,91 @@
         @media (max-width: 640px) {
             .form-grid { grid-template-columns: 1fr; }
         }
+        /* ── Collapse/expand animations ── */
+        .preset-node-content,
+        .download-node-content {
+            transition: opacity 0.2s ease;
+        }
+        .preset-node-content.collapsing,
+        .download-node-content.collapsing {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* ── Drag & drop visual feedback ── */
+        .drag-over-top { border-top: 2px solid var(--accent) !important; background: rgba(91,127,255,0.04); }
+        .drag-over-bot { border-bottom: 2px solid var(--accent) !important; background: rgba(91,127,255,0.04); }
+        .drag-over-mid { background: rgba(91,127,255,0.1) !important; outline: 1px solid var(--accent); }
+
+        .edl-drag-top { border-top: 2px solid var(--accent) !important; }
+        .edl-drag-bot { border-bottom: 2px solid var(--accent) !important; }
+        .esp-drag-top { border-top: 2px solid var(--accent) !important; }
+        .esp-drag-bot { border-bottom: 2px solid var(--accent) !important; }
+
+        /* Dragging item ghost */
+        .etn[draggable=true]:active { opacity: 0.6; }
+
+        /* Tree node drag hover */
+        #EP_TREE .etn { transition: background var(--ease), color var(--ease), border-left-color var(--ease), padding-left 0.15s ease; }
+
+        /* Merge panel slide */
+        #ep-merge-panel {
+            overflow: hidden;
+            transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.2s ease;
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+        #ep-merge-panel.ep-panel-open {
+            max-height: 200px;
+            opacity: 1;
+            padding-top: 14px !important;
+            padding-bottom: 14px !important;
+        }
+
+        /* Auth section open/close slide */
+        .eauth-body {
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.25s ease, padding 0.15s ease;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+        .eauth-body.open {
+            max-height: 600px;
+            padding: 10px !important;
+        }
+
+        /* Download card body slide */
+        .edl-card-body {
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.3s ease;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+        .edl-card-body.open {
+            max-height: 1200px;
+            padding: 12px !important;
+        }
+
+        /* Editor section appear */
+        .esec {
+            animation: esecIn 0.15s ease;
+        }
+        @keyframes esecIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Drag source pulse */
+        @keyframes dragPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(91,127,255,0); }
+            50%       { box-shadow: 0 0 0 4px rgba(91,127,255,0.25); }
+        }
+        .is-dragging { animation: dragPulse 0.8s infinite; }
+
 {% endblock %}
 
 {% block page_header %}
@@ -648,6 +898,10 @@
             <button class="tab-btn" data-tab="import">
                 <span class="tab-icon">📂</span>
                 <span>Import Presets</span>
+            </button>
+            <button class="tab-btn" data-tab="edit-preset">
+                <span class="tab-icon">✏️</span>
+                <span>Edit Preset</span>
             </button>
         </nav>
 
@@ -837,6 +1091,64 @@
             </div>
         </div>
 
+        <!-- ════ TAB: EDIT PRESET ════ -->
+        <div class="tab-panel" data-panel="edit-preset">
+
+            <!-- Preset selector bar -->
+            <div class="editor-preset-bar">
+                <select id="ep-preset-select" style="flex:1;max-width:240px">
+                    <option value="">— Select a preset to edit —</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="ep-refresh-btn" title="Refresh preset list">🔄</button>
+                <button class="btn btn-ghost btn-sm" id="ep-merge-btn" title="Merge another preset into current">⊕ Merge</button>
+                <button class="btn btn-ghost btn-sm" id="ep-raw-btn">{ } Raw</button>
+                <button class="btn btn-ghost btn-sm" id="ep-export-btn" title="Export preset as JSON file">⬇ Export</button>
+                <button class="btn btn-success btn-sm" id="ep-save-btn">💾 Save</button>
+            </div>
+            <div id="ep-flash" style="margin-bottom:8px;min-height:0"></div>
+
+            <!-- Merge panel (hidden by default) -->
+            <div id="ep-merge-panel" style="margin-bottom:12px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm)">
+                <div style="font-size:0.75em;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">⊕ Merge preset into current</div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <select id="ep-merge-source" style="flex:1;max-width:260px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;font-family:inherit;font-size:0.85em;color:var(--text);outline:none">
+                        <option value="">— Select source preset —</option>
+                    </select>
+                    <div style="display:flex;gap:6px;align-items:center">
+                        <label style="display:flex;align-items:center;gap:5px;font-size:0.8em;color:var(--text-2);cursor:pointer">
+                            <input type="checkbox" id="ep-merge-overwrite" style="accent-color:var(--accent)"> Overwrite existing presets
+                        </label>
+                        <label style="display:flex;align-items:center;gap:5px;font-size:0.8em;color:var(--text-2);cursor:pointer">
+                            <input type="checkbox" id="ep-merge-auth" checked style="accent-color:var(--accent)"> Merge auth configs
+                        </label>
+                    </div>
+                    <button class="btn btn-primary btn-sm" id="ep-merge-do-btn">Merge →</button>
+                    <button class="btn btn-ghost btn-sm" id="ep-merge-cancel-btn">✕</button>
+                </div>
+                <div style="margin-top:8px;font-size:0.75em;color:var(--text-3)" id="ep-merge-hint">Top-level presets from source will be appended (or overwrite matching IDs) in current preset.</div>
+            </div>
+
+            <!-- Editor layout: sidebar tree + main panel -->
+            <div class="editor-layout">
+                <aside class="editor-sidebar">
+                    <div class="editor-sidebar-head">
+                        <span>Structure</span>
+                        <button class="btn btn-ghost btn-sm" id="ep-add-preset-btn" style="font-size:0.75em;padding:3px 8px">+ Preset</button>
+                    </div>
+                    <div class="editor-tree" id="EP_TREE">
+                        <div style="padding:20px 12px;font-size:0.8em;color:var(--text-3)">Select a preset above</div>
+                    </div>
+                </aside>
+                <main class="editor-main" id="EP_MAIN">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✏️</div>
+                        <p>Select a preset from the dropdown above<br>then click a node in the tree to edit it</p>
+                    </div>
+                </main>
+            </div>
+
+        </div><!-- /.tab-panel edit-preset -->
+
     </div><!-- /.tab-card -->
 
     <!-- Selection bar (fixed bottom) — Presets tab -->
@@ -850,6 +1162,42 @@
             <button class="btn btn-ghost"   id="btn-cancel-selection"><span>✕</span><span>Cancel</span></button>
         </div>
     </div>
+    <!-- ════ EDITOR: Raw JSON modal ════ -->
+    <div class="modal-backdrop" id="EP_RAW_MODAL">
+        <div class="modal" style="max-width:780px;width:90vw">
+            <div class="modal-title">{ } Raw JSON</div>
+            <div style="padding:16px">
+                <textarea id="EDITOR_RAW_TA" spellcheck="false"></textarea>
+            </div>
+            <div class="modal-actions" style="padding:0 16px 16px">
+                <button class="btn btn-ghost btn-sm" id="ep-raw-copy-btn">⎘ Copy</button>
+                <button class="btn btn-primary btn-sm" id="ep-raw-apply-btn">Apply</button>
+                <button class="btn btn-ghost btn-sm" id="ep-raw-close-btn">✕ Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════ EDITOR: Transfer modal ════ -->
+    <div class="modal-backdrop" id="EP_TRANSFER_MODAL">
+        <div class="etransfer-modal">
+            <div class="modal-title" id="EP_TRANSFER_TITLE" style="padding:12px 16px;border-bottom:1px solid var(--border)">Transfer items</div>
+            <div class="etransfer-section">
+                <h3>Target Preset</h3>
+                <div class="etransfer-preset-list" id="EP_TRANSFER_TARGETS"></div>
+            </div>
+            <div class="etransfer-items-area">
+                <h3>Select items to transfer</h3>
+                <div id="EP_TRANSFER_ITEMS"></div>
+            </div>
+            <div class="etransfer-footer">
+                <span class="sel-info" id="EP_TRANSFER_SEL_INFO">Select items</span>
+                <button class="btn btn-ghost btn-sm" id="ep-transfer-close-btn">Cancel</button>
+                <button class="btn btn-primary btn-sm" id="ep-transfer-copy-btn">⎘ Copy</button>
+                <button class="btn btn-ghost btn-sm" id="ep-transfer-move-btn" style="color:var(--yellow);border-color:rgba(251,191,36,.3)">→ Move</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-backdrop" id="folder-browser-modal" onclick="closeFolderBrowser(event)">
         <div class="modal" style="width:460px">
             <div class="modal-title">📁 Browse folders</div>
@@ -1795,6 +2143,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.add('active');
             document.querySelector(`[data-panel="${btn.dataset.tab}"]`)?.classList.add('active');
             if (btn.dataset.tab === 'import') loadSavedConfigs();
+            if (btn.dataset.tab === 'edit-preset') epRefreshPresets();
         });
     });
 
@@ -1837,7 +2186,7 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const dl of toAdd) {
                 let folder_path = dl.folder_path ?? '', file_name = dl.file_name ?? '';
                 if (!file_name && dl.filepath) { const parts = dl.filepath.split('/'); file_name = parts.pop() ?? ''; folder_path = parts.join('/'); }
-                await enqueueDownload({ folder_path, file_name, expected_hash: dl.checksum ?? dl.hash ?? '', hash_algorithm: dl.hash_algorithm ?? 'sha256', mirrors: dl.mirrors ?? [] });
+                await enqueueDownload({ folder_path, file_name, expected_hash: dl.checksum ?? dl.hash ?? '', hash_algorithm: dl.hash_algorithm ?? 'sha256', mirrors: dl.mirrors ?? [], extract: dl.extract ?? null, });
             }
             showFlash('presets', `Added ${toAdd.length} download(s) to queue`, 'success');
             selectedKeys.clear(); updateSelectionBar(); renderPresets();
@@ -1933,6 +2282,451 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('concurrency-input').value = data.max_concurrent;
     });
     setInterval(loadDownloads, POLL_MS);
+
+    // ── Editor tab wiring ──
+    document.getElementById('ep-refresh-btn').addEventListener('click', epRefreshPresets);
+    document.getElementById('ep-preset-select').addEventListener('change', epOnPresetSelected);
+    document.getElementById('ep-save-btn').addEventListener('click', epSave);
+    document.getElementById('ep-add-preset-btn').addEventListener('click', epAddPreset);
+    document.getElementById('ep-export-btn').addEventListener('click', epExport);
+    document.getElementById('ep-raw-btn').addEventListener('click', epOpenRaw);
+    document.getElementById('ep-raw-close-btn').addEventListener('click', epCloseRaw);
+    document.getElementById('ep-raw-copy-btn').addEventListener('click', () => {
+        navigator.clipboard.writeText(document.getElementById('EDITOR_RAW_TA').value).then(() => epFlash('Copied!', 'success'));
+    });
+    document.getElementById('ep-raw-apply-btn').addEventListener('click', epApplyRaw);
+    document.getElementById('ep-transfer-close-btn').addEventListener('click', epCloseTransfer);
+    document.getElementById('ep-transfer-copy-btn').addEventListener('click', () => epDoTransfer(false));
+    document.getElementById('ep-transfer-move-btn').addEventListener('click', () => epDoTransfer(true));
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   PRESET EDITOR  (Edit Preset tab)
+   Uses /api/configs/* endpoints
+═══════════════════════════════════════════════════════════════ */
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   PRESET EDITOR  (Edit Preset tab)
+   Uses /api/configs/* endpoints
+═══════════════════════════════════════════════════════════════ */
+
+var EP_D    = { version:'1.0', authConfigs:{}, presets:[], metadata:{} };
+var EP_SEL  = null;
+var EP_EXP  = {};
+var EP_DRAG_SRC = null;
+var EP_CURRENT_PRESET = null;
+
+function epEl(id){ return document.getElementById(id); }
+function epEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function epUid(){ return Math.random().toString(36).slice(2,6).toUpperCase(); }
+function epPstr(p){ return JSON.stringify(p); }
+function epFmtBytes(b){ if(!b&&b!==0) return ''; if(b>=1e9) return (b/1e9).toFixed(2)+' GB'; if(b>=1e6) return (b/1e6).toFixed(1)+' MB'; if(b>0) return Math.round(b/1e3)+' KB'; return '0'; }
+function epDeepClone(o){ return JSON.parse(JSON.stringify(o)); }
+
+function epFlash(msg, type){
+    var el = epEl('ep-flash');
+    if(!el) return;
+    el.innerHTML = '<span class="flash flash-'+(type==='success'?'success':'error')+'" style="display:inline-flex;padding:6px 12px;margin:0">'+epEsc(msg)+'</span>';
+    setTimeout(function(){ if(el) el.innerHTML = ''; }, 3500);
+}
+
+function epSetMain(h){
+    var m = epEl('EP_MAIN');
+    if(!m) return;
+    var st = m.scrollTop;
+    m.innerHTML = h;
+    m.scrollTop = st;
+}
+
+function epGetNode(path){
+    var cur = EP_D;
+    for(var i=0;i<path.length;i++){
+        cur = cur[path[i]];
+        if(cur===undefined||cur===null) throw new Error('Bad path at '+i+' key='+path[i]);
+    }
+    return cur;
+}
+
+async function epRefreshPresets(){
+    try {
+        var data = await apiFetch('/api/configs/list');
+        var configs = (data && data.configs) ? data.configs : [];
+        var sel = epEl('ep-preset-select');
+        var mergeSel = epEl('ep-merge-source');
+        if(!sel) return;
+        var cur = sel.value;
+        sel.innerHTML = '<option value="">— Select a preset to edit —</option>';
+        if(mergeSel) mergeSel.innerHTML = '<option value="">— Select source preset —</option>';
+        configs.forEach(function(c){
+            var opt = document.createElement('option');
+            opt.value = c.name; opt.textContent = c.name;
+            if(c.name === cur) opt.selected = true;
+            sel.appendChild(opt);
+            if(mergeSel){
+                var opt2 = document.createElement('option');
+                opt2.value = c.name; opt2.textContent = c.name;
+                mergeSel.appendChild(opt2);
+            }
+        });
+        if(configs.length === 0) epFlash('No preset configs found in presets directory', 'error');
+    } catch(e){ epFlash('Failed to load configs: ' + e.message, 'error'); }
+}
+
+async function epOnPresetSelected(){
+    var name = epEl('ep-preset-select').value;
+    if(!name){
+        EP_D = {version:'1.0',authConfigs:{},presets:[],metadata:{}};
+        EP_SEL=null; EP_EXP={}; EP_CURRENT_PRESET=null;
+        epBuildTree();
+        epEl('EP_MAIN').innerHTML='<div class="empty-state"><div class="empty-state-icon">✏️</div><p>Select a preset to edit</p></div>';
+        return;
+    }
+    try {
+        var data = await apiFetch('/api/configs/load/'+encodeURIComponent(name));
+        if(!data || !data.success){ epFlash(data.error||'Load failed','error'); return; }
+        EP_D = data.config || {};
+        if(!EP_D.authConfigs) EP_D.authConfigs={};
+        if(!EP_D.presets) EP_D.presets=[];
+        if(!EP_D.metadata) EP_D.metadata={};
+        EP_SEL=null; EP_EXP={}; EP_CURRENT_PRESET = name;
+        epBuildTree();
+        epEl('EP_MAIN').innerHTML='<div class="empty-state"><div class="empty-state-icon">✅</div><p>Loaded: <b>'+epEsc(name)+'</b><br><span style="font-size:.85em;color:var(--text-3)">'+(EP_D.presets.length)+' top-level presets</span></p></div>';
+        epFlash('Loaded '+name, 'success');
+    } catch(e){ epFlash('Error: '+e.message,'error'); }
+}
+
+async function epDoMerge(){
+    var sourceName = epEl('ep-merge-source').value;
+    if(!sourceName){ epFlash('Select a source preset','error'); return; }
+    if(!EP_CURRENT_PRESET){ epFlash('Load a preset to merge into first','error'); return; }
+    if(sourceName === EP_CURRENT_PRESET){ epFlash('Cannot merge into itself','error'); return; }
+    var overwrite = epEl('ep-merge-overwrite').checked;
+    var mergeAuth = epEl('ep-merge-auth').checked;
+    try {
+        var data = await apiFetch('/api/configs/load/'+encodeURIComponent(sourceName));
+        if(!data || !data.success){ epFlash('Failed to load source','error'); return; }
+        var src = data.config || {};
+        if(mergeAuth && src.authConfigs){
+            Object.keys(src.authConfigs).forEach(function(k){
+                if(overwrite || !EP_D.authConfigs[k]) EP_D.authConfigs[k] = epDeepClone(src.authConfigs[k]);
+            });
+        }
+        var srcPresets = src.presets || [];
+        var merged = 0;
+        srcPresets.forEach(function(srcPreset){
+            var existIdx = -1;
+            for(var i=0;i<EP_D.presets.length;i++){ if(EP_D.presets[i].id === srcPreset.id){ existIdx=i; break; } }
+            if(existIdx >= 0){
+                if(overwrite) EP_D.presets[existIdx] = epDeepClone(srcPreset);
+                else epMergePresetInto(EP_D.presets[existIdx], srcPreset);
+            } else {
+                EP_D.presets.push(epDeepClone(srcPreset));
+            }
+            merged++;
+        });
+        epBuildTree();
+        epEl('EP_MAIN').innerHTML='<div class="empty-state"><div class="empty-state-icon">⊕</div><p>Merged <b>'+merged+'</b> presets from <b>'+epEsc(sourceName)+'</b></p><p style="font-size:.85em;color:var(--text-3)">Don\'t forget to 💾 Save</p></div>';
+        epFlash('Merged '+merged+' presets from '+sourceName, 'success');
+        epEl('ep-merge-panel').classList.remove('ep-panel-open');
+    } catch(e){ epFlash('Merge error: '+e.message,'error'); }
+}
+
+function epMergePresetInto(target, source){
+    var srcDls = source.downloads || [];
+    if(!target.downloads) target.downloads = [];
+    srcDls.forEach(function(dl){
+        var exists = false;
+        for(var i=0;i<target.downloads.length;i++){ if(target.downloads[i].id===dl.id){ exists=true; break; } }
+        if(!exists) target.downloads.push(epDeepClone(dl));
+    });
+    if(source.download_ids && source.download_ids.length){
+        if(!target.download_ids) target.download_ids = [];
+        source.download_ids.forEach(function(id){ if(target.download_ids.indexOf(id)<0) target.download_ids.push(id); });
+    }
+    if(source.preset_ids && source.preset_ids.length){
+        if(!target.preset_ids) target.preset_ids = [];
+        source.preset_ids.forEach(function(id){ if(target.preset_ids.indexOf(id)<0) target.preset_ids.push(id); });
+    }
+    var srcSubs = source.presets || [];
+    if(!target.presets) target.presets = [];
+    srcSubs.forEach(function(srcSub){
+        var existIdx = -1;
+        for(var i=0;i<target.presets.length;i++){ if(target.presets[i].id===srcSub.id){ existIdx=i; break; } }
+        if(existIdx >= 0) epMergePresetInto(target.presets[existIdx], srcSub);
+        else target.presets.push(epDeepClone(srcSub));
+    });
+}
+
+async function epSave(){
+    if(!EP_CURRENT_PRESET){ epFlash('No preset selected','error'); return; }
+    try {
+        var clean = epCleanNode(EP_D);
+        var blob = new Blob([JSON.stringify(clean,null,2)],{type:'application/json'});
+        var file = new File([blob], EP_CURRENT_PRESET, {type:'application/json'});
+        var formData = new FormData();
+        formData.append('file', file);
+        formData.append('config_name', EP_CURRENT_PRESET.replace(/\.json$/,''));
+        var resp = await fetch('/api/configs/save-from-file', {method:'POST', body: formData});
+        var data = await resp.json();
+        if(data.success) epFlash('Saved ✓', 'success');
+        else epFlash(data.error||'Save failed','error');
+    } catch(e){ epFlash('Save error: '+e.message,'error'); }
+}
+
+function epBuildTree(){
+    var tree = epEl('EP_TREE');
+    if(!tree) return;
+    tree.innerHTML = '';
+    epAddSpecialNode(tree,'🔑 Auth Configs','auth');
+    epAddSpecialNode(tree,'📋 Metadata','meta');
+    var sep=document.createElement('div');
+    sep.style.cssText='height:1px;background:var(--border);margin:4px 8px';
+    tree.appendChild(sep);
+    epBuildSubtree(tree, EP_D.presets||[], ['presets'], 0);
+}
+
+function epAddSpecialNode(tree,label,key){
+    var div=document.createElement('div');
+    div.className='etn d0 special'+(EP_SEL===key?' active':'');
+    div.innerHTML='<span class="etn-arrow"></span><span class="etn-label">'+label+'</span>';
+    div.onclick=function(e){ e.stopPropagation(); EP_SEL=key; epBuildTree(); epRenderMain(); };
+    tree.appendChild(div);
+}
+
+function epBuildSubtree(tree,arr,pathArr,depth){
+    for(var i=0;i<arr.length;i++){
+        var node=arr[i]; var npath=pathArr.concat([i]);
+        var hasKids=(node.presets||[]).length>0;
+        var cnt=(node.downloads||[]).length+(node.presets||[]).length||null;
+        var icon=depth===0?'📁':depth===1?'📄':'⚙';
+        epAddTreeNode(tree,node.name||node.id||'—',icon,npath,depth,hasKids,cnt);
+        if(EP_EXP[epPstr(npath)] && hasKids) epBuildSubtree(tree,node.presets||[],npath.concat(['presets']),depth+1);
+    }
+}
+
+function epAddTreeNode(tree,label,icon,pathArr,depth,hasKids,cnt){
+    var key=epPstr(pathArr); var isExp=!!EP_EXP[key]; var isSel=epPstr(EP_SEL)===key;
+    var d=Math.min(depth,3);
+    var div=document.createElement('div');
+    div.className='etn d'+d+(isSel?' active':'');
+    div.setAttribute('draggable','true');
+    div.innerHTML='<span class="etn-arrow'+(hasKids&&isExp?' open':'')+'">'+(hasKids?'▶':'')+'</span><span style="font-size:13px;flex-shrink:0">'+icon+'</span><span class="etn-label">'+epEsc(label)+'</span>'+(cnt?'<span class="etn-badge">'+cnt+'</span>':'');
+    (function(p,hk){ div.onclick=function(e){ e.stopPropagation(); if(hk){ EP_EXP[epPstr(p)]?delete EP_EXP[epPstr(p)]:(EP_EXP[epPstr(p)]=1); } EP_SEL=p; epBuildTree(); epRenderMain(); }; })(pathArr,hasKids);
+    div.addEventListener('dragstart',function(e){ EP_DRAG_SRC=pathArr; div.style.opacity='.4'; div.classList.add('is-dragging'); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',key); });
+    div.addEventListener('dragend',function(){ div.style.opacity=''; div.classList.remove('is-dragging'); epClearDragStyles(); });
+    div.addEventListener('dragover',function(e){ if(!EP_DRAG_SRC) return; e.preventDefault(); e.stopPropagation(); epClearDragStyles(); var rect=div.getBoundingClientRect(); var y=e.clientY-rect.top; var t=rect.height/3; if(y<t) div.classList.add('drag-over-top'); else if(y>t*2) div.classList.add('drag-over-bot'); else div.classList.add('drag-over-mid'); });
+    div.addEventListener('dragleave',function(){ epClearDragStyles(); });
+    div.addEventListener('drop',function(e){ e.preventDefault(); e.stopPropagation(); if(!EP_DRAG_SRC) return; var rect=div.getBoundingClientRect(); var y=e.clientY-rect.top; var t=rect.height/3; var pos=y<t?'before':(y>t*2?'after':'into'); epClearDragStyles(); epPerformDrop(EP_DRAG_SRC,pathArr,pos); EP_DRAG_SRC=null; });
+    tree.appendChild(div);
+}
+
+function epClearDragStyles(){ document.querySelectorAll('#EP_TREE .drag-over-top,#EP_TREE .drag-over-bot,#EP_TREE .drag-over-mid').forEach(function(n){ n.classList.remove('drag-over-top','drag-over-bot','drag-over-mid'); }); }
+
+function epPerformDrop(srcPath,tgtPath,pos){
+    try{
+        if(epPstr(srcPath)===epPstr(tgtPath)) return;
+        var srcNode=epDeepClone(epGetNode(srcPath));
+        var srcParent=srcPath.slice(0,-2).length?epGetNode(srcPath.slice(0,-2)):EP_D;
+        srcParent[srcPath[srcPath.length-2]].splice(srcPath[srcPath.length-1],1);
+        var newTgt=tgtPath.slice();
+        if(srcPath[srcPath.length-2]===tgtPath[tgtPath.length-2]&&srcPath[srcPath.length-1]<newTgt[newTgt.length-1]) newTgt[newTgt.length-1]--;
+        if(pos==='into'){ var tn=epGetNode(newTgt); if(!tn.presets) tn.presets=[]; tn.presets.push(srcNode); EP_EXP[epPstr(newTgt)]=1; EP_SEL=newTgt.concat(['presets',tn.presets.length-1]); }
+        else { var tgtParent=newTgt.slice(0,-2).length?epGetNode(newTgt.slice(0,-2)):EP_D; var ins=(pos==='after'?newTgt[newTgt.length-1]+1:newTgt[newTgt.length-1]); tgtParent[newTgt[newTgt.length-2]].splice(ins,0,srcNode); EP_SEL=newTgt.slice(0,-2).concat([newTgt[newTgt.length-2],ins]); }
+        epBuildTree(); epRenderMain();
+    }catch(e){ console.error('drop err',e); }
+}
+
+function epRenderMain(){
+    if(EP_SEL==='auth'){ epRenderAuth(); return; }
+    if(EP_SEL==='meta'){ epRenderMeta(); return; }
+    if(!EP_SEL) return;
+    epRenderPreset();
+}
+
+function epRenderAuth(){
+    var ac=EP_D.authConfigs||{}; var keys=Object.keys(ac);
+    var h='<div class="breadcrumb" style="margin-bottom:14px">authConfigs</div><div class="esec"><div class="esec-head"><span class="esec-title">🔑 Auth Configs</span><span class="editor-badge ebadge-orange" style="margin-right:6px">'+keys.length+'</span><button class="btn btn-ghost btn-sm" onclick="epAddAuthConfig()">+ Auth</button></div><div class="esec-body">';
+    if(!keys.length) h+='<div style="color:var(--text-3);font-size:.82em">No auth configs</div>';
+    else keys.forEach(function(k,ki){ h+=epAuthHTML(k,ac[k],ki); });
+    epSetMain(h+'</div></div>');
+}
+
+function epAuthHTML(key,cfg,ki){
+    var headers=cfg.headers||{}; var cookies=cfg.cookies||{};
+    var hks=Object.keys(headers); var cks=Object.keys(cookies); var cid='EAC'+ki;
+    var h='<div class="eauth-row"><div class="eauth-head" onclick="epToggleAuth(\''+cid+'\')"><span style="font-size:14px">🔑</span><span class="eauth-name">'+epEsc(key)+'</span>'+(hks.length?'<span class="editor-badge ebadge-blue">'+hks.length+' headers</span>':'')+(cks.length?'<span class="editor-badge ebadge-yellow">'+cks.length+' cookies</span>':'')+'<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();epRmAuthConfig(\''+epEsc(key)+'\')">✕</button></div><div class="eauth-body" id="'+cid+'B"><div class="efg efg-1" style="margin-bottom:10px"><div class="ef"><label>Config Name</label><input value="'+epEsc(key)+'" onchange="epRenameAuth(\''+epEsc(key)+'\',this.value,\''+cid+'\')"></div></div><div class="efdiv"><span>Headers</span><button class="btn btn-ghost btn-sm" onclick="epAddAuthKV(\''+epEsc(key)+'\',\'headers\')">+ Header</button></div><div>';
+    hks.forEach(function(hk){ h+=epKvRow(key,'headers',hk,headers[hk]); });
+    h+='</div><div class="efdiv"><span>Cookies</span><button class="btn btn-ghost btn-sm" onclick="epAddAuthKV(\''+epEsc(key)+'\',\'cookies\')">+ Cookie</button></div><div>';
+    cks.forEach(function(ck){ h+=epKvRow(key,'cookies',ck,cookies[ck]); });
+    return h+'</div></div></div>';
+}
+
+function epKvRow(cfgKey,section,k,v){
+    return '<div class="ekv-row"><div class="ef"><label>Key</label><input value="'+epEsc(k)+'" onchange="epUpdateAuthKV(\''+epEsc(cfgKey)+'\',\''+section+'\',\''+epEsc(k)+'\',\'key\',this.value)"></div><div class="ef"><label>Value</label><input value="'+epEsc(v)+'" oninput="epUpdateAuthKV(\''+epEsc(cfgKey)+'\',\''+section+'\',\''+epEsc(k)+'\',\'val\',this.value)"></div><button class="btn btn-danger btn-sm" style="align-self:flex-end" onclick="epRmAuthKV(\''+epEsc(cfgKey)+'\',\''+section+'\',\''+epEsc(k)+'\')">✕</button></div>';
+}
+
+function epToggleAuth(cid){ var b=epEl(cid+'B'); if(b) b.classList.toggle('open'); }
+function epAddAuthConfig(){ if(!EP_D.authConfigs) EP_D.authConfigs={}; var n='auth_'+epUid().toLowerCase(); EP_D.authConfigs[n]={headers:{}}; epRenderAuth(); }
+function epRmAuthConfig(k){ if(!confirm('Delete auth "'+k+'"?')) return; delete EP_D.authConfigs[k]; epRenderAuth(); }
+function epRenameAuth(oldK,newK,cid){ newK=(newK||'').trim(); if(!newK||newK===oldK){ return; } if(EP_D.authConfigs[newK]){ epFlash('Name already exists','error'); return; } var v=EP_D.authConfigs[oldK]; delete EP_D.authConfigs[oldK]; EP_D.authConfigs[newK]=v; epRenderAuth(); var keys=Object.keys(EP_D.authConfigs); var ni=keys.indexOf(newK); if(ni>=0){ var b=epEl('EAC'+ni+'B'); if(b) b.classList.add('open'); } }
+
+function epRenderAuthKeepOpen(cfgKey){
+    var keys=Object.keys(EP_D.authConfigs);
+    var idx=keys.indexOf(cfgKey);
+    epRenderAuth();
+    if(idx>=0){ var b=epEl('EAC'+idx+'B'); if(b) b.classList.add('open'); }
+}
+function epAddAuthKV(cfgKey,section){ if(!EP_D.authConfigs[cfgKey][section]) EP_D.authConfigs[cfgKey][section]={}; EP_D.authConfigs[cfgKey][section]['key_'+epUid().toLowerCase()]=''; epRenderAuthKeepOpen(cfgKey); }
+function epUpdateAuthKV(cfgKey,section,oldK,field,val){ var sec=EP_D.authConfigs[cfgKey][section]; if(field==='key'){ if(!val||val===oldK) return; var v=sec[oldK]; delete sec[oldK]; sec[val]=v; epRenderAuthKeepOpen(cfgKey); } else sec[oldK]=val; }
+function epRmAuthKV(cfgKey,section,k){ delete EP_D.authConfigs[cfgKey][section][k]; epRenderAuthKeepOpen(cfgKey); }
+
+function epRenderMeta(){
+    var m=EP_D.metadata||{};
+    var h='<div class="breadcrumb" style="margin-bottom:14px">metadata</div><div class="esec"><div class="esec-head"><span class="esec-title">📋 Metadata</span></div><div class="esec-body"><div class="efg efg-2">';
+    [['version','Version','1.0.0'],['author','Author','author'],['created','Created','2026-01-01'],['notes','Notes','notes']].forEach(function(f){ h+='<div class="ef"><label>'+f[1]+'</label><input value="'+epEsc(m[f[0]]||'')+'" oninput="epUpdMeta(\''+f[0]+'\',this.value)" placeholder="'+f[2]+'"></div>'; });
+    epSetMain(h+'</div></div></div>');
+}
+function epUpdMeta(f,v){ if(!EP_D.metadata) EP_D.metadata={}; if(v==='') delete EP_D.metadata[f]; else EP_D.metadata[f]=v; }
+
+function epRenderPreset(){
+    var node; try{ node=epGetNode(EP_SEL); } catch(e){ epSetMain('<div class="empty-state"><p>Error: '+epEsc(e.message)+'</p></div>'); return; }
+    var subs=node.presets||[]; var dls=node.downloads||[]; var dlIds=node.download_ids; var pIds=node.preset_ids;
+    var h='<div class="esec"><div class="esec-head"><span class="esec-title">Info</span><button class="btn btn-danger btn-sm" onclick="epDeleteNode()">✕ Delete</button></div><div class="esec-body"><div class="efg efg-1" style="margin-bottom:10px"><div class="ef"><label>ID <span style="color:var(--red);font-size:10px">*</span></label><input value="'+epEsc(node.id||'')+'" oninput="epUpdSel(\'id\',this.value)" placeholder="unique id"></div></div><div class="efg efg-1" style="margin-bottom:10px"><div class="ef"><label>Name</label><input value="'+epEsc(node.name||'')+'" oninput="epUpdSel(\'name\',this.value)" placeholder="display name"></div></div><div class="efg efg-1"><div class="ef"><label>Description</label><input value="'+epEsc(node.description||'')+'" oninput="epUpdSel(\'description\',this.value)" placeholder="short description"></div></div></div></div>';
+    h+='<div class="esec"><div class="esec-head"><span class="esec-title">Sub-Presets</span><span class="editor-badge ebadge-purple" style="margin-right:6px">'+subs.length+'</span>'+(subs.length?'<button class="btn btn-ghost btn-sm" onclick="epOpenTransfer(\'presets\')" style="margin-right:4px">⇄</button>':'')+'<button class="btn btn-ghost btn-sm" onclick="epAddSubPreset()">+ Preset</button></div><div class="esec-body">';
+    if(!subs.length) h+='<div style="color:var(--text-3);font-size:.82em">No sub-presets</div>';
+    subs.forEach(function(sub,si){ h+='<div class="esp-row" onclick="epGoTo(\''+epEsc(epPstr(EP_SEL.concat(['presets',si])))+'\')"><span class="esp-name">'+epEsc(sub.name||sub.id||'Unnamed')+'</span><span class="esp-id">'+epEsc(sub.id||'')+'</span><span class="editor-badge ebadge-blue">'+((sub.downloads||[]).length)+' files</span></div>'; });
+    h+='</div></div>';
+    h+='<div class="esec"><div class="esec-head"><span class="esec-title">Downloads</span><span class="editor-badge ebadge-green" style="margin-right:6px">'+dls.length+'</span>'+(dls.length?'<button class="btn btn-ghost btn-sm" onclick="epOpenTransfer(\'downloads\')" style="margin-right:4px">⇄</button>':'')+'<button class="btn btn-ghost btn-sm" onclick="epAddDownload()">+ File</button></div><div class="esec-body"><div id="EP_DL_LIST">';
+    dls.forEach(function(dl,di){ h+=epDlCardHTML(dl,di); });
+    h+='</div></div></div>';
+    h+='<div class="esec"><div class="esec-head"><span class="esec-title">Preset IDs</span>'+(pIds!==undefined?'<span class="editor-badge ebadge-purple" style="margin-right:6px">'+pIds.length+'</span>':'')+'<button class="btn btn-ghost btn-sm" onclick="epTogglePresetIds()">'+(pIds!==undefined?'Remove':'Add field')+'</button></div>'+(pIds!==undefined?'<div class="esec-body"><div class="etag-container">'+pIds.map(function(id,i){ return '<span class="etag-pill" style="background:var(--purple-dim);color:var(--purple);border-color:rgba(167,139,250,.3)">'+epEsc(id)+'<span class="etag-rm" onclick="epRmPresetId('+i+')">×</span></span>'; }).join('')+'</div><div class="etag-input-row"><input type="text" id="EP_PID_IN" placeholder="ID → Enter" onkeydown="if(event.key===\'Enter\')epAddPresetId()"><button class="btn btn-ghost btn-sm" onclick="epAddPresetId()">+</button></div></div>':'')+'</div>';
+    h+='<div class="esec"><div class="esec-head"><span class="esec-title">Download IDs</span>'+(dlIds!==undefined?'<span class="editor-badge ebadge-blue" style="margin-right:6px">'+dlIds.length+'</span>':'')+'<button class="btn btn-ghost btn-sm" onclick="epToggleDlIds()">'+(dlIds!==undefined?'Remove':'Add field')+'</button></div>'+(dlIds!==undefined?'<div class="esec-body"><div class="etag-container">'+dlIds.map(function(id,i){ return '<span class="etag-pill">'+epEsc(id)+'<span class="etag-rm" onclick="epRmDlId('+i+')">×</span></span>'; }).join('')+'</div><div class="etag-input-row"><input type="text" id="EP_TAG_IN" placeholder="ID → Enter" onkeydown="if(event.key===\'Enter\')epAddDlId()"><button class="btn btn-ghost btn-sm" onclick="epAddDlId()">+</button></div></div>':'')+'</div>';
+    epSetMain(h);
+    epInitDlDnd();
+}
+
+function epDlCardHTML(dl,di){
+    var cid='EDC'+di; var mirrors=dl.mirrors||[]; var hasExtract=dl.extract!==undefined;
+    var h='<div class="edl-card" id="'+cid+'"><div class="edl-card-head" onclick="epToggleDC(\''+cid+'\')"><span style="font-size:13px">📦</span><span class="edl-fname">'+epEsc(dl.file_name||dl.id||'unnamed')+'</span>'+(dl.file_size?'<span style="font-size:.75em;color:var(--text-3);font-family:monospace;flex-shrink:0">'+epFmtBytes(dl.file_size)+'</span>':'')+'<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();epRmDownload('+di+')">✕</button></div><div class="edl-card-body" id="'+cid+'B">';
+    h+='<div class="efg efg-1" style="margin-bottom:8px"><div class="ef"><label>ID *</label><input value="'+epEsc(dl.id||'')+'" oninput="epUpdDl('+di+',\'id\',this.value)"></div></div>';
+    h+='<div class="efg efg-1" style="margin-bottom:8px"><div class="ef"><label>File Name</label><input value="'+epEsc(dl.file_name||'')+'" oninput="epUpdDl('+di+',\'file_name\',this.value)" placeholder="filename.safetensors"></div></div>';
+    h+='<div class="efg efg-1" style="margin-bottom:8px"><div class="ef"><label>Folder Path</label><input value="'+epEsc(dl.folder_path||'')+'" oninput="epUpdDl('+di+',\'folder_path\',this.value)" placeholder="/workspace/ComfyUI/models/"></div></div>';
+    h+='<div class="efg efg-2" style="margin-bottom:8px"><div class="ef"><label>Size (bytes)</label><input type="number" value="'+(dl.file_size||'')+'" oninput="epUpdDlNum('+di+',\'file_size\',this.value)"></div><div class="ef"><label>Hash Algo</label><select onchange="epUpdDlHash('+di+',this.value)">'+['','sha256','sha1','md5'].map(function(o){ return '<option value="'+o+'"'+(dl.hash_algorithm===o?' selected':'')+'>'+( o||'— None —')+'</option>'; }).join('')+'</select></div></div>';
+    h+='<div class="efg efg-1" style="margin-bottom:8px"><div class="ef"><label>Checksum</label><input class="xs" value="'+epEsc(dl.checksum||'')+'" oninput="epUpdDl('+di+',\'checksum\',this.value)" placeholder="hash value"></div></div>';
+    h+='<div class="efdiv"><span>Mirrors</span></div><div id="EMIR'+di+'">'+mirrors.map(function(m,mi){ return epMirrorRowHTML(di,mi,m); }).join('')+'</div>';
+    h+='<button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="epAddMirror('+di+')">+ Mirror</button>';
+    h+='<div class="efdiv"><span>Extract</span><button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="epToggleExtract('+di+')">'+(hasExtract?'Remove':'Add')+'</button></div>';
+    if(hasExtract){
+        var ex=dl.extract||{};
+        h+='<div class="eextract-card"><div class="eextract-head">📦 Extract</div><div class="efg efg-2" style="margin-bottom:8px"><div class="ef"><label>Format</label><select onchange="epUpdExtract('+di+',\'format\',this.value)">'+['zip','tar','tar.gz','tar.bz2','rar','7z'].map(function(f){ return '<option value="'+f+'"'+(ex.format===f?' selected':'')+'>'+f+'</option>'; }).join('')+'</select></div><div class="ef"><label>Destination</label><input value="'+epEsc(ex.destination||'')+'" oninput="epUpdExtract('+di+',\'destination\',this.value)" placeholder="/path/"></div></div><div class="efg efg-2"><div class="ef"><label>Password</label><input value="'+epEsc(ex.password||'')+'" oninput="epUpdExtract('+di+',\'password\',this.value)"></div><div class="ef"><label>Remove Archive</label><select onchange="epUpdExtract('+di+',\'remove_archive\',this.value===\'true\')"><option value="false"'+(ex.remove_archive!==true?' selected':'')+'>false</option><option value="true"'+(ex.remove_archive===true?' selected':'')+'>true</option></select></div></div></div>';
+    }
+    return h+'</div></div>';
+}
+
+function epMirrorRowHTML(di,mi,m){
+    var authKeys=Object.keys(EP_D.authConfigs||{});
+    return '<div class="emirror-row"><div class="ef"><label>URL</label><input value="'+epEsc(m.url||'')+'" oninput="epUpdMirror('+di+','+mi+',\'url\',this.value)" placeholder="https://…"></div><div class="ef"><label>Auth</label><select onchange="epUpdMirror('+di+','+mi+',\'auth\',this.value)"><option value="">— None —</option>'+authKeys.map(function(k){ return '<option value="'+epEsc(k)+'"'+(m.auth===k?' selected':'')+'>'+epEsc(k)+'</option>'; }).join('')+'</select></div><button class="btn btn-danger btn-sm" style="align-self:flex-end" onclick="epRmMirror('+di+','+mi+')">✕</button></div>';
+}
+
+function epToggleDC(cid){ var b=epEl(cid+'B'); if(b) b.classList.toggle('open'); }
+function epRenderMainKeepOpen(openCid){ var m=epEl('EP_MAIN'); var st=m.scrollTop; epRenderMain(); setTimeout(function(){ m.scrollTop=st; var b=epEl(openCid+'B'); if(b) b.classList.add('open'); },10); }
+
+var EP_DL_DRAG_IDX=null;
+function epInitDlDnd(){
+    document.querySelectorAll('#EP_DL_LIST .edl-card').forEach(function(card){
+        var di=parseInt(card.id.replace('EDC','')); var head=card.querySelector('.edl-card-head');
+        head.setAttribute('draggable','true'); head.style.cursor='grab';
+        head.addEventListener('dragstart',function(e){ EP_DL_DRAG_IDX=di; card.style.opacity='.4'; e.stopPropagation(); });
+        head.addEventListener('dragend',function(e){ card.style.opacity=''; document.querySelectorAll('.edl-drag-top,.edl-drag-bot').forEach(function(n){ n.classList.remove('edl-drag-top','edl-drag-bot'); }); EP_DL_DRAG_IDX=null; e.stopPropagation(); });
+        card.addEventListener('dragover',function(e){ if(EP_DL_DRAG_IDX===null) return; e.preventDefault(); e.stopPropagation(); document.querySelectorAll('.edl-drag-top,.edl-drag-bot').forEach(function(n){ n.classList.remove('edl-drag-top','edl-drag-bot'); }); var rect=card.getBoundingClientRect(); if(e.clientY-rect.top<rect.height/2) card.classList.add('edl-drag-top'); else card.classList.add('edl-drag-bot'); });
+        card.addEventListener('dragleave',function(){ document.querySelectorAll('.edl-drag-top,.edl-drag-bot').forEach(function(n){ n.classList.remove('edl-drag-top','edl-drag-bot'); }); });
+        card.addEventListener('drop',function(e){ e.preventDefault(); e.stopPropagation(); if(EP_DL_DRAG_IDX===null) return; var tgt=parseInt(card.id.replace('EDC','')); if(EP_DL_DRAG_IDX===tgt) return; var insertAfter=e.clientY-card.getBoundingClientRect().top>=card.getBoundingClientRect().height/2; var node=epGetNode(EP_SEL); var dls=node.downloads; var item=epDeepClone(dls[EP_DL_DRAG_IDX]); dls.splice(EP_DL_DRAG_IDX,1); var nt=tgt>EP_DL_DRAG_IDX?tgt-1:tgt; if(insertAfter) nt++; dls.splice(nt,0,item); EP_DL_DRAG_IDX=null; epRenderMain(); });
+    });
+}
+
+function epGoTo(ps){ EP_SEL=JSON.parse(ps); for(var i=2;i<=EP_SEL.length;i+=2) EP_EXP[epPstr(EP_SEL.slice(0,i))]=1; epBuildTree(); epRenderMain(); }
+function epUpdSel(f,v){ epGetNode(EP_SEL)[f]=v; epBuildTree(); }
+function epUpdDl(di,f,v){ var node=epGetNode(EP_SEL); if(v===''&&f!=='id') delete node.downloads[di][f]; else node.downloads[di][f]=v; }
+function epUpdDlNum(di,f,v){ var node=epGetNode(EP_SEL); if(v===''||v===null) delete node.downloads[di][f]; else node.downloads[di][f]=+v; }
+function epUpdDlHash(di,v){ var node=epGetNode(EP_SEL); if(v==='') delete node.downloads[di]['hash_algorithm']; else node.downloads[di]['hash_algorithm']=v; }
+function epUpdMirror(di,mi,f,v){ epGetNode(EP_SEL).downloads[di].mirrors[mi][f]=v; }
+function epUpdExtract(di,f,v){ epGetNode(EP_SEL).downloads[di].extract[f]=v; }
+function epAddDownload(){ var node=epGetNode(EP_SEL); if(!node.downloads) node.downloads=[]; node.downloads.push({id:'new_'+epUid()+'.safetensors',mirrors:[]}); var ni=node.downloads.length-1; epRenderMain(); setTimeout(function(){ var b=epEl('EDC'+ni+'B'); if(b){ b.classList.add('open'); b.scrollIntoView({behavior:'smooth',block:'nearest'}); } },30); }
+function epRmDownload(di){ if(!confirm('Delete file?')) return; epGetNode(EP_SEL).downloads.splice(di,1); epRenderMain(); }
+function epAddMirror(di){ var node=epGetNode(EP_SEL); if(!node.downloads[di].mirrors) node.downloads[di].mirrors=[]; node.downloads[di].mirrors.push({url:''}); epRenderMainKeepOpen('EDC'+di); }
+function epRmMirror(di,mi){ epGetNode(EP_SEL).downloads[di].mirrors.splice(mi,1); epRenderMainKeepOpen('EDC'+di); }
+function epToggleExtract(di){ var node=epGetNode(EP_SEL); if(node.downloads[di].extract!==undefined) delete node.downloads[di].extract; else node.downloads[di].extract={format:'zip',destination:'',remove_archive:false,password:''}; epRenderMainKeepOpen('EDC'+di); }
+function epAddSubPreset(){ var node=epGetNode(EP_SEL); if(!node.presets) node.presets=[]; node.presets.push({id:'PRESET_'+epUid(),name:'New Preset',downloads:[]}); EP_EXP[epPstr(EP_SEL)]=1; EP_SEL=EP_SEL.concat(['presets',node.presets.length-1]); epBuildTree(); epRenderMain(); }
+function epAddPreset(){ if(!EP_D.presets) EP_D.presets=[]; EP_D.presets.push({id:'PRESET_'+epUid(),name:'New Preset',presets:[]}); EP_SEL=['presets',EP_D.presets.length-1]; epBuildTree(); epRenderMain(); }
+function epDeleteNode(){ if(!EP_SEL||typeof EP_SEL!=='object'||EP_SEL.length<2) return; if(!confirm('Delete this node?')) return; var parent=EP_SEL.slice(0,-2).length?epGetNode(EP_SEL.slice(0,-2)):EP_D; parent[EP_SEL[EP_SEL.length-2]].splice(EP_SEL[EP_SEL.length-1],1); EP_SEL=null; epBuildTree(); epEl('EP_MAIN').innerHTML='<div class="empty-state"><div class="empty-state-icon">🗑</div><p>Deleted</p></div>'; }
+function epRmDlId(i){ epGetNode(EP_SEL).download_ids.splice(i,1); epRenderMain(); }
+function epAddDlId(){ var inp=epEl('EP_TAG_IN'); var val=(inp.value||'').trim(); if(!val) return; var node=epGetNode(EP_SEL); if(!node.download_ids) node.download_ids=[]; node.download_ids.push(val); inp.value=''; epRenderMain(); }
+function epToggleDlIds(){ var node=epGetNode(EP_SEL); if(node.download_ids!==undefined) delete node.download_ids; else node.download_ids=[]; epRenderMain(); }
+function epRmPresetId(i){ epGetNode(EP_SEL).preset_ids.splice(i,1); epRenderMain(); }
+function epAddPresetId(){ var inp=epEl('EP_PID_IN'); var val=(inp.value||'').trim(); if(!val) return; var node=epGetNode(EP_SEL); if(!node.preset_ids) node.preset_ids=[]; node.preset_ids.push(val); inp.value=''; epRenderMain(); }
+function epTogglePresetIds(){ var node=epGetNode(EP_SEL); if(node.preset_ids!==undefined) delete node.preset_ids; else node.preset_ids=[]; epRenderMain(); }
+
+function epCleanNode(obj){
+    if(Array.isArray(obj)) return obj.map(epCleanNode);
+    if(typeof obj!=='object'||obj===null) return obj;
+    var out={};
+    Object.keys(obj).forEach(function(k){
+        var v=obj[k];
+        if(k==='id'){ out[k]=v; return; }
+        if(v===''||v===null||v===undefined) return;
+        if(Array.isArray(v)){ if(v.length>0) out[k]=epCleanNode(v); return; }
+        if(typeof v==='object'){ var c=epCleanNode(v); if(Object.keys(c).length>0) out[k]=c; return; }
+        out[k]=v;
+    });
+    return out;
+}
+
+
+function epExport(){
+    if(!EP_CURRENT_PRESET){ epFlash('No preset loaded','error'); return; }
+    var clean = epCleanNode(EP_D);
+    var json = JSON.stringify(clean, null, 2);
+    var blob = new Blob([json], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = EP_CURRENT_PRESET.replace(/\.json$/,'') + '.json';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 500);
+    epFlash('Exported ' + a.download, 'success');
+}
+function epOpenRaw(){ epEl('EDITOR_RAW_TA').value=JSON.stringify(epCleanNode(EP_D),null,2); epEl('EP_RAW_MODAL').classList.add('open'); }
+function epCloseRaw(){ epEl('EP_RAW_MODAL').classList.remove('open'); }
+function epApplyRaw(){ try{ EP_D=JSON.parse(epEl('EDITOR_RAW_TA').value); if(!EP_D.authConfigs) EP_D.authConfigs={}; EP_SEL=null; EP_EXP={}; epBuildTree(); epCloseRaw(); epEl('EP_MAIN').innerHTML='<div class="empty-state"><div class="empty-state-icon">✅</div><p>JSON applied</p></div>'; epFlash('Applied','success'); }catch(e){ epFlash('Invalid JSON','error'); } }
+
+var EP_TRANSFER_TYPE=null, EP_TRANSFER_TARGET=null;
+function epGetAllPresets(arr,pathArr,result){ result=result||[]; for(var i=0;i<arr.length;i++){ var np=pathArr.concat([i]); result.push({path:np,node:arr[i]}); if(arr[i].presets&&arr[i].presets.length) epGetAllPresets(arr[i].presets,np.concat(['presets']),result); } return result; }
+function epOpenTransfer(type){ EP_TRANSFER_TYPE=type; EP_TRANSFER_TARGET=null; epEl('EP_TRANSFER_TITLE').textContent='Transfer: '+type; var all=epGetAllPresets(EP_D.presets||[],['presets']); var selStr=epPstr(EP_SEL); var tl=epEl('EP_TRANSFER_TARGETS'); tl.innerHTML=''; all.forEach(function(p){ if(epPstr(p.path)===selStr) return; var div=document.createElement('div'); div.className='etransfer-preset-item'; div.textContent=(p.node.name||p.node.id||'Unnamed'); (function(path){ div.onclick=function(){ EP_TRANSFER_TARGET=path; tl.querySelectorAll('.etransfer-preset-item').forEach(function(x){ x.classList.remove('selected'); }); div.classList.add('selected'); epUpdateTransferInfo(); }; })(p.path); tl.appendChild(div); }); var container=epEl('EP_TRANSFER_ITEMS'); container.innerHTML=''; var node=epGetNode(EP_SEL); var items=node[type]||[]; items.forEach(function(item,i){ var row=document.createElement('div'); row.className='etransfer-item-row'; var label=typeof item==='string'?item:(item.file_name||item.name||item.id||'item '+i); row.innerHTML='<input type="checkbox" id="EPTC_'+i+'" onchange="epUpdateTransferInfo()"><label class="etransfer-item-label" for="EPTC_'+i+'">'+epEsc(label)+'</label><span class="etransfer-item-type">'+type+'</span>'; container.appendChild(row); }); epEl('EP_TRANSFER_MODAL').classList.add('open'); epUpdateTransferInfo(); }
+function epUpdateTransferInfo(){ var c=document.querySelectorAll('#EP_TRANSFER_ITEMS input:checked').length; var t=document.querySelectorAll('#EP_TRANSFER_ITEMS input').length; epEl('EP_TRANSFER_SEL_INFO').textContent='Selected: '+c+' of '+t+(EP_TRANSFER_TARGET?' → '+(function(){try{var n=epGetNode(EP_TRANSFER_TARGET);return epEsc(n.name||n.id||'?');}catch(e){return '?';}}()):'  (choose target)'); }
+function epGetCheckedIndices(){ var idx=[]; document.querySelectorAll('#EP_TRANSFER_ITEMS input:checked').forEach(function(cb){ var i=parseInt(cb.id.replace('EPTC_','')); if(!isNaN(i)) idx.push(i); }); return idx.sort(function(a,b){return a-b;}); }
+function epDoTransfer(isMove){ if(!EP_TRANSFER_TARGET){ epFlash('Choose target','error'); return; } var idx=epGetCheckedIndices(); if(!idx.length){ epFlash('Select items','error'); return; } var src=epGetNode(EP_SEL); var tgt=epGetNode(EP_TRANSFER_TARGET); var srcArr=src[EP_TRANSFER_TYPE]||[]; if(!tgt[EP_TRANSFER_TYPE]) tgt[EP_TRANSFER_TYPE]=[]; idx.map(function(i){ return epDeepClone(srcArr[i]); }).forEach(function(item){ tgt[EP_TRANSFER_TYPE].push(item); }); if(isMove){ for(var i=idx.length-1;i>=0;i--) src[EP_TRANSFER_TYPE].splice(idx[i],1); } epCloseTransfer(); epBuildTree(); epRenderMain(); epFlash((isMove?'Moved':'Copied')+' '+idx.length+' items','success'); }
+function epCloseTransfer(){ epEl('EP_TRANSFER_MODAL').classList.remove('open'); EP_TRANSFER_TYPE=null; EP_TRANSFER_TARGET=null; }
+
+document.addEventListener('DOMContentLoaded', function(){
+    function wire(id, evt, fn){ var el=epEl(id); if(el) el.addEventListener(evt,fn); }
+    wire('ep-refresh-btn',   'click', epRefreshPresets);
+    wire('ep-preset-select', 'change', epOnPresetSelected);
+    wire('ep-save-btn',      'click', epSave);
+    wire('ep-add-preset-btn', 'click', epAddPreset);
+    wire('ep-export-btn',   'click', epExport);
+    wire('ep-raw-btn',       'click', epOpenRaw);
+    wire('ep-raw-close-btn', 'click', epCloseRaw);
+    wire('ep-raw-apply-btn', 'click', epApplyRaw);
+    wire('ep-raw-copy-btn',  'click', function(){ navigator.clipboard.writeText(epEl('EDITOR_RAW_TA').value).then(function(){ epFlash('Copied!','success'); }); });
+    wire('ep-transfer-close-btn', 'click', epCloseTransfer);
+    wire('ep-transfer-copy-btn',  'click', function(){ epDoTransfer(false); });
+    wire('ep-transfer-move-btn',  'click', function(){ epDoTransfer(true); });
+    wire('ep-merge-btn',     'click', function(){ var p=epEl('ep-merge-panel'); p.classList.toggle('ep-panel-open'); epRefreshPresets(); });
+    wire('ep-merge-cancel-btn','click', function(){ epEl('ep-merge-panel').classList.remove('ep-panel-open'); });
+    wire('ep-merge-do-btn',  'click', epDoMerge);
 });
 </script>
 {% endblock %}
