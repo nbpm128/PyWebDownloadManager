@@ -2336,7 +2336,7 @@ document.addEventListener('DOMContentLoaded', () => {
    Uses /api/configs/* endpoints
 ═══════════════════════════════════════════════════════════════ */
 
-var EP_D    = { version:'1.0', authConfigs:{}, presets:[], metadata:{} };
+var EP_D    = { authConfigs:{}, presets:[], metadata:{} };
 var EP_SEL  = null;
 var EP_EXP  = {};
 var EP_DRAG_SRC = null;
@@ -2401,7 +2401,7 @@ async function epRefreshPresets(){
 async function epOnPresetSelected(){
     var name = epEl('ep-preset-select').value;
     if(!name){
-        EP_D = {version:'1.0',authConfigs:{},presets:[],metadata:{}};
+        EP_D = {authConfigs:{},presets:[],metadata:{}};
         EP_SEL=null; EP_EXP={}; EP_CURRENT_PRESET=null;
         epBuildTree();
         epEl('EP_MAIN').innerHTML='<div class="empty-state"><div class="empty-state-icon">✏️</div><p>Select a preset to edit</p></div>';
