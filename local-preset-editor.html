@@ -126,6 +126,30 @@
       .tg-select-all{background:none;border:none;color:var(--accent);font-size:10.5px;font-family:var(--font-ui);cursor:pointer;padding:0}.tg-select-all:hover{text-decoration:underline}
       .transfer-footer{padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px}
       .transfer-footer .sel-info{flex:1;font-size:11.5px;color:var(--text-3)}
+      .import-url-modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);width:90vw;max-width:560px;display:flex;flex-direction:column;overflow:hidden}
+      .import-url-body{padding:18px;display:flex;flex-direction:column;gap:12px}
+      .import-url-status{font-size:12px;font-family:var(--font-mono);padding:8px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg);color:var(--text-3);min-height:36px;word-break:break-all;line-height:1.5}
+      .import-url-status.ok{color:var(--green);border-color:rgba(52,211,153,.3);background:var(--green-dim)}
+      .import-url-status.err{color:var(--red);border-color:rgba(244,99,122,.3);background:var(--red-dim)}
+      .import-url-preview{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;max-height:220px;overflow-y:auto}
+      .import-url-item{display:flex;align-items:center;gap:8px;padding:5px 7px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:var(--radius-sm);margin-bottom:5px;font-size:12px;cursor:pointer;transition:border-color var(--ease)}
+      .import-url-item:hover,.import-url-item.selected{border-color:var(--accent);background:var(--accent-dim)}
+      .import-url-item input[type=checkbox]{accent-color:var(--accent);width:13px;height:13px;flex-shrink:0}
+      .import-url-item-name{flex:1;font-family:var(--font-mono);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .import-url-item-size{font-size:10.5px;color:var(--text-3);flex-shrink:0}
+      .import-url-footer{padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px}
+      .import-url-footer .sel-info{flex:1;font-size:11.5px;color:var(--text-3)}
+      .iurl-card{background:var(--surface-2);border:1px solid var(--border-soft);border-radius:var(--radius-sm);margin-bottom:6px;overflow:hidden}
+      .iurl-card-head{display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(79,126,255,.04);border-bottom:1px solid var(--border-soft);cursor:pointer}
+      .iurl-card-head:hover{background:rgba(79,126,255,.09)}
+      .iurl-card-fname{flex:1;font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .iurl-card-body{padding:10px;display:flex;flex-direction:column;gap:8px}
+      .iurl-field{display:flex;flex-direction:column;gap:3px}
+      .iurl-field label{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em}
+      .iurl-field input{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 8px;font-family:var(--font-mono);font-size:11.5px;color:var(--text);outline:none}
+      .iurl-field input:focus{border-color:var(--accent)}
+      .iurl-mirror-row{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center}
+      .iurl-mirror-url{font-family:var(--font-mono);font-size:11px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:4px 7px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm)}
     </style>
   </head>
   <body>
@@ -346,12 +370,20 @@
       }
 
       function PresetPanel({ data, sel, updateData, onNavigate, showToast, onOpenTransfer, onDelete }) {
+        const [importUrlOpen, setImportUrlOpen] = useState(false);
         let node; try{node=getNodeFromData(data,sel);}catch(e){return<div className="empty"><div className="ico">⚠</div><p>Error: {e.message}</p></div>;}
         if(!node||typeof node!=='object') return<div className="empty"><div className="ico">⚠</div><p>Node not found</p></div>;
         const subs=node.presets||[]; const dls=node.downloads||[];
         const upd=(f,v)=>updateData(d=>{getNodeFromData(d,sel)[f]=v;});
         const bcParts=[]; let cum=[];
         for(let i=0;i<sel.length;i++){ cum=cum.concat([sel[i]]); try{const cn=getNodeFromData(data,cum);if(cn&&typeof cn==='object'&&(cn.name||cn.id))bcParts.push(cn.name||cn.id);}catch(e2){} }
+        const handleImportDownloads = (items) => {
+          updateData(d=>{
+            const n=getNodeFromData(d,sel);
+            if(!n.downloads)n.downloads=[];
+            items.forEach(item=>n.downloads.push(item));
+          });
+        };
         return (
           <div>
             <div className="breadcrumb">root{bcParts.map((b,i)=><React.Fragment key={i}><span className="breadcrumb-sep">/</span><b>{b}</b></React.Fragment>)}</div>
@@ -376,13 +408,15 @@
                 {subs.map((sub,i)=><div key={i} className="sp-row" onClick={()=>onNavigate(sel.concat(['presets',i]))}><span className="sp-name">{sub.name||sub.id||'Unnamed'}</span><span className="sp-id">{sub.id||''}</span><span className="badge blue">{(sub.downloads||[]).length} files</span>{(sub.presets||[]).length>0&&<span className="badge purple">{sub.presets.length} sub</span>}</div>)}
               </div>
             </div>
-            <div className="card">
+              <div className="card">
               <div className="card-head"><span className="card-title">Downloads</span><span className="badge green" style={{marginRight:4}}>{dls.length}</span>
                 {dls.length>0&&<button className="btn ghost sm" onClick={()=>onOpenTransfer('downloads')} style={{marginRight:4}}>⇄ Transfer</button>}
+                <button className="btn ghost sm" style={{marginRight:4,color:'var(--accent)',borderColor:'rgba(79,126,255,.3)'}} onClick={()=>setImportUrlOpen(true)}>⬇ URL</button>
                 <button className="btn add" onClick={()=>{updateData(d=>{const n=getNodeFromData(d,sel);if(!n.downloads)n.downloads=[];n.downloads.push({id:'new_'+uid()+'.safetensors',mirrors:[]});});showToast('File added');}}>+ File</button>
               </div>
               <div className="card-body"><div className="dl-list">{dls.map((dl,di)=><DownloadCard key={di} dl={dl} di={di} authConfigs={data.authConfigs||{}} updateData={updateData} sel={sel} showToast={showToast} />)}</div></div>
             </div>
+            {importUrlOpen && <ImportFromUrlModal onClose={()=>setImportUrlOpen(false)} onImport={handleImportDownloads} showToast={showToast} authConfigs={data.authConfigs||{}} />}
             <TagsSection title="Preset IDs" items={node.preset_ids} badgeClass="purple" pillClass="purple"
               onToggle={()=>updateData(d=>{const n=getNodeFromData(d,sel);if(n.preset_ids!==undefined)delete n.preset_ids;else n.preset_ids=[];})}
               onAdd={val=>updateData(d=>{const n=getNodeFromData(d,sel);if(!n.preset_ids)n.preset_ids=[];n.preset_ids.push(val);})}
@@ -470,7 +504,384 @@
         return <div className="mirror-row"><div className="field"><label>URL</label><input key={`mir-url-${di}-${mi}`} defaultValue={mirror.url||''} onBlur={e=>updateData(d=>{getNodeFromData(d,sel).downloads[di].mirrors[mi].url=e.target.value;})} placeholder="https://…" /></div><div className="field"><label>Auth</label><select value={mirror.auth||''} onChange={e=>updateData(d=>{const m=getNodeFromData(d,sel).downloads[di].mirrors[mi];if(!e.target.value)delete m.auth;else m.auth=e.target.value;})}><option value="">— None —</option>{authKeys.map(k=><option key={k} value={k}>{k}</option>)}</select></div><button className="btn danger sm" style={{alignSelf:'flex-end'}} onClick={()=>updateData(d=>{getNodeFromData(d,sel).downloads[di].mirrors.splice(mi,1);})}>✕</button></div>;
       }
 
-      function getAllPresetPaths(arr, path, result=[]) {
+      function ImportFromUrlModal({ onClose, onImport, showToast, authConfigs }) {
+        const [url, setUrl] = useState('');
+        const [status, setStatus] = useState(null);
+        const [items, setItems] = useState([]);        // accumulated download list
+        const [checked, setChecked] = useState({});    // import candidates
+        const [expanded, setExpanded] = useState({});  // expanded cards
+        const [selectedAuth, setSelectedAuth] = useState('');
+        const [loading, setLoading] = useState(false);
+
+        const authKeys = Object.keys(authConfigs||{});
+
+        const buildFetchHeaders = () => {
+          if (!selectedAuth || !authConfigs[selectedAuth]) return {};
+          var cfg = authConfigs[selectedAuth];
+          var hdrs = {};
+          if (cfg.headers) Object.keys(cfg.headers).forEach(function(k){ hdrs[k] = cfg.headers[k]; });
+          if (cfg.cookies && Object.keys(cfg.cookies).length > 0) {
+            var cookieStr = Object.keys(cfg.cookies).map(function(k){ return k+'='+cfg.cookies[k]; }).join('; ');
+            hdrs['Cookie'] = cookieStr;
+          }
+          return hdrs;
+        };
+
+        const filenameFromContentDisposition = (cd) => {
+          if (!cd) return null;
+          var m = cd.match(/filename\*=(?:UTF-8'')?([^;]+)/i);
+          if (m) return decodeURIComponent(m[1].trim().replace(/^["']|["']$/g,''));
+          m = cd.match(/filename=["']?([^"';]+)["']?/i);
+          if (m) return m[1].trim();
+          return null;
+        };
+
+        const filenameFromUrl = (u) => {
+          try {
+            var path = new URL(u).pathname;
+            var name = path.split('/').filter(Boolean).pop() || '';
+            return name ? decodeURIComponent(name) : null;
+          } catch(e) { return null; }
+        };
+
+        const buildFileItem = (u, headers) => {
+          var cd = headers ? headers.get('content-disposition') : null;
+          var cl = headers ? headers.get('content-length') : null;
+          var cr = headers ? headers.get('content-range') : null;
+          var fileName = filenameFromContentDisposition(cd) || filenameFromUrl(u);
+          var fileSize = null;
+          if (cr) { var parts=cr.split('/'); var sz=parseInt(parts[parts.length-1],10); if(!isNaN(sz)) fileSize=sz; }
+          if (!fileSize && cl) { var sz2=parseInt(cl,10); if(!isNaN(sz2)&&sz2>0) fileSize=sz2; }
+          var obj = { id: fileName||('dl_'+Math.random().toString(36).slice(2,6).toUpperCase()), mirrors:[{url:u}] };
+          if (fileName) obj.file_name = fileName;
+          if (fileSize) obj.file_size = fileSize;
+          return obj;
+        };
+
+        const fetchFileMeta = (u, proxyPrefix, extraHeaders) => {
+          var fetchUrl = proxyPrefix ? proxyPrefix + encodeURIComponent(u) : u;
+          var hdrs = extraHeaders || {};
+          return fetch(fetchUrl, {method:'HEAD', headers:hdrs})
+            .then(function(resp) {
+              if (resp.ok || resp.status === 206) return resp;
+              // HEAD returned error — fallback to GET with Range: bytes=0-0
+              var rangeHdrs = Object.assign({}, hdrs, {Range:'bytes=0-0'});
+              return fetch(fetchUrl, {method:'GET', headers:rangeHdrs});
+            })
+            .then(function(resp) { return buildFileItem(u, resp.headers); });
+        };
+
+        const isHuggingFaceUrl = (u) => { try{ return new URL(u).hostname==='huggingface.co'; }catch(e){ return false; } };
+
+        // Convert any HF file URL (blob or resolve) to both variants
+        const hfUrlVariants = (u) => {
+          var m = u.match(/^(https:\/\/huggingface\.co\/[^/]+\/[^/]+)\/(blob|resolve)\/(.+)$/);
+          if (!m) return null;
+          return { blob: m[1]+'/blob/'+m[3], resolve: m[1]+'/resolve/'+m[3] };
+        };
+
+        // Fetch SHA256 hash from HuggingFace blob page HTML
+        const fetchHfSha256 = (blobUrl, proxyPrefix) => {
+          var fetchUrl = proxyPrefix ? proxyPrefix + encodeURIComponent(blobUrl) : blobUrl;
+          return fetch(fetchUrl)
+            .then(function(resp) { if(!resp.ok) throw new Error('blob HTTP '+resp.status); return resp.text(); })
+            .then(function(html) {
+              var doc = new DOMParser().parseFromString(html, 'text/html');
+              // Strategy 1: find <dt>SHA256:</dt> then read sibling <dd>
+              var dts = doc.querySelectorAll('dt');
+              for (var i=0;i<dts.length;i++) {
+                if (dts[i].textContent.trim()==='SHA256:') {
+                  var dd=dts[i].nextElementSibling;
+                  if (dd) { var h=dd.textContent.trim(); if(h.match(/^[0-9a-f]{64}$/i)) return h; }
+                }
+              }
+              // Strategy 2: any element containing "SHA256" with a 64-char hex string nearby
+              var allEls=doc.querySelectorAll('*');
+              for (var j=0;j<allEls.length;j++) {
+                var txt=allEls[j].textContent||'';
+                if (txt.indexOf('SHA256')!==-1) { var mx=txt.match(/\b([0-9a-f]{64})\b/i); if(mx) return mx[1]; }
+              }
+              return null;
+            });
+        };
+
+        // Mutate a field on item at index
+        const updateItem = (idx, field, value) => {
+          setItems(function(prev) {
+            var next = prev.map(function(x){ return Object.assign({},x); });
+            if (value === '' || value === null || value === undefined) { delete next[idx][field]; }
+            else next[idx][field] = value;
+            return next;
+          });
+        };
+
+        const updateMirrorUrl = (idx, mi, value) => {
+          setItems(function(prev) {
+            var next = deepClone(prev);
+            next[idx].mirrors[mi].url = value;
+            return next;
+          });
+        };
+
+        const addMirror = (idx) => {
+          setItems(function(prev) {
+            var next = deepClone(prev);
+            if (!next[idx].mirrors) next[idx].mirrors = [];
+            next[idx].mirrors.push({url:''});
+            return next;
+          });
+        };
+
+        const removeMirror = (idx, mi) => {
+          setItems(function(prev) {
+            var next = deepClone(prev);
+            next[idx].mirrors.splice(mi, 1);
+            return next;
+          });
+        };
+
+        const removeItem = (idx) => {
+          setItems(function(prev) { return prev.filter(function(_,i){ return i!==idx; }); });
+          setChecked(function(prev) {
+            // Re-index keys after removal
+            var next = {};
+            Object.keys(prev).forEach(function(k) {
+              var ki = parseInt(k, 10);
+              if (ki < idx) next[ki] = prev[k];
+              else if (ki > idx) next[ki-1] = prev[k];
+            });
+            return next;
+          });
+          setExpanded(function(prev) {
+            var next = {};
+            Object.keys(prev).forEach(function(k) {
+              var ki = parseInt(k, 10);
+              if (ki < idx) next[ki] = prev[k];
+              else if (ki > idx) next[ki-1] = prev[k];
+            });
+            return next;
+          });
+        };
+
+        const toggleExpanded = (idx) => {
+          setExpanded(function(prev) { var n=Object.assign({},prev); n[idx]=!n[idx]; return n; });
+        };
+
+        const toggleChecked = (idx) => {
+          setChecked(function(prev) { var n=Object.assign({},prev); n[idx]=!n[idx]; return n; });
+        };
+
+        const toggleAllChecked = () => {
+          var allOn = items.every(function(_,i){ return checked[i]; });
+          var next = {};
+          if (!allOn) items.forEach(function(_,i){ next[i]=true; });
+          setChecked(next);
+        };
+
+        const doAdd = () => {
+          const u = url.trim();
+          if (!u) { setStatus({type:'err',msg:'Please enter a URL'}); return; }
+          setLoading(true);
+          setStatus({type:'loading', msg:'Fetching...'});
+
+          const finishItem = (item) => {
+            if (selectedAuth) item.mirrors[0].auth = selectedAuth;
+            setItems(function(prev) {
+              var newIdx = prev.length;
+              // Auto-check and auto-expand the new card
+              setChecked(function(c) { var n=Object.assign({},c); n[newIdx]=true; return n; });
+              setExpanded(function(e) { var n=Object.assign({},e); n[newIdx]=true; return n; });
+              return prev.concat([item]);
+            });
+            var info = (item.file_name||item.id||'file');
+            if (item.file_size) info += ' (' + fmtBytes(item.file_size) + ')';
+            if (item.checksum) info += ' | SHA256 ✓';
+            setStatus({type:'ok', msg:'Added: ' + info});
+            setUrl('');
+            setLoading(false);
+          };
+
+          const onErr = (e) => {
+            setStatus({type:'err', msg:'Error: ' + e.message});
+            setLoading(false);
+          };
+
+          var proxy = 'https://corsproxy.io/?';
+          var extraHeaders = buildFetchHeaders();
+
+          if (isHuggingFaceUrl(u)) {
+            var variants = hfUrlVariants(u);
+            if (variants) {
+              setStatus({type:'loading', msg:'HuggingFace: fetching SHA256 + metadata...'});
+              var sha256P = fetchHfSha256(variants.blob, proxy).catch(function(){ return null; });
+              var metaP = fetchFileMeta(variants.resolve, proxy, extraHeaders)
+                .catch(function(){ return buildFileItem(variants.resolve, null); });
+              Promise.all([sha256P, metaP]).then(function(res) {
+                var item = res[1];
+                item.mirrors = [{url: variants.resolve}];
+                if (res[0]) { item.checksum = res[0]; item.hash_algorithm = 'sha256'; }
+                finishItem(item);
+              }).catch(onErr);
+              return;
+            }
+          }
+
+          // Generic file: direct HEAD, fallback to CORS proxy
+          fetch(u, {method:'HEAD', headers:extraHeaders})
+            .then(function(resp) {
+              finishItem(buildFileItem(u, resp.headers));
+            })
+            .catch(function() {
+              setStatus({type:'loading', msg:'CORS blocked, retrying via proxy...'});
+              return fetchFileMeta(u, proxy, extraHeaders)
+                .then(finishItem)
+                .catch(onErr);
+            });
+        };
+
+        var checkedIndices = Object.keys(checked).filter(function(k){ return checked[k]; }).map(Number);
+
+        const doImport = () => {
+          if (!checkedIndices.length) { showToast('No items selected', false); return; }
+          var selected = checkedIndices.sort(function(a,b){return a-b;}).map(function(i){ return deepClone(items[i]); });
+          onImport(selected);
+          onClose();
+          showToast('Imported ' + selected.length + ' download(s)');
+        };
+
+        return (
+          <div className="modal-backdrop show" onClick={function(e){if(e.target===e.currentTarget)onClose();}}>
+            <div className="import-url-modal" style={{maxWidth:1100,width:'98vw',maxHeight:'92vh'}}>
+              <div className="modal-head"><span>Import Downloads from URL</span><button className="btn ghost sm" onClick={onClose}>✕</button></div>
+              <div className="import-url-body" style={{overflowY:'auto',flex:1}}>
+
+                {/* URL input */}
+                <div className="field">
+                  <label>URL <span style={{color:'var(--text-3)',fontWeight:400,textTransform:'none',letterSpacing:0}}>— direct file link or HuggingFace</span></label>
+                  <div style={{display:'flex',gap:8}}>
+                    <input value={url} onChange={function(e){setUrl(e.target.value);}} placeholder="https://huggingface.co/… or direct download link"
+                      style={{flex:1,background:'var(--bg)',border:'1px solid var(--border)',borderRadius:'var(--radius-sm)',padding:'8px 10px',fontFamily:'var(--font-mono)',fontSize:'12.5px',color:'var(--text)',outline:'none'}}
+                      onKeyDown={function(e){if(e.key==='Enter')doAdd();}}
+                    />
+                    <button className="btn primary sm" onClick={doAdd} disabled={loading || !url.trim()}>+ Add</button>
+                  </div>
+                </div>
+
+                {/* Auth config selector */}
+                <div className="field">
+                  <label>Auth Config <span style={{color:'var(--text-3)',fontWeight:400,textTransform:'none',letterSpacing:0}}>optional — sends headers/cookies with request</span></label>
+                  <select value={selectedAuth} onChange={function(e){setSelectedAuth(e.target.value);}}
+                    style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:'var(--radius-sm)',padding:'8px 10px',fontFamily:'var(--font-mono)',fontSize:'12.5px',color:selectedAuth?'var(--orange)':'var(--text-3)',outline:'none',width:'100%',appearance:'none'}}>
+                    <option value="">— None —</option>
+                    {authKeys.map(function(k){
+                      var cfg=authConfigs[k];
+                      var hc=cfg.headers?Object.keys(cfg.headers).length:0;
+                      var cc=cfg.cookies?Object.keys(cfg.cookies).length:0;
+                      var hint=[]; if(hc) hint.push(hc+' header'+(hc>1?'s':'')); if(cc) hint.push(cc+' cookie'+(cc>1?'s':''));
+                      return <option key={k} value={k}>{k}{hint.length?' ('+hint.join(', ')+')':''}</option>;
+                    })}
+                  </select>
+                  {!authKeys.length && <div style={{fontSize:11,color:'var(--text-3)',marginTop:3}}>No auth configs defined — add them in the Auth Configs section</div>}
+                </div>
+
+                {/* Status message */}
+                {status && (
+                  <div className={'import-url-status'+(status.type==='ok'?' ok':status.type==='err'?' err':'')}>
+                    {status.type==='loading'&&<span style={{opacity:.6}}>⏳ </span>}{status.msg}
+                  </div>
+                )}
+
+                {/* Accumulated download cards */}
+                {items.length > 0 && (
+                  <div>
+                    <div className="tg-header" style={{margin:'4px 0 6px'}}>
+                      <span>Downloads to import ({items.length})</span>
+                      <button className="tg-select-all" onClick={toggleAllChecked}>
+                        {items.every(function(_,i){return checked[i];}) ? 'Deselect all' : 'Select all'}
+                      </button>
+                      <button className="tg-select-all" style={{color:'var(--red)',marginLeft:8}} onClick={function(){setItems([]);setChecked({});setExpanded({});}}>Clear all</button>
+                    </div>
+                    <div>
+                      {items.map(function(item, idx){ return (
+                        <div key={idx} className="iurl-card" style={{opacity:checked[idx]?1:0.45,transition:'opacity .15s'}}>
+                          {/* Card header: checkbox + name + badges + expand toggle + remove */}
+                          <div className="iurl-card-head">
+                            <input type="checkbox" checked={!!checked[idx]} onChange={function(e){e.stopPropagation();toggleChecked(idx);}}
+                              style={{accentColor:'var(--accent)',width:13,height:13,flexShrink:0,cursor:'pointer'}} />
+                            <span className="iurl-card-fname" onClick={function(){toggleExpanded(idx);}} style={{cursor:'pointer'}}>{item.file_name||item.id||'unnamed'}</span>
+                            {item.file_size&&<span style={{fontSize:10.5,color:'var(--text-3)',fontFamily:'var(--font-mono)',flexShrink:0}}>{fmtBytes(item.file_size)}</span>}
+                            {item.checksum&&<span className="badge green" style={{flexShrink:0}}>SHA256</span>}
+                            {item.mirrors&&item.mirrors[0]&&item.mirrors[0].auth&&<span className="badge orange" style={{flexShrink:0}}>{item.mirrors[0].auth}</span>}
+                            <span style={{fontSize:9,color:'var(--text-3)',cursor:'pointer'}} onClick={function(){toggleExpanded(idx);}}>{expanded[idx]?'▲':'▼'}</span>
+                            <button className="btn danger sm" style={{padding:'2px 6px',fontSize:11}} onClick={function(e){e.stopPropagation();removeItem(idx);}}>✕</button>
+                          </div>
+
+                          {/* Collapsible edit body */}
+                          <div className={'collapsible-wrapper'+(expanded[idx]?' open':'')}>
+                            <div className="collapsible-inner">
+                              <div className="iurl-card-body">
+                                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                                  <div className="iurl-field">
+                                    <label>ID *</label>
+                                    <input defaultValue={item.id||''} key={'id-'+idx+'-'+item.id} onBlur={function(e){updateItem(idx,'id',e.target.value||item.id);}} />
+                                  </div>
+                                  <div className="iurl-field">
+                                    <label>File Name</label>
+                                    <input defaultValue={item.file_name||''} key={'fn-'+idx} onBlur={function(e){updateItem(idx,'file_name',e.target.value);}} />
+                                  </div>
+                                </div>
+                                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                                  <div className="iurl-field">
+                                    <label>Folder Path</label>
+                                    <input defaultValue={item.folder_path||''} key={'fp-'+idx} placeholder="/workspace/ComfyUI/models/" onBlur={function(e){updateItem(idx,'folder_path',e.target.value);}} />
+                                  </div>
+                                  <div className="iurl-field">
+                                    <label>File Size (bytes)</label>
+                                    <input type="number" defaultValue={item.file_size||''} key={'fs-'+idx} onBlur={function(e){updateItem(idx,'file_size',e.target.value?+e.target.value:null);}} />
+                                  </div>
+                                </div>
+                                {item.checksum && (
+                                  <div className="iurl-field">
+                                    <label>Checksum (SHA256)</label>
+                                    <input defaultValue={item.checksum||''} key={'cs-'+idx} onBlur={function(e){updateItem(idx,'checksum',e.target.value);}} style={{fontFamily:'var(--font-mono)',fontSize:10.5}} />
+                                  </div>
+                                )}
+                                {/* Mirror URLs */}
+                                <div>
+                                  <div style={{fontSize:10,fontWeight:700,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'.07em',marginBottom:4}}>Mirrors</div>
+                                  {(item.mirrors||[]).map(function(mir, mi){ return (
+                                    <div key={mi} className="iurl-mirror-row" style={{marginBottom:4}}>
+                                      <input value={mir.url||''} onChange={function(e){updateMirrorUrl(idx,mi,e.target.value);}}
+                                        style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:'var(--radius-sm)',padding:'4px 7px',fontFamily:'var(--font-mono)',fontSize:11,color:'var(--text)',outline:'none',width:'100%'}} />
+                                      <button className="btn danger sm" style={{padding:'3px 7px'}} onClick={function(){removeMirror(idx,mi);}}>✕</button>
+                                    </div>
+                                  );})}
+                                  <button className="btn add sm" style={{marginTop:2}} onClick={function(){addMirror(idx);}}>+ Mirror</button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );})}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="import-url-footer">
+                <span className="sel-info">{items.length > 0 ? checkedIndices.length + ' of ' + items.length + ' selected' : 'Add URLs above'}</span>
+                <button className="btn ghost sm" onClick={onClose}>Cancel</button>
+                <button className="btn primary sm" onClick={doImport} disabled={checkedIndices.length===0}>
+                  ⬇ Import {checkedIndices.length > 0 ? checkedIndices.length + ' item(s)' : ''}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function getAllPresetPaths(arr, path, result) {
+        if(!result) result=[];
         for(let i=0;i<arr.length;i++){ const np=path.concat([i]); result.push({path:np,node:arr[i]}); if(arr[i].presets&&arr[i].presets.length) getAllPresetPaths(arr[i].presets,np.concat(['presets']),result); }
         return result;
       }

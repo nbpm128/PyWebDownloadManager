@@ -865,6 +865,30 @@
         }
         .is-dragging { animation: dragPulse 0.8s infinite; }
 
+        /* ── URL Import modal ── */
+        .ep-url-modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 96vw; max-width: 1100px; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; }
+        .ep-url-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+        .ep-url-modal-head span { font-size: 0.88em; font-weight: 600; color: var(--text); }
+        .ep-url-modal-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1; }
+        .ep-url-status { padding: 7px 10px; border-radius: var(--radius-sm); font-size: 0.78em; font-family: 'DM Mono', monospace; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-2); }
+        .ep-url-status.ok  { background: var(--green-dim);  border-color: rgba(52,211,153,.25); color: var(--green); }
+        .ep-url-status.err { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.25); color: var(--red); }
+        .ep-iurl-card { background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); margin-bottom: 6px; overflow: hidden; transition: opacity .15s; }
+        .ep-iurl-card.unchecked { opacity: 0.45; }
+        .ep-iurl-card-head { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: rgba(91,127,255,.04); border-bottom: 1px solid var(--border-soft); cursor: pointer; }
+        .ep-iurl-card-head:hover { background: rgba(91,127,255,.09); }
+        .ep-iurl-card-fname { flex: 1; font-family: 'DM Mono', monospace; font-size: 0.78em; font-weight: 500; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ep-iurl-card-body { overflow: hidden; max-height: 0; transition: max-height 0.28s ease; }
+        .ep-iurl-card-body.open { max-height: 600px; }
+        .ep-iurl-card-body-inner { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .ep-iurl-field { display: flex; flex-direction: column; gap: 3px; }
+        .ep-iurl-field label { display:block; font-size: 0.68em; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 0; }
+        .ep-iurl-field input { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 5px 8px; font-family: 'DM Mono', monospace; font-size: 0.78em; color: var(--text); outline: none; width: 100%; }
+        .ep-iurl-field input:focus { border-color: var(--accent); }
+        .ep-iurl-mirror-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; margin-bottom: 4px; }
+        .ep-url-footer { padding: 10px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+        .ep-url-footer .sel-info { flex: 1; font-size: 0.78em; color: var(--text-3); }
+
 {% endblock %}
 
 {% block page_header %}
@@ -1173,6 +1197,49 @@
                 <button class="btn btn-ghost btn-sm" id="ep-raw-copy-btn">⎘ Copy</button>
                 <button class="btn btn-primary btn-sm" id="ep-raw-apply-btn">Apply</button>
                 <button class="btn btn-ghost btn-sm" id="ep-raw-close-btn">✕ Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════ EDITOR: URL Import modal ════ -->
+    <div class="modal-backdrop" id="EP_URL_MODAL" onclick="if(event.target===this)epCloseUrlImport()">
+        <div class="ep-url-modal">
+            <div class="ep-url-modal-head">
+                <span>Import Downloads from URL</span>
+                <button class="btn btn-ghost btn-sm" onclick="epCloseUrlImport()">✕</button>
+            </div>
+            <div class="ep-url-modal-body">
+                <!-- URL input row -->
+                <div>
+                    <label>URL <span class="label-hint">— direct file link or HuggingFace</span></label>
+                    <div style="display:flex;gap:8px">
+                        <input type="url" id="EP_URL_INPUT" placeholder="https://huggingface.co/… or direct download link" style="flex:1" onkeydown="if(event.key==='Enter')epUrlAdd()">
+                        <button class="btn btn-primary btn-sm" id="EP_URL_ADD_BTN" onclick="epUrlAdd()">+ Add</button>
+                    </div>
+                </div>
+                <!-- Auth selector -->
+                <div>
+                    <label>Auth Config <span class="label-hint">optional — sends headers/cookies with request</span></label>
+                    <select id="EP_URL_AUTH" style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;font-family:inherit;font-size:0.85em;color:var(--text-3);outline:none;width:100%;appearance:none">
+                        <option value="">— None —</option>
+                    </select>
+                </div>
+                <!-- Status -->
+                <div id="EP_URL_STATUS" style="display:none" class="ep-url-status"></div>
+                <!-- Accumulated cards -->
+                <div id="EP_URL_CARDS_WRAP" style="display:none">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                        <span style="font-size:0.72em;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Downloads to import (<span id="EP_URL_COUNT">0</span>)</span>
+                        <button class="btn btn-ghost btn-sm" id="EP_URL_SEL_ALL" onclick="epUrlToggleAll()" style="font-size:0.72em;padding:2px 8px">Select all</button>
+                        <button class="btn btn-ghost btn-sm" onclick="epUrlClearAll()" style="font-size:0.72em;padding:2px 8px;color:var(--red)">Clear all</button>
+                    </div>
+                    <div id="EP_URL_CARDS"></div>
+                </div>
+            </div>
+            <div class="ep-url-footer">
+                <span class="sel-info" id="EP_URL_SEL_INFO">Add URLs above</span>
+                <button class="btn btn-ghost btn-sm" onclick="epCloseUrlImport()">Cancel</button>
+                <button class="btn btn-primary btn-sm" id="EP_URL_IMPORT_BTN" onclick="epUrlImport()" disabled>⬇ Import</button>
             </div>
         </div>
     </div>
@@ -2622,7 +2689,7 @@ function epRenderPreset(){
     if(!subs.length) h+='<div style="color:var(--text-3);font-size:.82em">No sub-presets</div>';
     subs.forEach(function(sub,si){ h+='<div class="esp-row" onclick="epGoTo(\''+epEsc(epPstr(EP_SEL.concat(['presets',si])))+'\')"><span class="esp-name">'+epEsc(sub.name||sub.id||'Unnamed')+'</span><span class="esp-id">'+epEsc(sub.id||'')+'</span><span class="editor-badge ebadge-blue">'+((sub.downloads||[]).length)+' files</span></div>'; });
     h+='</div></div>';
-    h+='<div class="esec"><div class="esec-head"><span class="esec-title">Downloads</span><span class="editor-badge ebadge-green" style="margin-right:6px">'+dls.length+'</span>'+(dls.length?'<button class="btn btn-ghost btn-sm" onclick="epOpenTransfer(\'downloads\')" style="margin-right:4px">⇄</button>':'')+'<button class="btn btn-ghost btn-sm" onclick="epAddDownload()">+ File</button></div><div class="esec-body"><div id="EP_DL_LIST">';
+    h+='<div class="esec"><div class="esec-head"><span class="esec-title">Downloads</span><span class="editor-badge ebadge-green" style="margin-right:6px">'+dls.length+'</span>'+(dls.length?'<button class="btn btn-ghost btn-sm" onclick="epOpenTransfer(\'downloads\')" style="margin-right:4px">⇄</button>':'')+'<button class="btn btn-ghost btn-sm" style="margin-right:4px" onclick="epOpenUrlImport()">⬇ URL</button><button class="btn btn-ghost btn-sm" onclick="epAddDownload()">+ File</button></div><div class="esec-body"><div id="EP_DL_LIST">';
     dls.forEach(function(dl,di){ h+=epDlCardHTML(dl,di); });
     h+='</div></div></div>';
     h+='<div class="esec"><div class="esec-head"><span class="esec-title">Preset IDs</span>'+(pIds!==undefined?'<span class="editor-badge ebadge-purple" style="margin-right:6px">'+pIds.length+'</span>':'')+'<button class="btn btn-ghost btn-sm" onclick="epTogglePresetIds()">'+(pIds!==undefined?'Remove':'Add field')+'</button></div>'+(pIds!==undefined?'<div class="esec-body"><div class="etag-container">'+pIds.map(function(id,i){ return '<span class="etag-pill" style="background:var(--purple-dim);color:var(--purple);border-color:rgba(167,139,250,.3)">'+epEsc(id)+'<span class="etag-rm" onclick="epRmPresetId('+i+')">×</span></span>'; }).join('')+'</div><div class="etag-input-row"><input type="text" id="EP_PID_IN" placeholder="ID → Enter" onkeydown="if(event.key===\'Enter\')epAddPresetId()"><button class="btn btn-ghost btn-sm" onclick="epAddPresetId()">+</button></div></div>':'')+'</div>';
@@ -2752,5 +2819,491 @@ document.addEventListener('DOMContentLoaded', function(){
     wire('ep-merge-cancel-btn','click', function(){ epEl('ep-merge-panel').classList.remove('ep-panel-open'); });
     wire('ep-merge-do-btn',  'click', epDoMerge);
 });
+
+// ═══════════════════════════════════════════════════════════════
+// URL IMPORT MODAL
+// ═══════════════════════════════════════════════════════════════
+
+var EP_URL_ITEMS   = [];   // accumulated download objects
+var EP_URL_CHECKED = {};   // index → bool (import candidate)
+var EP_URL_EXPANDED= {};   // index → bool (card expanded)
+var EP_URL_LOADING = false;
+
+function epOpenUrlImport(){
+    if(!EP_SEL){ epFlash('Select a preset node first','error'); return; }
+    // Reset state
+    EP_URL_ITEMS=[]; EP_URL_CHECKED={}; EP_URL_EXPANDED={};
+    EP_URL_LOADING=false;
+    // Populate auth selector
+    var sel=epEl('EP_URL_AUTH');
+    sel.innerHTML='<option value="">— None —</option>';
+    Object.keys(EP_D.authConfigs||{}).forEach(function(k){
+        var cfg=EP_D.authConfigs[k];
+        var hc=cfg.headers?Object.keys(cfg.headers).length:0;
+        var cc=cfg.cookies?Object.keys(cfg.cookies).length:0;
+        var hint=[]; if(hc) hint.push(hc+' header'+(hc>1?'s':'')); if(cc) hint.push(cc+' cookie'+(cc>1?'s':''));
+        var opt=document.createElement('option');
+        opt.value=k; opt.textContent=k+(hint.length?' ('+hint.join(', ')+')':'');
+        sel.appendChild(opt);
+    });
+    // Clear inputs
+    epEl('EP_URL_INPUT').value='';
+    epUrlSetStatus(null);
+    epEl('EP_URL_CARDS_WRAP').style.display='none';
+    epEl('EP_URL_CARDS').innerHTML='';
+    epUrlUpdateFooter();
+    epEl('EP_URL_ADD_BTN').disabled=false;
+    epEl('EP_URL_MODAL').classList.add('open');
+    setTimeout(function(){ epEl('EP_URL_INPUT').focus(); },80);
+}
+
+function epCloseUrlImport(){
+    epEl('EP_URL_MODAL').classList.remove('open');
+}
+
+function epUrlSetStatus(type,msg){
+    var el=epEl('EP_URL_STATUS');
+    if(!type){ el.style.display='none'; return; }
+    el.style.display='';
+    el.className='ep-url-status'+(type==='ok'?' ok':type==='err'?' err':'');
+    el.textContent=(type==='loading'?'⏳ ':'')+msg;
+}
+
+function epUrlFmtBytes(b){
+    if(!b||isNaN(b)) return '';
+    if(b<1024) return b+' B';
+    if(b<1048576) return (b/1024).toFixed(1)+' KB';
+    if(b<1073741824) return (b/1048576).toFixed(1)+' MB';
+    return (b/1073741824).toFixed(2)+' GB';
+}
+
+function epUrlBuildHeaders(){
+    var auth=epEl('EP_URL_AUTH').value;
+    if(!auth||!EP_D.authConfigs[auth]) return {};
+    var cfg=EP_D.authConfigs[auth]; var hdrs={};
+    if(cfg.headers) Object.keys(cfg.headers).forEach(function(k){ hdrs[k]=cfg.headers[k]; });
+    if(cfg.cookies&&Object.keys(cfg.cookies).length){
+        hdrs['Cookie']=Object.keys(cfg.cookies).map(function(k){ return k+'='+cfg.cookies[k]; }).join('; ');
+    }
+    return hdrs;
+}
+
+function epUrlFilenameFromCD(cd){
+    if(!cd) return null;
+    var m=cd.match(/filename\*=(?:UTF-8'')?([^;]+)/i);
+    if(m) return decodeURIComponent(m[1].trim().replace(/^["']|["']$/g,''));
+    m=cd.match(/filename=["']?([^"';]+)["']?/i);
+    if(m) return m[1].trim();
+    return null;
+}
+
+function epUrlFilenameFromUrl(u){
+    try{ var name=new URL(u).pathname.split('/').filter(Boolean).pop(); return name?decodeURIComponent(name):null; }
+    catch(e){ return null; }
+}
+
+function epUrlBuildFileItem(u,headers){
+    var cd=headers?headers.get('content-disposition'):null;
+    var cl=headers?headers.get('content-length'):null;
+    var cr=headers?headers.get('content-range'):null;
+    var fileName=epUrlFilenameFromCD(cd)||epUrlFilenameFromUrl(u);
+    var fileSize=null;
+    // Content-Range: bytes 0-0/TOTAL  — total is after the slash
+    if(cr){ var parts=cr.split('/'); var sz=parseInt(parts[parts.length-1],10); if(!isNaN(sz)&&sz>1) fileSize=sz; }
+    // Content-Length is only useful for HEAD (full file) — for Range responses it's just 1
+    if(!fileSize&&cl){ var sz2=parseInt(cl,10); if(!isNaN(sz2)&&sz2>1) fileSize=sz2; }
+    var obj={ id:fileName||('dl_'+Math.random().toString(36).slice(2,6).toUpperCase()), mirrors:[{url:u}] };
+    if(fileName) obj.file_name=fileName;
+    if(fileSize) obj.file_size=fileSize;
+    return obj;
+}
+
+// Fetch file size + filename from CivitAI models API
+// URL pattern: /api/download/models/{modelVersionId}
+function epUrlFetchCivitaiMeta(u, hdrs){
+    try{
+        var pu=new URL(u);
+        if(!pu.hostname.includes('civitai.com')) return Promise.reject(new Error('not civitai'));
+        var m=pu.pathname.match(/\/models\/(\d+)/);
+        if(!m) return Promise.reject(new Error('no model id'));
+        var modelVersionId=m[1];
+        var apiUrl='https://civitai.com/api/v1/model-versions/'+modelVersionId;
+        return fetch(apiUrl,{headers:hdrs})
+            .then(function(r){ if(!r.ok) throw new Error('API HTTP '+r.status); return r.json(); })
+            .then(function(json){
+                // Find the matching file by type/format query params
+                var wantType=(pu.searchParams.get('type')||'').toLowerCase();
+                var wantFmt=(pu.searchParams.get('format')||'').toLowerCase();
+                var files=json.files||[];
+                var file=files[0]; // default to first
+                if(wantType||wantFmt){
+                    var match=files.find(function(f){
+                        var ft=(f.type||'').toLowerCase();
+                        var ff=((f.metadata&&f.metadata.format)||'').toLowerCase();
+                        var typeOk=!wantType||ft===wantType||ft.replace(' ','')===wantType;
+                        var fmtOk=!wantFmt||ff===wantFmt;
+                        return typeOk&&fmtOk;
+                    });
+                    if(match) file=match;
+                }
+                if(!file) throw new Error('no files in API response');
+                var item={ id:file.name||('civitai_'+modelVersionId), mirrors:[{url:u}] };
+                if(file.name) item.file_name=file.name;
+                if(file.sizeKB) item.file_size=Math.round(file.sizeKB*1024);
+                if(file.hashes&&file.hashes.SHA256) { item.checksum=file.hashes.SHA256.toLowerCase(); item.hash_algorithm='sha256'; }
+                return item;
+            });
+    }catch(e){ return Promise.reject(e); }
+}
+
+function epUrlIsHF(u){ try{ return new URL(u).hostname==='huggingface.co'; }catch(e){ return false; } }
+
+// Convert any HF file URL (blob or resolve) to both variants
+function epUrlHFVariants(u){
+    var m=u.match(/^(https:\/\/huggingface\.co\/[^/]+\/[^/]+)\/(blob|resolve)\/(.+)$/);
+    if(!m) return null;
+    return { blob:m[1]+'/blob/'+m[3], resolve:m[1]+'/resolve/'+m[3] };
+}
+
+// Scrape SHA256 hash from HuggingFace blob page HTML
+function epUrlFetchHFSha256(blobUrl,proxy){
+    return fetch(proxy+encodeURIComponent(blobUrl))
+        .then(function(resp){ if(!resp.ok) throw new Error('HTTP '+resp.status); return resp.text(); })
+        .then(function(html){
+            var doc=new DOMParser().parseFromString(html,'text/html');
+            // Strategy 1: <dt>SHA256:</dt> -> sibling <dd>
+            var dts=doc.querySelectorAll('dt');
+            for(var i=0;i<dts.length;i++){
+                if(dts[i].textContent.trim()==='SHA256:'){
+                    var dd=dts[i].nextElementSibling;
+                    if(dd){ var h=dd.textContent.trim(); if(h.match(/^[0-9a-f]{64}$/i)) return h; }
+                }
+            }
+            // Strategy 2: any element near "SHA256" containing 64-char hex
+            var els=doc.querySelectorAll('*');
+            for(var j=0;j<els.length;j++){
+                var t=els[j].textContent||'';
+                if(t.indexOf('SHA256')!==-1){ var mx=t.match(/\b([0-9a-f]{64})\b/i); if(mx) return mx[1]; }
+            }
+            return null;
+        });
+}
+
+// Try HEAD, then GET Range:bytes=0-0 on same fetchUrl to extract filename+size
+function epUrlTryMeta(fetchUrl, originalUrl, hdrs){
+    return fetch(fetchUrl,{method:'HEAD',headers:hdrs})
+        .then(function(resp){
+            if(resp.ok||resp.status===206) return epUrlBuildFileItem(originalUrl,resp.headers);
+            // HEAD rejected (400/405/etc) — try GET Range: bytes=0-0
+            return fetch(fetchUrl,{method:'GET',headers:Object.assign({},hdrs,{Range:'bytes=0-0'})})
+                .then(function(r2){
+                    if(r2.ok||r2.status===206||r2.status===416) return epUrlBuildFileItem(originalUrl,r2.headers);
+                    throw new Error('HTTP '+r2.status);
+                });
+        });
+}
+
+// Extract a human-readable filename from a CivitAI download URL
+// e.g. /api/download/models/2121297?type=Model -> civitai_model_2121297.safetensors
+function epUrlCivitaiFilename(u){
+    try{
+        var pu=new URL(u);
+        if(!pu.hostname.includes('civitai.com')) return null;
+        var m=pu.pathname.match(/\/models\/(\d+)/);
+        var mid=m?m[1]:'';
+        var type=(pu.searchParams.get('type')||'model').toLowerCase();
+        var fmt=(pu.searchParams.get('format')||'').toLowerCase();
+        var ext=fmt==='diffusers'?'safetensors':fmt==='onnx'?'onnx':'safetensors';
+        return 'civitai_'+type+(mid?'_'+mid:'')+(ext?'.'+ext:'');
+    }catch(e){ return null; }
+}
+
+// Build a URL-only item when all metadata fetches fail
+function epUrlBuildFallbackItem(u){
+    var name=epUrlCivitaiFilename(u)||epUrlFilenameFromUrl(u)||('dl_'+Math.random().toString(36).slice(2,6).toUpperCase());
+    return { id:name, file_name:name, mirrors:[{url:u}] };
+}
+
+function epUrlFinishItem(item){
+    var auth=epEl('EP_URL_AUTH').value;
+    if(auth) item.mirrors[0].auth=auth;
+    var idx=EP_URL_ITEMS.length;
+    EP_URL_ITEMS.push(item);
+    EP_URL_CHECKED[idx]=true;   // auto-checked
+    EP_URL_EXPANDED[idx]=true;  // auto-expanded
+    epUrlRenderCards();
+    var info=(item.file_name||item.id||'file');
+    if(item.file_size) info+=' ('+epUrlFmtBytes(item.file_size)+')';
+    if(item.checksum) info+=' | SHA256 ✓';
+    epUrlSetStatus('ok','Added: '+info);
+    epEl('EP_URL_INPUT').value='';
+    EP_URL_LOADING=false;
+    epEl('EP_URL_ADD_BTN').disabled=false;
+    epUrlUpdateFooter();
+}
+
+function epUrlOnErr(e){
+    epUrlSetStatus('err','Error: '+e.message);
+    EP_URL_LOADING=false;
+    epEl('EP_URL_ADD_BTN').disabled=false;
+}
+
+function epUrlAdd(){
+    var u=(epEl('EP_URL_INPUT').value||'').trim();
+    if(!u){ epUrlSetStatus('err','Please enter a URL'); return; }
+    if(EP_URL_LOADING) return;
+    EP_URL_LOADING=true;
+    epEl('EP_URL_ADD_BTN').disabled=true;
+    epUrlSetStatus('loading','Fetching...');
+
+    var proxy='https://corsproxy.io/?';
+    var hdrs=epUrlBuildHeaders();
+
+    if(epUrlIsHF(u)){
+        var variants=epUrlHFVariants(u);
+        if(variants){
+            epUrlSetStatus('loading','HuggingFace: fetching SHA256 + metadata...');
+            var sha256P=epUrlFetchHFSha256(variants.blob,proxy).catch(function(){ return null; });
+            var metaP=epUrlTryMeta(proxy+encodeURIComponent(variants.resolve),variants.resolve,hdrs)
+                .catch(function(){ return epUrlBuildFileItem(variants.resolve,null); });
+            Promise.all([sha256P,metaP]).then(function(res){
+                var item=res[1];
+                item.mirrors=[{url:variants.resolve}];
+                if(res[0]){ item.checksum=res[0]; item.hash_algorithm='sha256'; }
+                epUrlFinishItem(item);
+            }).catch(epUrlOnErr);
+            return;
+        }
+    }
+
+    // CivitAI: use their metadata API to get filename, size, SHA256 reliably
+    if(u.includes('civitai.com')){
+        epUrlSetStatus('loading','CivitAI: fetching metadata from API...');
+        epUrlFetchCivitaiMeta(u, hdrs)
+            .then(epUrlFinishItem)
+            .catch(function(){
+                // API failed (e.g. auth required) — fall back to HEAD/Range chain
+                epUrlSetStatus('loading','CivitAI API failed, trying direct request...');
+                epUrlTryMeta(u, u, hdrs)
+                    .then(epUrlFinishItem)
+                    .catch(function(){
+                        epUrlSetStatus('ok','Added (metadata unavailable — please fill in details manually)');
+                        epUrlFinishItem(epUrlBuildFallbackItem(u));
+                    });
+            });
+        return;
+    }
+
+    // Generic chain: direct HEAD/GET-Range -> proxy HEAD/GET-Range -> URL-only fallback
+    epUrlTryMeta(u, u, hdrs)
+        .then(epUrlFinishItem)
+        .catch(function(){
+            epUrlSetStatus('loading','Direct failed, retrying via proxy...');
+            epUrlTryMeta(proxy+encodeURIComponent(u), u, hdrs)
+                .then(epUrlFinishItem)
+                .catch(function(){
+                    // All metadata attempts failed — add URL-only item for manual editing
+                    epUrlSetStatus('ok','Added (metadata unavailable — please fill in details manually)');
+                    epUrlFinishItem(epUrlBuildFallbackItem(u));
+                });
+        });
+}
+
+// ── Card rendering ───────────────────────────────────────────
+
+function epUrlRenderCards(){
+    var wrap=epEl('EP_URL_CARDS_WRAP');
+    var container=epEl('EP_URL_CARDS');
+    wrap.style.display=EP_URL_ITEMS.length?'':'none';
+    epEl('EP_URL_COUNT').textContent=EP_URL_ITEMS.length;
+    container.innerHTML='';
+    EP_URL_ITEMS.forEach(function(item,idx){
+        container.appendChild(epUrlBuildCard(item,idx));
+    });
+    epUrlUpdateFooter();
+}
+
+function epUrlBuildCard(item,idx){
+    var checked=!!EP_URL_CHECKED[idx];
+    var expanded=!!EP_URL_EXPANDED[idx];
+
+    var wrap=document.createElement('div');
+    wrap.className='ep-iurl-card'+(checked?'':' unchecked');
+    wrap.id='EUIC'+idx;
+
+    // Head
+    var head=document.createElement('div');
+    head.className='ep-iurl-card-head';
+
+    var cb=document.createElement('input');
+    cb.type='checkbox'; cb.checked=checked;
+    cb.style.accentColor='var(--accent)'; cb.style.width='13px'; cb.style.height='13px'; cb.style.flexShrink='0'; cb.style.cursor='pointer';
+    (function(i){ cb.onchange=function(e){ e.stopPropagation(); EP_URL_CHECKED[i]=this.checked; epUrlRenderCards(); }; })(idx);
+
+    var fname=document.createElement('span');
+    fname.className='ep-iurl-card-fname';
+    fname.textContent=item.file_name||item.id||'unnamed';
+    (function(i){ fname.onclick=function(){ epUrlToggleExpanded(i); }; })(idx);
+
+    head.appendChild(cb);
+    head.appendChild(fname);
+
+    if(item.file_size){
+        var sz=document.createElement('span');
+        sz.style.cssText='font-size:.72em;color:var(--text-3);font-family:monospace;flex-shrink:0';
+        sz.textContent=epUrlFmtBytes(item.file_size);
+        head.appendChild(sz);
+    }
+    if(item.checksum){
+        var b1=document.createElement('span');
+        b1.className='editor-badge ebadge-green'; b1.style.flexShrink='0'; b1.textContent='SHA256';
+        head.appendChild(b1);
+    }
+    if(item.mirrors&&item.mirrors[0]&&item.mirrors[0].auth){
+        var b2=document.createElement('span');
+        b2.className='editor-badge ebadge-yellow'; b2.style.flexShrink='0'; b2.textContent=item.mirrors[0].auth;
+        head.appendChild(b2);
+    }
+
+    var arr=document.createElement('span');
+    arr.style.cssText='font-size:9px;color:var(--text-3);flex-shrink:0';
+    arr.textContent=expanded?'▲':'▼';
+    (function(i){ arr.onclick=function(){ epUrlToggleExpanded(i); }; })(idx);
+    head.appendChild(arr);
+
+    var rmBtn=document.createElement('button');
+    rmBtn.className='btn btn-danger btn-sm'; rmBtn.textContent='✕';
+    rmBtn.style.cssText='padding:2px 6px;font-size:11px;flex-shrink:0';
+    (function(i){ rmBtn.onclick=function(e){ e.stopPropagation(); epUrlRemoveItem(i); }; })(idx);
+    head.appendChild(rmBtn);
+
+    wrap.appendChild(head);
+
+    // Body (collapsible)
+    var body=document.createElement('div');
+    body.className='ep-iurl-card-body'+(expanded?' open':'');
+    body.id='EUICB'+idx;
+
+    var inner=document.createElement('div');
+    inner.className='ep-iurl-card-body-inner';
+
+    // Grid: ID + File Name
+    var g1=document.createElement('div');
+    g1.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px';
+    g1.appendChild(epUrlField('ID *', item.id||'', function(v){ if(v) EP_URL_ITEMS[idx].id=v; }, 'id'));
+    g1.appendChild(epUrlField('File Name', item.file_name||'', function(v){ if(v) EP_URL_ITEMS[idx].file_name=v; else delete EP_URL_ITEMS[idx].file_name; }, 'file_name'));
+    inner.appendChild(g1);
+
+    // Grid: Folder Path + File Size
+    var g2=document.createElement('div');
+    g2.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px';
+    g2.appendChild(epUrlField('Folder Path', item.folder_path||'', function(v){ if(v) EP_URL_ITEMS[idx].folder_path=v; else delete EP_URL_ITEMS[idx].folder_path; }, 'folder_path', '/workspace/ComfyUI/models/'));
+    g2.appendChild(epUrlField('File Size (bytes)', item.file_size||'', function(v){ var n=parseInt(v,10); if(!isNaN(n)&&n>0) EP_URL_ITEMS[idx].file_size=n; else delete EP_URL_ITEMS[idx].file_size; }, 'file_size', '', 'number'));
+    inner.appendChild(g2);
+
+    // Checksum (only shown if present)
+    if(item.checksum){
+        var gc=document.createElement('div');
+        gc.appendChild(epUrlField('Checksum (SHA256)', item.checksum||'', function(v){ if(v) EP_URL_ITEMS[idx].checksum=v; else delete EP_URL_ITEMS[idx].checksum; }, 'checksum'));
+        inner.appendChild(gc);
+    }
+
+    // Mirrors section
+    var mirDiv=document.createElement('div');
+    var mirLabel=document.createElement('div');
+    mirLabel.style.cssText='font-size:.68em;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px';
+    mirLabel.textContent='Mirrors';
+    mirDiv.appendChild(mirLabel);
+    (item.mirrors||[]).forEach(function(mir,mi){
+        var row=document.createElement('div');
+        row.className='ep-iurl-mirror-row';
+        row.style.marginBottom='4px';
+        var inp=document.createElement('input');
+        inp.type='url'; inp.value=mir.url||'';
+        inp.style.cssText='background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 7px;font-family:"DM Mono",monospace;font-size:.78em;color:var(--text);outline:none;width:100%';
+        (function(i,m){ inp.oninput=function(){ EP_URL_ITEMS[i].mirrors[m].url=this.value; }; })(idx,mi);
+        var rmM=document.createElement('button');
+        rmM.className='btn btn-danger btn-sm'; rmM.textContent='✕'; rmM.style.padding='3px 7px';
+        (function(i,m){ rmM.onclick=function(){ EP_URL_ITEMS[i].mirrors.splice(m,1); epUrlRenderCards(); }; })(idx,mi);
+        row.appendChild(inp); row.appendChild(rmM);
+        mirDiv.appendChild(row);
+    });
+    var addMirBtn=document.createElement('button');
+    addMirBtn.className='btn btn-ghost btn-sm'; addMirBtn.textContent='+ Mirror'; addMirBtn.style.marginTop='2px';
+    (function(i){ addMirBtn.onclick=function(){ if(!EP_URL_ITEMS[i].mirrors) EP_URL_ITEMS[i].mirrors=[]; EP_URL_ITEMS[i].mirrors.push({url:''}); epUrlRenderCards(); }; })(idx);
+    mirDiv.appendChild(addMirBtn);
+    inner.appendChild(mirDiv);
+
+    body.appendChild(inner);
+    wrap.appendChild(body);
+    return wrap;
+}
+
+function epUrlField(labelText, value, onChange, fieldKey, placeholder, inputType){
+    var div=document.createElement('div');
+    div.className='ep-iurl-field';
+    var lbl=document.createElement('label');
+    lbl.textContent=labelText;
+    var inp=document.createElement('input');
+    inp.type=inputType||'text';
+    inp.value=value;
+    if(placeholder) inp.placeholder=placeholder;
+    inp.onblur=function(){ onChange(this.value); };
+    div.appendChild(lbl); div.appendChild(inp);
+    return div;
+}
+
+function epUrlToggleExpanded(idx){
+    EP_URL_EXPANDED[idx]=!EP_URL_EXPANDED[idx];
+    var body=epEl('EUICB'+idx);
+    var arr=epEl('EUIC'+idx) && epEl('EUIC'+idx).querySelector('.ep-iurl-card-head span:last-of-type');
+    if(body) body.className='ep-iurl-card-body'+(EP_URL_EXPANDED[idx]?' open':'');
+}
+
+function epUrlRemoveItem(idx){
+    EP_URL_ITEMS.splice(idx,1);
+    // Re-index checked/expanded maps
+    var nc={}, ne={};
+    Object.keys(EP_URL_CHECKED).forEach(function(k){ var ki=parseInt(k); if(ki<idx) nc[ki]=EP_URL_CHECKED[k]; else if(ki>idx) nc[ki-1]=EP_URL_CHECKED[k]; });
+    Object.keys(EP_URL_EXPANDED).forEach(function(k){ var ki=parseInt(k); if(ki<idx) ne[ki]=EP_URL_EXPANDED[k]; else if(ki>idx) ne[ki-1]=EP_URL_EXPANDED[k]; });
+    EP_URL_CHECKED=nc; EP_URL_EXPANDED=ne;
+    epUrlRenderCards();
+}
+
+function epUrlClearAll(){
+    EP_URL_ITEMS=[]; EP_URL_CHECKED={}; EP_URL_EXPANDED={};
+    epUrlRenderCards();
+    epUrlSetStatus(null);
+}
+
+function epUrlToggleAll(){
+    var total=EP_URL_ITEMS.length;
+    var allOn=EP_URL_ITEMS.every(function(_,i){ return EP_URL_CHECKED[i]; });
+    EP_URL_ITEMS.forEach(function(_,i){ EP_URL_CHECKED[i]=!allOn; });
+    epUrlRenderCards();
+}
+
+function epUrlUpdateFooter(){
+    var total=EP_URL_ITEMS.length;
+    var sel=Object.keys(EP_URL_CHECKED).filter(function(k){ return EP_URL_CHECKED[k]; }).length;
+    var info=total>0?(sel+' of '+total+' selected'):'Add URLs above';
+    epEl('EP_URL_SEL_INFO').textContent=info;
+    var btn=epEl('EP_URL_IMPORT_BTN');
+    btn.disabled=sel===0;
+    btn.textContent='⬇ Import'+(sel>0?' '+sel+' item(s)':'');
+    var selAllBtn=epEl('EP_URL_SEL_ALL');
+    if(selAllBtn) selAllBtn.textContent=(total>0&&EP_URL_ITEMS.every(function(_,i){ return EP_URL_CHECKED[i]; }))?'Deselect all':'Select all';
+}
+
+function epUrlImport(){
+    var node=epGetNode(EP_SEL);
+    if(!node.downloads) node.downloads=[];
+    var sel=Object.keys(EP_URL_CHECKED).filter(function(k){ return EP_URL_CHECKED[k]; }).map(Number).sort(function(a,b){return a-b;});
+    if(!sel.length){ epFlash('No items selected','error'); return; }
+    sel.forEach(function(i){ node.downloads.push(epDeepClone(EP_URL_ITEMS[i])); });
+    epCloseUrlImport();
+    epRenderMain();
+    epFlash('Imported '+sel.length+' download(s)','success');
+}
 </script>
 {% endblock %}
