@@ -21,5 +21,7 @@ class Settings:
         self.log_max_bytes = int(os.getenv("LOG_MAX_BYTES", 10 * 1024 * 1024))
         self.log_backup_count = int(os.getenv("LOG_BACKUP_COUNT", 5))
 
+        self.venv_info_path = os.environ.get("VENV_INFO_PATH", "").strip()
+
 
 settings = Settings(".env")

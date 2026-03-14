@@ -8,6 +8,8 @@ from typing import Dict, Any, Optional, Tuple, List
 
 import psutil
 
+from settings import settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -218,50 +220,101 @@ class DashboardService:
         return {"count": 0, "gpus": []}
 
     @staticmethod
+    def _get_venv_python_info(python_bin: str) -> Dict[str, Any]:
+        """
+        Query Python and PyTorch versions from an external venv
+        by running a one-liner with its interpreter.
+        Returns a dict with 'python_version' and 'torch_version',
+        or raises on any failure.
+        """
+        script = (
+            "import sys, json;"
+            "tv='N/A';"
+            "exec('try:\\n import torch\\n tv=torch.__version__\\nexcept ImportError: pass');"
+            "print(json.dumps({"
+            "'python_version': f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}',"
+            "'torch_version': tv"
+            "}))"
+        )
+        result = subprocess.run(
+            [python_bin, "-c", script],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"External venv python exited with code {result.returncode}: {result.stderr.strip()}"
+            )
+        import json as _json
+        return _json.loads(result.stdout.strip())
+
+    @staticmethod
     def get_environment_info() -> Dict[str, Any]:
-        """Get Python, CUDA, PyTorch versions and hostname"""
+        """
+        Get Python, CUDA, PyTorch versions and hostname.
+
+        If the env var VENV_INFO_PATH is set, it must point to a Python
+        interpreter (e.g. /opt/ml-venv/bin/python).  python_version and
+        torch_version will then be read from that venv via subprocess;
+        CUDA detection and hostname always use the current environment.
+        """
         import socket
 
-        # Python version
-        python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-
-        # CUDA version
-        cuda_version = "N/A"
-        cuda_env = os.environ.get("CUDA_VERSION", "").strip()
-        if cuda_env:
-            cuda_version = cuda_env
-        else:
+        # ── Python + PyTorch ──────────────────────────────────────────
+        venv_python = settings.venv_info_path
+        if venv_python:
+            logger.debug("VENV_INFO_PATH is set, querying external venv: %s", venv_python)
             try:
-                r = subprocess.run(["nvcc", "--version"], capture_output=True, text=True, timeout=5)
-                for line in r.stdout.splitlines():
-                    if "release" in line.lower():
-                        parts = line.split("release")
-                        if len(parts) > 1:
-                            cuda_version = parts[1].split(",")[0].strip()
-                            break
+                venv_info = DashboardService._get_venv_python_info(venv_python)
+                python_version = venv_info["python_version"]
+                torch_version = venv_info["torch_version"]
+                logger.debug(
+                    "External venv info: python=%s torch=%s",
+                    python_version, torch_version,
+                )
+            except Exception as exc:
+                logger.warning("Failed to query external venv (%s): %s", venv_python, exc)
+                # Fallback to current interpreter so the dashboard still works
+                python_version = (
+                    f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+                )
+                torch_version = "N/A"
+        else:
+            python_version = (
+                f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+            )
+            torch_version = "N/A"
+            try:
+                import torch
+                torch_version = torch.__version__
+            except ImportError:
+                pass
+
+        # ── CUDA ─────────────────────────────────────────────────────
+        cuda_version = "N/A"
+
+        try:
+            r = subprocess.run(["nvcc", "--version"], capture_output=True, text=True, timeout=5)
+            for line in r.stdout.splitlines():
+                if "release" in line.lower():
+                    parts = line.split("release")
+                    if len(parts) > 1:
+                        cuda_version = parts[1].split(",")[0].strip()
+                        break
+        except Exception:
+            pass
+        if cuda_version == "N/A":
+            try:
+                r = subprocess.run(
+                    ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"],
+                    capture_output=True, text=True, timeout=5,
+                )
+                v = r.stdout.strip()
+                if v:
+                    cuda_version = f"Driver {v}"
             except Exception:
                 pass
-            if cuda_version == "N/A":
-                try:
-                    r = subprocess.run(
-                        ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"],
-                        capture_output=True, text=True, timeout=5,
-                    )
-                    v = r.stdout.strip()
-                    if v:
-                        cuda_version = f"Driver {v}"
-                except Exception:
-                    pass
 
-        # PyTorch version
-        torch_version = "N/A"
-        try:
-            import torch
-            torch_version = torch.__version__
-        except ImportError:
-            pass
-
-        # Hostname
+        # ── Hostname ──────────────────────────────────────────────────
         hostname = socket.gethostname()
 
         return {
