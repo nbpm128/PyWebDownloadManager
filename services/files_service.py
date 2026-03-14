@@ -336,6 +336,21 @@ class FilesService:
         jobs.sort(key=lambda j: j.created_at, reverse=True)
         return jobs
 
+    def delete_zip_job(self, job_id: str) -> bool:
+        """Delete a ZIP job and its archive file. Returns True if found and deleted."""
+        with self._jobs_lock:
+            job = self._jobs.pop(job_id, None)
+        if job is None:
+            return False
+        if job.file_path and job.file_path.exists():
+            try:
+                job.file_path.unlink()
+            except OSError:
+                pass
+        self._job_meta_path(job_id).unlink(missing_ok=True)
+        logger.info("ZIP job deleted by user | job_id=%s", job_id)
+        return True
+
     def _run_zip_job(self, job: ZipJob) -> None:
         """Worker executed in a background thread."""
         try:

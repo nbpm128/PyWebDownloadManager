@@ -130,6 +130,15 @@ def zip_download(job_id: str):
     )
 
 
+@router.delete("/api/files/zip/delete/{job_id}", status_code=204)
+def zip_delete(job_id: str):
+    """Delete a ZIP job and its archive file."""
+    found = _svc.delete_zip_job(job_id)
+    if not found:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+
+
 @router.get("/api/files/zip/progress/{job_id}")
 async def zip_progress(job_id: str):
     """
