@@ -27,3 +27,13 @@ class FileMetadataResponse(BaseModel):
     fps:             Optional[float]     = None
     video_codec:     Optional[str]       = None
     comment:         Optional[str]       = None
+
+
+class ZipJobResponse(BaseModel):
+    """API response for ZIP job endpoints."""
+    job_id:   str
+    status:   str                    # pending | running | done | error
+    progress: int        = 0        # 0–100
+    message:  str        = ""
+    filename: str        = ""       # populated when done
+    error:    Optional[str] = None

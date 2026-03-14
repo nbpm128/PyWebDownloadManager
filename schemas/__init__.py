@@ -19,7 +19,8 @@ from .configs import (
 
 from .files import (
     FilesResponse,
-    FileMetadataResponse
+    FileMetadataResponse,
+    ZipJobResponse
 )
 
 __all__ = [
@@ -37,5 +38,6 @@ __all__ = [
     "SaveConfigResponse",
     "DeleteConfigResponse",
     "FilesResponse",
-    "FileMetadataResponse"
+    "FileMetadataResponse",
+    "ZipJobResponse"
 ]

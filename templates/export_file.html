@@ -143,13 +143,57 @@
         .export-item.is-image:hover { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
         .export-item.is-video:hover { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
 
+        /* ─── [FIX 4] Skeleton loading for image thumbnails ─── */
+        @keyframes skeleton-pulse {
+            0%   { opacity: 1; }
+            50%  { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+        .export-thumb-wrap {
+            background: var(--surface-2);
+        }
+        .export-thumb.is-loading {
+            /* invisible until loaded — skeleton shows through background */
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+        .export-thumb.is-loaded {
+            opacity: 1;
+        }
+        /* Animated skeleton shimmer sits behind the img */
+        .export-thumb-wrap::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: calc(var(--radius-sm) - 1px) calc(var(--radius-sm) - 1px) 0 0;
+            background: linear-gradient(90deg,
+                var(--surface-2) 25%,
+                var(--border) 50%,
+                var(--surface-2) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-shimmer 1.4s ease infinite;
+            pointer-events: none;
+            z-index: 0;
+            transition: opacity 0.2s ease;
+        }
+        @keyframes skeleton-shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        /* Hide shimmer once image is loaded */
+        .export-thumb-wrap.thumb-loaded::after {
+            opacity: 0;
+            pointer-events: none;
+        }
+        /* ────────────────────────────────────────────────────── */
+
         /* ─── Image/Video viewer modal ─── */
         .img-modal-backdrop {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.78);
+            backdrop-filter: blur(6px);
             z-index: 300;
             align-items: center;
             justify-content: center;
@@ -160,20 +204,54 @@
             position: relative;
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: stretch;
             background: #1a1d26;
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            box-shadow: 0 32px 80px rgba(0,0,0,0.7);
-            width: 80vw;
-            height: 85vh;
-            max-width: 1200px;
-            padding: 20px 20px 24px;
+            box-shadow: 0 32px 80px rgba(0,0,0,0.8);
+            width: 88vw;
+            height: 90vh;
+            max-width: 1320px;
+            overflow: hidden;
         }
 
+        /* ─── Modal header bar ─── */
+        .img-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            gap: 12px;
+            min-height: 48px;
+        }
+        .img-modal-header-left  { display:flex; align-items:center; gap:8px; flex-shrink:0; min-width:60px; }
+        .img-modal-header-center {
+            flex: 1; text-align: center; overflow: hidden;
+        }
+        .img-modal-header-right { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+        .img-modal-counter {
+            font-size: 0.72em;
+            font-family: 'DM Mono', monospace;
+            color: var(--text-3);
+            white-space: nowrap;
+        }
+
+        /* ─── [FIX 1] Esc hint tooltip on close button ─── */
+        .img-modal-esc-hint {
+            font-size: 0.68em;
+            font-family: 'DM Mono', monospace;
+            color: var(--text-3);
+            opacity: 0.6;
+            white-space: nowrap;
+            letter-spacing: 0.03em;
+            user-select: none;
+        }
+        /* ──────────────────────────────────────────────── */
+
         .img-modal-close {
-            position: absolute;
-            top: 12px; right: 12px;
             width: 32px; height: 32px;
             border-radius: 50%;
             background: var(--surface-2);
@@ -183,7 +261,7 @@
             display: flex; align-items: center; justify-content: center;
             cursor: pointer;
             transition: background var(--ease), color var(--ease);
-            z-index: 20;
+            flex-shrink: 0;
         }
         .img-modal-close:hover { background: var(--red-dim); color: var(--red); border-color: rgba(255,95,126,0.3); }
 
@@ -195,15 +273,170 @@
             justify-content: center;
             width: 100%;
             min-height: 0;
+            padding: 12px;
+            box-sizing: border-box;
+            /* [FIX 13] overflow hidden so cross-fading images don't bleed */
+            overflow: hidden;
         }
+
+        /* ─── [FIX 13] Smooth image transitions inside modal ─── */
         .img-modal-wrap img,
         .img-modal-video {
-            width: 70%;
-            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
             object-fit: contain;
             border-radius: var(--radius-sm);
             display: block;
             outline: none;
+            /* smooth opacity on src swap */
+            transition: opacity 0.18s ease;
+        }
+        /* While new image is loading — fade out current */
+        .img-modal-wrap img.is-switching {
+            opacity: 0;
+        }
+        /* ──────────────────────────────────────────────────── */
+
+        /* ─── Compare overlay inside modal ─── */
+        .img-modal-compare-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(10,11,17,0.96);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .img-modal-compare-grid {
+            flex: 1;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(var(--cg-cols, 4), 1fr);
+            gap: 8px;
+            padding: 16px;
+            align-content: start;
+            grid-auto-rows: 1fr;
+        }
+        .cg-tile-outer {
+            position: relative;
+            width: 100%;
+        }
+        .cg-tile-outer::before {
+            content: '';
+            display: block;
+            padding-top: 100%;
+        }
+        .img-modal-compare-grid::-webkit-scrollbar { width: 4px; }
+        .img-modal-compare-grid::-webkit-scrollbar-track { background: transparent; }
+        .img-modal-compare-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        .cg-tile {
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 2px solid var(--border-soft);
+            cursor: pointer;
+            background: var(--bg);
+            transition: border-color var(--ease), box-shadow var(--ease);
+            box-sizing: border-box;
+        }
+        .cg-tile:hover { border-color: var(--accent); }
+        .cg-tile.selected {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+        .cg-tile img, .cg-tile canvas, .cg-tile video {
+            position: absolute;
+            inset: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .cg-tile .cg-video-icon {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.8em;
+            pointer-events: none;
+            opacity: 0.85;
+            z-index: 1;
+        }
+        .cg-tile .cg-check {
+            position: absolute;
+            top: 5px; right: 5px;
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: white;
+            font-size: 0.7em;
+            font-weight: 700;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3;
+        }
+        .cg-tile.selected .cg-check { display: flex; }
+        .cg-tile .cg-label {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            background: rgba(10,11,17,0.75);
+            color: var(--text-3);
+            font-size: 0.6em;
+            font-family: 'DM Mono', monospace;
+            padding: 3px 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            z-index: 2;
+        }
+        .img-modal-compare-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .img-modal-compare-hint {
+            font-size: 0.8em;
+            color: var(--text-3);
+            flex: 1;
+            min-width: 140px;
+        }
+        .cg-slider-wrap {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            flex-shrink: 0;
+        }
+        .cg-slider-wrap label {
+            font-size: 0.72em;
+            color: var(--text-3);
+            white-space: nowrap;
+        }
+        .cg-slider-wrap input[type="range"] {
+            width: 90px;
+            -webkit-appearance: none;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+        .cg-slider-wrap input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 13px; height: 13px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid var(--bg);
+            box-shadow: 0 0 0 1px var(--accent);
+            cursor: pointer;
         }
 
         .img-nav {
@@ -244,8 +477,12 @@
             flex-direction: column;
             align-items: center;
             gap: 4px;
-            margin-top: 14px;
+            padding: 12px 20px 16px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
             width: 100%;
+            box-sizing: border-box;
+            flex-shrink: 0;
         }
         .img-modal-dims {
             font-size: 0.74em;
@@ -289,6 +526,14 @@
             transition: all var(--ease);
             white-space: nowrap;
         }
+        .img-modal-btn-compare {
+            background: var(--surface-2);
+            border-color: var(--border);
+            color: var(--text-2);
+        }
+        .img-modal-btn-compare:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+        .img-modal-btn-compare.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
         .img-modal-btn-image {
             background: var(--accent-dim);
             border-color: rgba(91,127,255,0.3);
@@ -304,15 +549,23 @@
         .img-modal-btn-workflow:hover { background: var(--green); color: #0a1a13; transform: translateY(-1px); }
 
         /* ─── Prompts panel ─── */
+        /* [FIX 7] Animated appearance for prompts panel */
         .img-prompts-panel {
             width: 100%;
             margin-top: 12px;
-            display: none;
+            display: flex;            /* always flex, controlled via opacity + max-height */
             flex-direction: column;
             gap: 8px;
-            max-height: 220px;
-            overflow-y: auto;
+            max-height: 0;
+            overflow: hidden;
             padding-right: 4px;
+            opacity: 0;
+            transition: max-height 0.32s ease, opacity 0.28s ease, margin-top 0.28s ease;
+        }
+        .img-prompts-panel.visible {
+            max-height: 220px;
+            opacity: 1;
+            overflow-y: auto;
         }
         .img-prompts-panel::-webkit-scrollbar { width: 4px; }
         .img-prompts-panel::-webkit-scrollbar-track { background: transparent; }
@@ -469,6 +722,7 @@
         .search-input:focus { border-color: var(--accent); }
         .search-input::placeholder { color: var(--text-3); }
 
+        /* ─── [FIX 5] Filter chips — multiselect ─── */
         .filter-chips {
             display: flex;
             gap: 4px;
@@ -490,6 +744,59 @@
         }
         .filter-chip:hover { border-color: var(--accent); color: var(--accent); }
         .filter-chip.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+        /* ─────────────────────────────────────────────── */
+
+        /* ─── [FIX 9] Sort button in toolbar ─── */
+        .sort-btn {
+            padding: 3px 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.72em;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            color: var(--text-3);
+            background: none;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all var(--ease);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            position: relative;
+        }
+        .sort-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .sort-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+        .sort-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            right: 0;
+            min-width: 150px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            z-index: 50;
+            overflow: hidden;
+            display: none;
+        }
+        .sort-dropdown.open { display: block; }
+        .sort-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            font-size: 0.78em;
+            color: var(--text-2);
+            cursor: pointer;
+            transition: background var(--ease);
+            white-space: nowrap;
+        }
+        .sort-option:hover { background: var(--surface-2); color: var(--text); }
+        .sort-option.selected { color: var(--accent); }
+        .sort-option .sort-check { font-size: 0.8em; width: 12px; flex-shrink: 0; }
+        /* ────────────────────────────────────── */
 
         .compare-btn {
             margin-left: auto;
@@ -631,12 +938,137 @@
             text-overflow: ellipsis;
             flex-shrink: 0;
         }
-        .compare-pane img {
+        .compare-pane img,
+        .compare-pane video {
             flex: 1;
             width: 100%;
-            height: 100%;
+            min-height: 0;
             object-fit: contain;
             display: block;
+        }
+        /* Hide native video controls — we use custom bars */
+        .compare-pane video { outline: none; }
+
+        /* ─── Per-pane video mini controls ─── */
+        .pane-video-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .pvc-btn {
+            width: 28px; height: 28px;
+            border-radius: var(--radius-sm);
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 0.78em;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all var(--ease);
+            font-family: inherit;
+            flex-shrink: 0;
+        }
+        .pvc-btn:hover { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+        .pvc-btn.muted { background: var(--red-dim); border-color: rgba(255,95,126,0.3); color: var(--red); }
+        .pvc-btn.playing { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+        .pvc-seek-wrap {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            min-width: 0;
+        }
+        .pvc-seek {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 3px;
+            background: var(--border);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+        .pvc-seek::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 11px; height: 11px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid var(--bg);
+            cursor: pointer;
+        }
+        .pvc-time {
+            font-size: 0.65em;
+            font-family: 'DM Mono', monospace;
+            color: var(--text-3);
+            white-space: nowrap;
+            min-width: 30px;
+            text-align: right;
+        }
+
+        /* ─── Unified video controls bar ─── */
+        .compare-video-bar {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 10px 20px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .cvb-controls {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .cvb-btn {
+            width: 34px; height: 34px;
+            border-radius: var(--radius-sm);
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 0.85em;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all var(--ease);
+            font-family: inherit;
+        }
+        .cvb-btn:hover { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+        .cvb-btn.muted { background: var(--red-dim); border-color: rgba(255,95,126,0.3); color: var(--red); }
+        .cvb-seek-wrap {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+        .cvb-time {
+            font-size: 0.72em;
+            font-family: 'DM Mono', monospace;
+            color: var(--text-3);
+            white-space: nowrap;
+            min-width: 36px;
+        }
+        .cvb-seek {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+        .cvb-seek::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 13px; height: 13px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid var(--bg);
+            box-shadow: 0 0 0 1px var(--accent);
+            cursor: pointer;
         }
 
         /* ─── Tile size slider ─── */
@@ -691,6 +1123,155 @@
         }
         .flash-success { background: var(--green-dim); color: var(--green); border: 1px solid rgba(54,211,153,0.2); }
         .flash-error   { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(255,95,126,0.2); }
+
+        /* ─── Page layout ─── */
+        .page-layout { display: block; }
+        .page-main { display: block; }
+
+        /* ─── ZIP sidebar panel (fixed) ─── */
+        .zip-sidebar {
+            position: fixed;
+            top: 80px;
+            right: 0;
+            width: 260px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-left: 1px solid var(--border);
+            border-radius: var(--radius) 0 0 var(--radius);
+            z-index: 200;
+            box-shadow: -4px 0 24px rgba(0,0,0,0.25);
+            transition: width 0.2s ease, transform 0.2s ease;
+        }
+        .zip-sidebar.collapsed { width: 42px; }
+        .zip-sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            user-select: none;
+            gap: 8px;
+            min-height: 42px;
+        }
+        .zip-sidebar-header:hover { background: var(--bg); }
+        .zip-sidebar-title {
+            font-size: 0.78em;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--text-3);
+            white-space: nowrap;
+            overflow: hidden;
+            flex: 1;
+        }
+        .zip-sidebar-toggle {
+            font-size: 0.7em;
+            color: var(--text-3);
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+        .zip-sidebar.collapsed .zip-sidebar-toggle { transform: rotate(180deg); }
+        .zip-sidebar.collapsed .zip-sidebar-body,
+        .zip-sidebar.collapsed .zip-sidebar-title { display: none; }
+        .zip-sidebar-body {
+            padding: 14px 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .zip-panel-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .zip-panel-msg { color: var(--text-2); font-size: 0.8em; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .zip-panel-pct { color: var(--accent); font-family: 'DM Mono', monospace; font-size: 0.8em; min-width: 32px; text-align: right; }
+        .zip-progress-track { width: 100%; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+        .zip-progress-bar { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.25s ease; width: 0%; }
+        .zip-progress-bar.done  { background: var(--green); }
+        .zip-progress-bar.error { background: var(--red); }
+        .zip-idle-hint { font-size: 0.75em; color: var(--text-3); line-height: 1.5; }
+        .zip-download-btn {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 7px 12px;
+            background: var(--green-dim); border: 1px solid rgba(54,211,153,0.35);
+            border-radius: var(--radius-sm); color: var(--green);
+            font-size: 0.82em; font-weight: 600; font-family: inherit;
+            cursor: pointer; text-decoration: none;
+            transition: all var(--ease); white-space: nowrap; width: 100%;
+        }
+        .zip-download-btn:hover { background: var(--green); color: #0a1a13; }
+        .zip-job-item {
+            display: flex; flex-direction: column; gap: 6px;
+            padding-bottom: 10px; border-bottom: 1px solid var(--border);
+        }
+        .zip-job-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .zip-job-name { font-size: 0.72em; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* ─── Folder picker modal ─── */
+        .fp-modal-panel {
+            display: flex;
+            flex-direction: column;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: 0 24px 60px rgba(0,0,0,0.7);
+            width: 480px;
+            max-width: 96vw;
+            max-height: 75vh;
+            min-height: 320px;
+            overflow: hidden;
+        }
+        .fp-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .fp-modal-title {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-size: 0.92em;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .fp-modal-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 16px 20px;
+            overflow: hidden;
+            min-height: 0;
+        }
+        .fp-modal-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-height: 80px;
+        }
+        .fp-modal-list::-webkit-scrollbar { width: 4px; }
+        .fp-modal-list::-webkit-scrollbar-track { background: transparent; }
+        .fp-modal-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+        .fp-modal-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 14px 20px;
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
 {% endblock %}
 
 {% block page_header %}
@@ -704,6 +1285,7 @@
 {% endblock %}
 
 {% block content %}
+    <!-- Main content — normal page flow -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;">
         <!-- Breadcrumb + actions bar -->
         <div id="export-breadcrumb" class="fb-breadcrumb">
@@ -711,17 +1293,20 @@
                 <span class="crumb-root" data-path="">🏠 root</span>
             </div>
             <div class="fb-breadcrumb-actions">
+                <!-- [FIX 10] Browse navigates inline — no separate modal -->
                 <button class="btn btn-ghost btn-sm" id="export-btn-browse" title="Browse">📁 Browse</button>
                 <button class="btn btn-primary btn-sm" id="export-btn-zip" title="Download ZIP">📦 Download ZIP</button>
             </div>
         </div>
         <!-- hidden input kept for JS compat -->
         <input type="text" id="export-path-input" style="display:none" autocomplete="off">
-        <!-- Browser toolbar: search + extension filter + compare toggle -->
+
+        <!-- Browser toolbar: search + extension filter (multiselect) + sort + compare toggle -->
         <div class="browser-toolbar">
             <div class="search-input-wrap">
                 <input type="text" id="browser-search" class="search-input" placeholder="Search by name…" autocomplete="off">
             </div>
+            <!-- [FIX 5] Multiselect chips — All deselects others; others toggle individually -->
             <div class="filter-chips" id="filter-chips">
                 <button class="filter-chip active" data-ext="">All</button>
                 <button class="filter-chip" data-ext="png">PNG</button>
@@ -729,7 +1314,26 @@
                 <button class="filter-chip" data-ext="webp">WebP</button>
                 <button class="filter-chip" data-ext="mp4">MP4</button>
             </div>
-            <button class="compare-btn" id="compare-toggle-btn" title="Select images to compare side-by-side">⧉ Compare</button>
+            <!-- [FIX 9] Sort dropdown -->
+            <div style="position:relative;">
+                <button class="sort-btn" id="sort-btn" title="Sort files">
+                    <span id="sort-icon">↕</span> Sort
+                </button>
+                <div class="sort-dropdown" id="sort-dropdown">
+                    <div class="sort-option selected" data-sort="default">
+                        <span class="sort-check">✓</span> Default
+                    </div>
+                    <div class="sort-option" data-sort="name-asc">
+                        <span class="sort-check"></span> Name A → Z
+                    </div>
+                    <div class="sort-option" data-sort="name-desc">
+                        <span class="sort-check"></span> Name Z → A
+                    </div>
+                    <div class="sort-option" data-sort="type">
+                        <span class="sort-check"></span> By type
+                    </div>
+                </div>
+            </div>
         </div>
         <!-- Tile size slider -->
         <div class="tile-size-control">
@@ -746,8 +1350,20 @@
         <div id="export-flash"></div>
     </div>
 
-    <!-- Compare FAB -->
-    <button class="compare-fab" id="compare-fab">⧉ Compare <span id="compare-count">0</span> images</button>
+    <!-- ZIP sidebar — fixed outside content flow, hugs right edge of viewport -->
+    <div class="zip-sidebar" id="zip-sidebar">
+        <div class="zip-sidebar-header" id="zip-sidebar-toggle">
+            <span class="zip-sidebar-title">📦 ZIP Archives</span>
+            <span class="zip-sidebar-toggle">◀</span>
+        </div>
+        <div class="zip-sidebar-body" id="zip-sidebar-body">
+            <div class="zip-idle-hint" id="zip-idle-hint">
+                Click <strong>Download ZIP</strong> to create an archive of the current folder.
+                Progress and download links will appear here.
+            </div>
+            <div id="zip-jobs-list"></div>
+        </div>
+    </div>
 
     <!-- Compare modal -->
     <div class="compare-modal-backdrop" id="compare-modal">
@@ -757,13 +1373,40 @@
                 <button class="compare-modal-close" onclick="closeCompareModal()">✕</button>
             </div>
             <div class="compare-panes" id="compare-panes"></div>
+            <!-- Shared video controls — shown only when comparing videos -->
+            <div class="compare-video-bar" id="compare-video-bar" style="display:none">
+                <div class="cvb-controls">
+                    <button class="cvb-btn" id="cvb-play" onclick="cvbPlay()" title="Play all">▶</button>
+                    <button class="cvb-btn" id="cvb-pause" onclick="cvbPause()" title="Pause all" style="display:none">⏸</button>
+                    <button class="cvb-btn" id="cvb-stop" onclick="cvbStop()" title="Stop all">⏹</button>
+                    <button class="cvb-btn" id="cvb-mute" onclick="cvbToggleMute()" title="Mute all">🔊</button>
+                </div>
+                <div class="cvb-seek-wrap">
+                    <span class="cvb-time" id="cvb-current">0:00</span>
+                    <input type="range" class="cvb-seek" id="cvb-seek" min="0" max="100" step="0.1" value="0" oninput="cvbSeek(+this.value)">
+                    <span class="cvb-time" id="cvb-duration">0:00</span>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Image / Video viewer modal -->
-    <div class="img-modal-backdrop" id="img-modal" onclick="imgModalBackdropClick(event)">
+    <div class="img-modal-backdrop" id="img-modal">
         <div class="img-modal-panel">
-            <button class="img-modal-close" onclick="closeImageModal()" title="Close">✕</button>
+            <!-- Header bar -->
+            <div class="img-modal-header">
+                <div class="img-modal-header-left">
+                    <span class="img-modal-counter" id="img-modal-counter"></span>
+                </div>
+                <div class="img-modal-header-center">
+                    <span class="img-modal-name" id="img-modal-name">—</span>
+                </div>
+                <div class="img-modal-header-right">
+                    <button class="img-modal-btn img-modal-btn-compare" id="img-modal-compare-btn" title="Compare mode — select images to compare side by side">⧉ Compare</button>
+                    <button class="img-modal-close" onclick="closeImageModal()" title="Close (Esc)">✕</button>
+                </div>
+            </div>
+            <!-- Main content -->
             <div class="img-modal-wrap">
                 <div class="img-nav img-nav-left"  id="img-nav-left">
                     <div class="img-nav-btn" onclick="imgModalNav(-1)">‹</div>
@@ -773,10 +1416,25 @@
                 <div class="img-nav img-nav-right" id="img-nav-right">
                     <div class="img-nav-btn" onclick="imgModalNav(1)">›</div>
                 </div>
+                <!-- Compare selection overlay shown when compare mode active inside modal -->
+                <div class="img-modal-compare-overlay" id="img-modal-compare-overlay" style="display:none">
+                    <div class="img-modal-compare-grid" id="img-modal-compare-grid"></div>
+                    <div class="img-modal-compare-bar">
+                        <span class="img-modal-compare-hint" id="img-modal-compare-hint">Select 2 or more items to compare</span>
+                        <div class="cg-slider-wrap">
+                            <label for="cg-cols-slider">⊞ Columns</label>
+                            <input type="range" id="cg-cols-slider" min="2" max="8" value="4" step="1" oninput="setCgCols(+this.value)">
+                            <span id="cg-cols-val" style="font-size:0.72em;color:var(--text-3);font-family:'DM Mono',monospace;min-width:14px;">4</span>
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <button class="img-modal-btn img-modal-btn-image" id="img-modal-compare-go" onclick="launchCompareFromModal()" disabled>⧉ Compare <span id="img-modal-compare-count">0</span></button>
+                            <button class="img-modal-btn" style="background:var(--surface-2);border-color:var(--border);color:var(--text-2);" onclick="closeModalCompareOverlay()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="img-modal-footer">
                 <span class="img-modal-dims" id="img-modal-dims"></span>
-                <span class="img-modal-name" id="img-modal-name">—</span>
                 <div class="img-modal-actions">
                     <button class="img-modal-btn img-modal-btn-workflow" id="img-modal-dl-workflow" style="display:none">
                         ↓ Download Workflow
@@ -787,6 +1445,10 @@
                 </div>
                 <!-- Prompts extracted from ComfyUI workflow -->
                 <div class="img-prompts-panel" id="img-prompts-panel"></div>
+                <!-- [FIX 11] Keyboard shortcut hint in modal footer -->
+                <div style="margin-top:8px;font-size:0.68em;color:var(--text-3);opacity:0.5;font-family:'DM Mono',monospace;letter-spacing:0.02em;">
+                    ← → navigate &nbsp;·&nbsp; Esc close
+                </div>
             </div>
         </div>
     </div>
@@ -804,23 +1466,7 @@
         </div>
     </div>
 
-    <!-- Folder picker modal -->
-    <div class="img-modal-backdrop" id="folder-picker-modal" onclick="folderPickerBackdropClick(event)">
-        <div class="img-modal-panel" style="width:480px;height:auto;max-height:75vh;min-height:300px;">
-            <button class="img-modal-close" onclick="closeFolderPicker()" title="Close">✕</button>
-            <div style="width:100%;display:flex;flex-direction:column;gap:10px;overflow:hidden;flex:1;">
-                <div style="font-size:0.9em;font-weight:600;color:var(--text);padding-bottom:6px;border-bottom:1px solid var(--border);">
-                    📁 Select Folder
-                </div>
-                <div id="fp-breadcrumb" class="fb-breadcrumb" style="margin-bottom:0;"></div>
-                <div id="fp-list" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px;min-height:120px;max-height:340px;"></div>
-                <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:10px;border-top:1px solid var(--border);">
-                    <button class="btn btn-ghost btn-sm" onclick="closeFolderPicker()">Cancel</button>
-                    <button class="btn btn-primary btn-sm" onclick="confirmFolderPicker()">✓ Select This Folder</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- [FIX 10] Folder picker removed — Browse now navigates inline via exportBrowse('') -->
 
 {% endblock %}
 
@@ -828,37 +1474,114 @@
 <script>
 'use strict';
 
-// ─── Default settings ────────────────────────────────────────────────────────
-const DEFAULT_TILE_COLS = 4;   // ← default number of columns (2 to 12)
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Preview image cache ─────────────────────────────────────────────────────
+const CACHE_NAME   = 'preview-v1';
+const CACHE_LIMIT  = 200;
 
+const previewCache = (() => {
+    const mem = new Map();
+
+    async function trimCache(cache) {
+        const keys = await cache.keys();
+        if (keys.length > CACHE_LIMIT) {
+            const toDelete = keys.slice(0, keys.length - CACHE_LIMIT);
+            await Promise.all(toDelete.map(k => cache.delete(k)));
+        }
+    }
+
+    return {
+        get(url) { return mem.get(url) ?? null; },
+
+        async load(url) {
+            if (mem.has(url)) return mem.get(url);
+
+            if ('caches' in window) {
+                try {
+                    const cache    = await caches.open(CACHE_NAME);
+                    const cached   = await cache.match(url);
+                    if (cached) {
+                        const blob = await cached.blob();
+                        const objUrl = URL.createObjectURL(blob);
+                        mem.set(url, objUrl);
+                        return objUrl;
+                    }
+                    const resp = await fetch(url);
+                    if (resp.ok) {
+                        await cache.put(url, resp.clone());
+                        await trimCache(cache);
+                        const blob   = await resp.blob();
+                        const objUrl = URL.createObjectURL(blob);
+                        mem.set(url, objUrl);
+                        return objUrl;
+                    }
+                } catch { /* fallback */ }
+            } else {
+                try {
+                    const resp = await fetch(url);
+                    if (resp.ok) {
+                        const blob   = await resp.blob();
+                        const objUrl = URL.createObjectURL(blob);
+                        mem.set(url, objUrl);
+                        return objUrl;
+                    }
+                } catch { /* use original url */ }
+            }
+            return url;
+        },
+    };
+})();
+
+// ─── Default settings ────────────────────────────────────────────────────────
+const DEFAULT_TILE_COLS = 4;
 const FLASH_TTL = 5000;
 let exportCurrentPath = '';
 
-// ── Filter & search state ─────────────────────────────────────────────────────
-let activeExtFilter = '';   // '' = all, 'png', 'jpg', 'webp', 'mp4'
-let searchQuery     = '';
+// ─── [FIX 5] Multiselect extension filter state ──────────────────────────────
+// activeExtFilters: Set of active extensions. Empty = show all.
+let activeExtFilters = new Set();
+let searchQuery      = '';
+
+// ─── [FIX 9] Sort state ──────────────────────────────────────────────────────
+let currentSort = 'default';   // 'default' | 'name-asc' | 'name-desc' | 'type'
+
+/** Sort items array in-place according to currentSort. */
+function sortItems(items) {
+    if (currentSort === 'default') return items;
+
+    return [...items].sort((a, b) => {
+        // Folders always first regardless of sort
+        if (a.isDir && !b.isDir) return -1;
+        if (!a.isDir && b.isDir) return  1;
+
+        if (currentSort === 'name-asc')  return a.name.localeCompare(b.name);
+        if (currentSort === 'name-desc') return b.name.localeCompare(a.name);
+        if (currentSort === 'type') {
+            const ea = extOf(a.name), eb = extOf(b.name);
+            return ea !== eb ? ea.localeCompare(eb) : a.name.localeCompare(b.name);
+        }
+        return 0;
+    });
+}
 
 /** Returns true if item should be shown given current filter + search state. */
 function itemPassesFilter(item) {
-    if (item.isDir) return true;   // always show folders
+    if (item.isDir) return true;
 
-    // Extension filter — 'jpg' matches both .jpg and .jpeg
-    if (activeExtFilter) {
+    // [FIX 5] Multiselect: show if no filters active OR extension matches any active filter
+    if (activeExtFilters.size > 0) {
         const ext = extOf(item.name);
-        const match = activeExtFilter === 'jpg'
-            ? (ext === 'jpg' || ext === 'jpeg')
-            : ext === activeExtFilter;
+        // 'jpg' filter matches both .jpg and .jpeg
+        const match = [...activeExtFilters].some(f =>
+            f === 'jpg' ? (ext === 'jpg' || ext === 'jpeg') : ext === f
+        );
         if (!match) return false;
     }
 
-    // Search
     if (searchQuery && !item.name.toLowerCase().includes(searchQuery)) return false;
 
     return true;
 }
 
-/** Re-apply filter+search to existing tiles without re-fetching. */
 function applyFilterAndSearch() {
     const browser = document.getElementById('export-browser');
     let visibleCount = 0;
@@ -869,7 +1592,6 @@ function applyFilterAndSearch() {
         el.style.display = passes ? '' : 'none';
         if (passes) visibleCount++;
     });
-    // Show empty state if nothing visible
     let emptyEl = browser.querySelector('.fb-filter-empty');
     if (visibleCount === 0) {
         if (!emptyEl) {
@@ -884,14 +1606,36 @@ function applyFilterAndSearch() {
     }
 }
 
-// Wire up filter chips
+// Wire up filter chips — [FIX 5] multiselect logic
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('filter-chips').addEventListener('click', e => {
         const chip = e.target.closest('.filter-chip');
         if (!chip) return;
-        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        activeExtFilter = chip.dataset.ext;
+
+        const ext = chip.dataset.ext;
+
+        if (ext === '') {
+            // "All" chip: clear all selections
+            activeExtFilters.clear();
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+        } else {
+            // Deactivate "All" chip
+            document.querySelector('.filter-chip[data-ext=""]').classList.remove('active');
+
+            if (activeExtFilters.has(ext)) {
+                activeExtFilters.delete(ext);
+                chip.classList.remove('active');
+                // If nothing selected, revert to All
+                if (activeExtFilters.size === 0) {
+                    document.querySelector('.filter-chip[data-ext=""]').classList.add('active');
+                }
+            } else {
+                activeExtFilters.add(ext);
+                chip.classList.add('active');
+            }
+        }
+
         applyFilterAndSearch();
     });
 
@@ -900,72 +1644,376 @@ document.addEventListener('DOMContentLoaded', () => {
         searchQuery = searchEl.value.trim().toLowerCase();
         applyFilterAndSearch();
     });
-    // Clear search on Escape
     searchEl.addEventListener('keydown', e => {
         if (e.key === 'Escape') { searchEl.value = ''; searchQuery = ''; applyFilterAndSearch(); }
     });
 
-    // Compare toggle
-    document.getElementById('compare-toggle-btn').addEventListener('click', toggleCompareMode);
+    // [FIX 9] Sort dropdown
+    const sortBtn      = document.getElementById('sort-btn');
+    const sortDropdown = document.getElementById('sort-dropdown');
 
-    // Compare FAB
-    document.getElementById('compare-fab').addEventListener('click', openCompareModal);
+    sortBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        sortDropdown.classList.toggle('open');
+        sortBtn.classList.toggle('active', sortDropdown.classList.contains('open'));
+    });
+    document.addEventListener('click', () => {
+        sortDropdown.classList.remove('open');
+        sortBtn.classList.remove('active');
+    });
+    sortDropdown.addEventListener('click', e => {
+        const opt = e.target.closest('.sort-option');
+        if (!opt) return;
+        e.stopPropagation();
+        currentSort = opt.dataset.sort;
+        // Update checkmarks
+        sortDropdown.querySelectorAll('.sort-option').forEach(o => {
+            o.classList.toggle('selected', o.dataset.sort === currentSort);
+            o.querySelector('.sort-check').textContent = o.dataset.sort === currentSort ? '✓' : '';
+        });
+        // Icon hint for active sort
+        document.getElementById('sort-icon').textContent = currentSort === 'default' ? '↕' : '↑↓';
+        sortDropdown.classList.remove('open');
+        sortBtn.classList.remove('active');
+        // Re-render with new sort
+        exportBrowse(exportCurrentPath);
+    });
+
+    // Wire Compare button inside modal
+    const cmpBtn = document.getElementById('img-modal-compare-btn');
+    if (cmpBtn) cmpBtn.addEventListener('click', () => {
+        if (compareModeActive) closeModalCompareOverlay();
+        else openModalCompareOverlay();
+    });
 });
 
-// ── Compare mode ──────────────────────────────────────────────────────────────
+// ── Compare mode (launched from inside the media modal) ──────────────────────
 let compareModeActive  = false;
-let compareSelected    = [];   // array of { name, src } objects
+let compareSelected    = [];
 
-function toggleCompareMode() {
-    compareModeActive = !compareModeActive;
+function openModalCompareOverlay() {
+    const overlay = document.getElementById('img-modal-compare-overlay');
+    const grid    = document.getElementById('img-modal-compare-grid');
+    if (!overlay || !grid) return;
+
+    compareModeActive = true;
     compareSelected   = [];
-    document.getElementById('compare-toggle-btn').classList.toggle('active', compareModeActive);
-    updateCompareFab();
-    const browser = document.getElementById('export-browser');
-    browser.querySelectorAll('.export-item.is-image').forEach(el => {
-        el.classList.toggle('compare-selectable', compareModeActive);
-        el.classList.remove('compare-selected');
+
+    const currentItem = imgModalImages[imgModalIndex];
+    const media = imgModalImages;
+    if (media.length === 0) return;
+
+    grid.innerHTML = media.map((item) => {
+        const isCurrent = currentItem && item.src === currentItem.src;
+        const selCls = isCurrent ? ' selected' : '';
+        const onclick = `toggleCompareTile(this, '${item.src.replace(/'/g,"\\'")}', '${item.name.replace(/'/g,"\\'")}')`;
+
+        let inner;
+        if (item.type === 'video') {
+            inner = `<canvas class="cg-vid-canvas" data-src="${item.src}"></canvas>
+                <span class="cg-video-icon">▶</span>`;
+        } else {
+            const cachedSrc = previewCache.get(item.src) || item.src;
+            inner = `<img src="${cachedSrc}" alt="${item.name}" loading="lazy">`;
+        }
+
+        return `<div class="cg-tile-outer">
+            <div class="cg-tile${selCls}" data-src="${item.src}" onclick="${onclick}">
+                ${inner}
+                <div class="cg-check">✓</div>
+                <div class="cg-label" title="${item.name}">${item.name}</div>
+            </div>
+        </div>`;
+    }).join('');
+
+    grid.querySelectorAll('canvas.cg-vid-canvas').forEach(canvas => {
+        captureVideoFrame(canvas, canvas.dataset.src);
     });
+
+    if (currentItem) {
+        compareSelected.push({ src: currentItem.src, name: currentItem.name });
+    }
+
+    setCgCols(4);
+    const slider = document.getElementById('cg-cols-slider');
+    if (slider) slider.value = 4;
+
+    updateModalCompareBar();
+    overlay.style.display = 'flex';
+    document.getElementById('img-modal-compare-btn').classList.add('active');
 }
 
-function updateCompareFab() {
-    const fab = document.getElementById('compare-fab');
-    document.getElementById('compare-count').textContent = compareSelected.length;
-    fab.classList.toggle('visible', compareModeActive && compareSelected.length >= 2);
+function closeModalCompareOverlay() {
+    compareSelected = [];
+    _closeModalCompareOverlayUI();
 }
 
-function handleCompareClick(el, item) {
-    const idx = compareSelected.findIndex(s => s.src === item.src);
+function toggleCompareTile(el, src, name) {
+    const idx = compareSelected.findIndex(s => s.src === src);
     if (idx >= 0) {
         compareSelected.splice(idx, 1);
-        el.classList.remove('compare-selected');
+        el.classList.remove('selected');
     } else {
-        compareSelected.push(item);
-        el.classList.add('compare-selected');
+        compareSelected.push({ src, name });
+        el.classList.add('selected');
     }
-    updateCompareFab();
+    updateModalCompareBar();
 }
+
+function updateModalCompareBar() {
+    const count = compareSelected.length;
+    const hint  = document.getElementById('img-modal-compare-hint');
+    const goBtn = document.getElementById('img-modal-compare-go');
+    const countEl = document.getElementById('img-modal-compare-count');
+    if (hint)    hint.textContent   = count < 2 ? 'Select 2 or more items to compare' : `${count} item${count > 1 ? 's' : ''} selected`;
+    if (countEl) countEl.textContent = count;
+    if (goBtn)   goBtn.disabled     = count < 2;
+}
+
+function setCgCols(val) {
+    const grid   = document.getElementById('img-modal-compare-grid');
+    const label  = document.getElementById('cg-cols-val');
+    if (grid)  grid.style.setProperty('--cg-cols', val);
+    if (label) label.textContent = val;
+}
+
+function launchCompareFromModal() {
+    if (compareSelected.length < 2) return;
+    const snapshot = [...compareSelected];
+    _closeModalCompareOverlayUI();
+    closeImageModal();
+    compareSelected = snapshot;
+    openCompareModal();
+}
+
+function _closeModalCompareOverlayUI() {
+    compareModeActive = false;
+    const overlay = document.getElementById('img-modal-compare-overlay');
+    if (overlay) overlay.style.display = 'none';
+    const btn = document.getElementById('img-modal-compare-btn');
+    if (btn) btn.classList.remove('active');
+}
+
+function toggleCompareMode() {}
+function updateCompareFab() {}
+function handleCompareClick() {}
+
+let _cvbVideos   = [];
+let _cvbMuted    = false;
+let _cvbDuration = 0;
+let _cvbRafId    = null;
+let _pvcRafs     = [];
 
 function openCompareModal() {
     if (compareSelected.length < 2) return;
-    const modal  = document.getElementById('compare-modal');
-    const panes  = document.getElementById('compare-panes');
-    const title  = document.getElementById('compare-modal-title');
+    const modal = document.getElementById('compare-modal');
+    const panes = document.getElementById('compare-panes');
+    const title = document.getElementById('compare-modal-title');
+    const bar   = document.getElementById('compare-video-bar');
 
-    title.textContent = `Comparing ${compareSelected.length} images`;
-    panes.innerHTML = compareSelected.map(item => `
-        <div class="compare-pane">
+    const hasVideo = compareSelected.some(item => VIDEO_EXTS.has(extOf(item.name)));
+
+    title.textContent = `Comparing ${compareSelected.length} item${compareSelected.length > 1 ? 's' : ''}`;
+
+    panes.innerHTML = compareSelected.map((item, i) => {
+        const isVid = VIDEO_EXTS.has(extOf(item.name));
+        if (isVid) {
+            return `<div class="compare-pane">
+                <div class="compare-pane-label" title="${item.name}">${item.name}</div>
+                <video id="cpv-${i}" src="${item.src}" preload="metadata" playsinline></video>
+                <div class="pane-video-bar">
+                    <button class="pvc-btn" id="cpv-play-${i}" onclick="pvcPlay(${i})" title="Play">▶</button>
+                    <button class="pvc-btn" id="cpv-pause-${i}" onclick="pvcPause(${i})" title="Pause" style="display:none">⏸</button>
+                    <button class="pvc-btn" id="cpv-stop-${i}" onclick="pvcStop(${i})" title="Stop">⏹</button>
+                    <button class="pvc-btn" id="cpv-mute-${i}" onclick="pvcToggleMute(${i})" title="Mute">🔊</button>
+                    <div class="pvc-seek-wrap">
+                        <input type="range" class="pvc-seek" id="cpv-seek-${i}" min="0" max="100" step="0.1" value="0" oninput="pvcSeek(${i}, +this.value)">
+                        <span class="pvc-time" id="cpv-time-${i}">0:00</span>
+                    </div>
+                </div>
+            </div>`;
+        }
+        return `<div class="compare-pane">
             <div class="compare-pane-label" title="${item.name}">${item.name}</div>
             <img src="${item.src}" alt="${item.name}" loading="lazy">
-        </div>`).join('');
+        </div>`;
+    }).join('');
+
+    _cvbVideos = compareSelected.map((item, i) =>
+        VIDEO_EXTS.has(extOf(item.name)) ? document.getElementById(`cpv-${i}`) : null
+    ).filter(Boolean);
+
+    bar.style.display = hasVideo ? '' : 'none';
+    _cvbMuted = false;
+    cvbUpdateMuteBtn();
+
+    if (hasVideo) {
+        _cvbDuration = 0;
+        _cvbVideos.forEach((v, idx) => {
+            v.muted = false;
+            v.addEventListener('loadedmetadata', () => {
+                const paneIdx = parseInt(v.id.replace('cpv-', ''));
+                const seekEl  = document.getElementById(`cpv-seek-${paneIdx}`);
+                if (seekEl) seekEl.max = v.duration;
+
+                _cvbDuration = Math.max(_cvbDuration, v.duration || 0);
+                const gSeek  = document.getElementById('cvb-seek');
+                if (gSeek) gSeek.max = _cvbDuration;
+                document.getElementById('cvb-duration').textContent = cvbFmtTime(_cvbDuration);
+            });
+            pvcStartRaf(parseInt(v.id.replace('cpv-', '')));
+        });
+        cvbStartRaf();
+    }
 
     modal.classList.add('open');
     document.addEventListener('keydown', compareModalKeyHandler);
 }
 
 function closeCompareModal() {
+    cvbStopRaf();
+    _pvcRafs.forEach(id => id && cancelAnimationFrame(id));
+    _pvcRafs = [];
+    _cvbVideos.forEach(v => { v.pause(); v.src = ''; });
+    _cvbVideos = [];
     document.getElementById('compare-modal').classList.remove('open');
     document.removeEventListener('keydown', compareModalKeyHandler);
+}
+
+function _getPaneVideo(i) { return document.getElementById(`cpv-${i}`); }
+
+function pvcPlay(i) {
+    const v = _getPaneVideo(i);
+    if (!v) return;
+    v.play().catch(() => {});
+    document.getElementById(`cpv-play-${i}`).style.display  = 'none';
+    document.getElementById(`cpv-pause-${i}`).style.display = '';
+}
+function pvcPause(i) {
+    const v = _getPaneVideo(i);
+    if (!v) return;
+    v.pause();
+    document.getElementById(`cpv-play-${i}`).style.display  = '';
+    document.getElementById(`cpv-pause-${i}`).style.display = 'none';
+}
+function pvcStop(i) {
+    const v = _getPaneVideo(i);
+    if (!v) return;
+    v.pause(); v.currentTime = 0;
+    document.getElementById(`cpv-play-${i}`).style.display  = '';
+    document.getElementById(`cpv-pause-${i}`).style.display = 'none';
+    const s = document.getElementById(`cpv-seek-${i}`);
+    if (s) s.value = 0;
+    const t = document.getElementById(`cpv-time-${i}`);
+    if (t) t.textContent = '0:00';
+}
+function pvcToggleMute(i) {
+    const v = _getPaneVideo(i);
+    if (!v) return;
+    v.muted = !v.muted;
+    const btn = document.getElementById(`cpv-mute-${i}`);
+    if (btn) {
+        btn.textContent = v.muted ? '🔇' : '🔊';
+        btn.classList.toggle('muted', v.muted);
+        btn.title = v.muted ? 'Unmute' : 'Mute';
+    }
+}
+function pvcSeek(i, val) {
+    const v = _getPaneVideo(i);
+    if (!v) return;
+    if (isFinite(v.duration)) v.currentTime = Math.min(val, v.duration);
+    const t = document.getElementById(`cpv-time-${i}`);
+    if (t) t.textContent = cvbFmtTime(val);
+}
+function pvcStartRaf(i) {
+    const tick = () => {
+        const v = _getPaneVideo(i);
+        if (v) {
+            const s = document.getElementById(`cpv-seek-${i}`);
+            const t = document.getElementById(`cpv-time-${i}`);
+            if (s) s.value = v.currentTime;
+            if (t) t.textContent = cvbFmtTime(v.currentTime);
+            const playBtn  = document.getElementById(`cpv-play-${i}`);
+            const pauseBtn = document.getElementById(`cpv-pause-${i}`);
+            if (playBtn && pauseBtn) {
+                playBtn.style.display  = v.paused ? '' : 'none';
+                pauseBtn.style.display = v.paused ? 'none' : '';
+            }
+        }
+        _pvcRafs[i] = requestAnimationFrame(tick);
+    };
+    if (_pvcRafs[i]) cancelAnimationFrame(_pvcRafs[i]);
+    _pvcRafs[i] = requestAnimationFrame(tick);
+}
+
+function cvbPlay() {
+    _cvbVideos.forEach(v => v.play().catch(() => {}));
+    document.getElementById('cvb-play').style.display  = 'none';
+    document.getElementById('cvb-pause').style.display = '';
+}
+function cvbPause() {
+    _cvbVideos.forEach(v => v.pause());
+    document.getElementById('cvb-play').style.display  = '';
+    document.getElementById('cvb-pause').style.display = 'none';
+}
+function cvbStop() {
+    _cvbVideos.forEach(v => { v.pause(); v.currentTime = 0; });
+    document.getElementById('cvb-play').style.display  = '';
+    document.getElementById('cvb-pause').style.display = 'none';
+    const s = document.getElementById('cvb-seek');
+    if (s) s.value = 0;
+    document.getElementById('cvb-current').textContent = '0:00';
+}
+function cvbToggleMute() {
+    _cvbMuted = !_cvbMuted;
+    _cvbVideos.forEach(v => v.muted = _cvbMuted);
+    _cvbVideos.forEach(v => {
+        const i   = parseInt(v.id.replace('cpv-', ''));
+        const btn = document.getElementById(`cpv-mute-${i}`);
+        if (btn) {
+            btn.textContent = _cvbMuted ? '🔇' : '🔊';
+            btn.classList.toggle('muted', _cvbMuted);
+            btn.title = _cvbMuted ? 'Unmute' : 'Mute';
+        }
+    });
+    cvbUpdateMuteBtn();
+}
+function cvbUpdateMuteBtn() {
+    const btn = document.getElementById('cvb-mute');
+    if (!btn) return;
+    btn.textContent = _cvbMuted ? '🔇' : '🔊';
+    btn.classList.toggle('muted', _cvbMuted);
+    btn.title = _cvbMuted ? 'Unmute all' : 'Mute all';
+}
+function cvbSeek(val) {
+    _cvbVideos.forEach(v => { if (isFinite(v.duration)) v.currentTime = Math.min(val, v.duration); });
+    document.getElementById('cvb-current').textContent = cvbFmtTime(val);
+}
+function cvbFmtTime(s) {
+    if (!isFinite(s) || s < 0) return '0:00';
+    const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+    return `${m}:${String(sec).padStart(2, '0')}`;
+}
+function cvbStartRaf() {
+    cvbStopRaf();
+    const tick = () => {
+        const leader = _cvbVideos.reduce((a, b) =>
+            (b.duration || 0) > (a.duration || 0) ? b : a, _cvbVideos[0]);
+        if (leader) {
+            const t = leader.currentTime;
+            const s = document.getElementById('cvb-seek');
+            if (s) s.value = t;
+            document.getElementById('cvb-current').textContent = cvbFmtTime(t);
+            const anyPlaying = _cvbVideos.some(v => !v.paused);
+            document.getElementById('cvb-play').style.display  = anyPlaying ? 'none' : '';
+            document.getElementById('cvb-pause').style.display = anyPlaying ? '' : 'none';
+        }
+        _cvbRafId = requestAnimationFrame(tick);
+    };
+    _cvbRafId = requestAnimationFrame(tick);
+}
+function cvbStopRaf() {
+    if (_cvbRafId) { cancelAnimationFrame(_cvbRafId); _cvbRafId = null; }
 }
 
 function compareModalKeyHandler(e) {
@@ -1014,6 +2062,10 @@ async function exportBrowse(path) {
     document.getElementById('export-path-input').value = exportCurrentPath;
     renderBreadcrumb(exportCurrentPath);
 
+    // [FIX 5] Reset search on folder navigation; keep chips
+    const searchEl = document.getElementById('browser-search');
+    if (searchEl) { searchEl.value = ''; searchQuery = ''; }
+
     const browser = document.getElementById('export-browser');
     browser.innerHTML = '<div class="fb-empty" style="grid-column:1/-1">Loading…</div>';
 
@@ -1026,10 +2078,13 @@ async function exportBrowse(path) {
             return;
         }
 
-        const items = [
+        let items = [
             ...(data.folders ?? []).map(name => ({ name, isDir: true })),
             ...(data.files   ?? []).map(name => ({ name, isDir: false })),
         ];
+
+        // [FIX 9] Apply sort
+        items = sortItems(items);
 
         if (items.length === 0) {
             browser.innerHTML = '<div class="fb-empty" style="grid-column:1/-1">Empty folder</div>';
@@ -1048,9 +2103,10 @@ async function exportBrowse(path) {
             return `<div class="${cls}"
                          data-name="${item.name.replace(/"/g, '&quot;')}"
                          data-src="${vidSrc ?? ''}"
-                         title="${item.name}${item.isDir ? '\nDouble-click to open' : ''}">
+                         title="${item.name}${item.isDir ? '\nClick to open' : ''}">
                 ${isImg
-                    ? `<div class="export-thumb-wrap"><img class="export-thumb" data-lazysrc="${imgSrc}" alt="${item.name}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'export-item-icon',textContent:'🖼️'}))"></div>`
+                    /* [FIX 4] img starts with is-loading for skeleton; wrap gets thumb-loaded on load */
+                    ? `<div class="export-thumb-wrap"><img class="export-thumb is-loading" data-lazysrc="${imgSrc}" alt="${item.name}" onerror="this.closest('.export-thumb-wrap').classList.add('thumb-loaded');this.replaceWith(Object.assign(document.createElement('span'),{className:'export-item-icon',textContent:'🖼️'}))"></div>`
                     : isVid
                         ? `<div class="export-thumb-wrap"><canvas class="export-thumb export-vid-thumb" data-src="${vidSrc}"></canvas></div>`
                         : `<span class="export-item-icon">${icon}</span>`}
@@ -1058,23 +2114,39 @@ async function exportBrowse(path) {
             </div>`;
         }).join('');
 
-        // Apply current column count (no fixed sizes on items)
+        // Apply current column count
         const sliderEl = document.getElementById('tile-size-slider');
         if (sliderEl) {
             const cols = +sliderEl.value;
             browser.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
         }
 
-        // Lazy-load images using IntersectionObserver
+        // [FIX 4] Lazy-load images with skeleton reveal
         const imgObserver = new IntersectionObserver((entries, obs) => {
             entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-                    img.src = img.dataset.lazysrc;
-                    obs.unobserve(img);
+                if (!entry.isIntersecting) return;
+                const img = entry.target;
+                const src = img.dataset.lazysrc;
+                obs.unobserve(img);
+                const cached = previewCache.get(src);
+                const loadSrc = (objUrl) => {
+                    img.src = objUrl;
+                    // Reveal on actual load
+                    img.onload = () => {
+                        img.classList.remove('is-loading');
+                        img.classList.add('is-loaded');
+                        img.closest('.export-thumb-wrap')?.classList.add('thumb-loaded');
+                    };
+                };
+                if (cached) {
+                    loadSrc(cached);
+                } else {
+                    previewCache.load(src)
+                        .then(objUrl => loadSrc(objUrl))
+                        .catch(() => loadSrc(src));
                 }
             });
-        }, { rootMargin: '200px' });
+        }, { rootMargin: '300px' });
         browser.querySelectorAll('img[data-lazysrc]').forEach(img => imgObserver.observe(img));
 
         // Render first-frame thumbnails for videos
@@ -1082,7 +2154,7 @@ async function exportBrowse(path) {
             captureVideoFrame(canvas, canvas.dataset.src);
         });
 
-        // Click — images & videos (unified list for navigation)
+        // Build media list for modal navigation
         const mediaItems = [...browser.querySelectorAll('.export-item.is-image, .export-item.is-video')];
         const mediaList  = mediaItems.map(e => ({
             name: e.dataset.name,
@@ -1093,15 +2165,11 @@ async function exportBrowse(path) {
 
         mediaItems.forEach((el, idx) => {
             el.addEventListener('click', () => {
-                if (compareModeActive && el.classList.contains('is-image')) {
-                    handleCompareClick(el, mediaList[idx]);
-                } else {
-                    openMediaModal(mediaList, idx);
-                }
+                openMediaModal(mediaList, idx);
             });
         });
 
-        // Click — unsupported (plain) files → download modal
+        // Click — unsupported (plain) files
         browser.querySelectorAll('.export-item:not(.is-dir):not(.is-image):not(.is-video)').forEach(el => {
             el.addEventListener('click', () => {
                 const name = el.dataset.name;
@@ -1110,22 +2178,14 @@ async function exportBrowse(path) {
             });
         });
 
-        // Double-click — dirs
+        // [FIX 10] Single click on folders navigates inline (no separate modal)
         browser.querySelectorAll('.export-item.is-dir').forEach(el => {
-            el.addEventListener('dblclick', () => {
+            el.addEventListener('click', () => {
                 const next = exportCurrentPath ? `${exportCurrentPath}/${el.dataset.name}` : el.dataset.name;
                 exportBrowse(next);
             });
         });
 
-        // Re-apply compare selectable class if compare mode is on
-        if (compareModeActive) {
-            compareSelected = [];
-            updateCompareFab();
-            browser.querySelectorAll('.export-item.is-image').forEach(el => el.classList.add('compare-selectable'));
-        }
-
-        // Re-apply filter + search
         applyFilterAndSearch();
 
     } catch (e) {
@@ -1134,7 +2194,6 @@ async function exportBrowse(path) {
 }
 
 function renderBreadcrumb(path) {
-    // Only update the crumbs wrapper, leave .fb-breadcrumb-actions intact
     const crumbsEl = document.querySelector('#export-breadcrumb .fb-breadcrumb-crumbs');
     if (!crumbsEl) return;
     const parts = path ? path.split('/').filter(Boolean) : [];
@@ -1149,29 +2208,133 @@ function renderBreadcrumb(path) {
     });
 }
 
-/* ── ZIP download ── */
+/* ── ZIP sidebar ── */
+let _zipSidebarCollapsed = true;
+
+function initZipSidebar() {
+    document.getElementById('zip-sidebar').classList.add('collapsed');
+
+    document.getElementById('zip-sidebar-toggle').addEventListener('click', () => {
+        _zipSidebarCollapsed = !_zipSidebarCollapsed;
+        document.getElementById('zip-sidebar').classList.toggle('collapsed', _zipSidebarCollapsed);
+    });
+
+    fetch('/api/files/zip/list')
+        .then(r => r.ok ? r.json() : [])
+        .then(jobs => {
+            const done = jobs.filter(j => j.status === 'done' && j.filename);
+            if (!done.length) return;
+            done.forEach(j => {
+                zipJobCreate(j.job_id, j.filename);
+                zipJobSetDone(j.job_id, j.filename, true);
+            });
+            _zipSidebarCollapsed = false;
+            document.getElementById('zip-sidebar').classList.remove('collapsed');
+        })
+        .catch(() => {});
+}
+
+let _zipJobs = {};
+
+function zipJobCreate(jobId, label) {
+    _zipJobs[jobId] = { id: jobId, label };
+    document.getElementById('zip-idle-hint').style.display = 'none';
+
+    const list = document.getElementById('zip-jobs-list');
+    const slot = document.createElement('div');
+    slot.className = 'zip-job-item';
+    slot.id = `zip-job-${jobId}`;
+    slot.innerHTML = `
+        <div class="zip-job-name" title="${label}">${label}</div>
+        <div class="zip-panel-row">
+            <span class="zip-panel-msg" id="zip-msg-${jobId}">Starting…</span>
+            <span class="zip-panel-pct" id="zip-pct-${jobId}">0%</span>
+        </div>
+        <div class="zip-progress-track">
+            <div class="zip-progress-bar" id="zip-bar-${jobId}"></div>
+        </div>`;
+    list.appendChild(slot);
+}
+
+function zipJobSetProgress(jobId, msg, pct, state = '') {
+    const msgEl = document.getElementById(`zip-msg-${jobId}`);
+    const pctEl = document.getElementById(`zip-pct-${jobId}`);
+    const bar   = document.getElementById(`zip-bar-${jobId}`);
+    if (!msgEl) return;
+    msgEl.textContent = msg;
+    pctEl.textContent = pct + '%';
+    bar.style.width   = pct + '%';
+    bar.className     = 'zip-progress-bar' + (state ? ' ' + state : '');
+}
+
+function zipJobSetDone(jobId, filename, silent = false) {
+    const slot = document.getElementById(`zip-job-${jobId}`);
+    if (!slot) return;
+
+    slot.innerHTML = `
+        <div class="zip-job-name" title="${filename}">${filename}</div>
+        <a class="zip-download-btn"
+           href="/api/files/zip/download/${jobId}"
+           id="zip-dl-${jobId}"
+           download="${filename}">↓ Download ZIP</a>`;
+
+    if (!silent) {
+        document.getElementById(`zip-dl-${jobId}`).click();
+    }
+}
+
 async function exportDownloadZip() {
-    showFlash('Creating archive…', 'success');
+    const btn   = document.getElementById('export-btn-zip');
+    const label = exportCurrentPath ? exportCurrentPath.split('/').pop() || 'root' : 'root';
+
+    btn.disabled = true;
+
     try {
         const params = exportCurrentPath ? `?path=${encodeURIComponent(exportCurrentPath)}` : '';
-        const res = await fetch(`/api/files/export-zip${params}`);
+        const res    = await fetch(`/api/files/zip/create${params}`, { method: 'POST' });
         if (!res.ok) {
-            const err = await res.json().catch(() => ({ error: res.statusText }));
-            showFlash(err.error ?? 'Failed to create archive', 'error');
-            return;
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.detail ?? res.statusText);
         }
-        const disposition = res.headers.get('Content-Disposition') ?? '';
-        const match = disposition.match(/filename[^;=\n]*=["']?([^"'\n]+)/i);
-        const filename = match ? match[1] : 'export.zip';
-        const blob = await res.blob();
-        const url  = URL.createObjectURL(blob);
-        const a = Object.assign(document.createElement('a'), { href: url, download: filename });
-        document.body.appendChild(a); a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showFlash(`Downloaded: ${filename}`, 'success');
-    } catch (e) {
-        showFlash(`Error: ${e.message}`, 'error');
+        const { job_id } = await res.json();
+
+        _zipSidebarCollapsed = false;
+        document.getElementById('zip-sidebar').classList.remove('collapsed');
+
+        zipJobCreate(job_id, label);
+
+        const sse = new EventSource(`/api/files/zip/progress/${job_id}`);
+
+        sse.addEventListener('progress', e => {
+            const d = JSON.parse(e.data);
+            zipJobSetProgress(job_id, d.message, d.progress);
+        });
+
+        sse.addEventListener('done', e => {
+            const d = JSON.parse(e.data);
+            sse.close();
+            btn.disabled = false;
+            zipJobSetProgress(job_id, d.message, 100, 'done');
+            setTimeout(() => zipJobSetDone(job_id, d.filename), 400);
+        });
+
+        sse.addEventListener('error_event', e => {
+            const d = JSON.parse(e.data ?? '{}');
+            sse.close();
+            btn.disabled = false;
+            zipJobSetProgress(job_id, d.message ?? 'Archive failed', 100, 'error');
+        });
+
+        sse.onerror = () => {
+            if (sse.readyState === EventSource.CLOSED) {
+                btn.disabled = false;
+                zipJobSetProgress(job_id, 'Connection lost', 100, 'error');
+            }
+        };
+
+    } catch (err) {
+        btn.disabled = false;
+        showFlash(`ZIP error: ${err.message}`, 'error');
     }
 }
 
@@ -1195,6 +2358,11 @@ let imgModalIndex  = 0;
 function openMediaModal(images, index) {
     imgModalImages = images;
     document.getElementById('img-modal').classList.add('open');
+
+    const hasMedia = images.length >= 2;
+    const cmpBtn = document.getElementById('img-modal-compare-btn');
+    if (cmpBtn) cmpBtn.style.display = hasMedia ? '' : 'none';
+
     mediaShow(index);
     document.addEventListener('keydown', imgModalKeyHandler);
 }
@@ -1203,13 +2371,13 @@ function closeImageModal() {
     const vidEl = document.getElementById('img-modal-video');
     vidEl.pause(); vidEl.src = '';
     document.getElementById('img-modal-img').src = '';
+    closeModalCompareOverlay();
     document.getElementById('img-modal').classList.remove('open');
     document.removeEventListener('keydown', imgModalKeyHandler);
 }
 
-function imgModalBackdropClick(e) {
-    if (e.target === document.getElementById('img-modal')) closeImageModal();
-}
+// [FIX 13] Track whether a nav transition is in flight
+let _imgSwitching = false;
 
 function mediaShow(index) {
     const item   = imgModalImages[index];
@@ -1228,16 +2396,19 @@ function mediaShow(index) {
     dlBtn.href         = item.src;
     dlBtn.download     = item.name;
 
-    // Hide workflow button while loading
+    const counterEl = document.getElementById('img-modal-counter');
+    if (counterEl) counterEl.textContent = `${index + 1} / ${imgModalImages.length}`;
+
     wfBtn.style.display = 'none';
     wfBtn.onclick = null;
 
     if (item.type === 'video') {
         imgEl.style.display = 'none';
+        // [FIX 13] Reset opacity for clean transition
+        vidEl.style.opacity = '0';
         vidEl.style.display = 'block';
         dimsEl.textContent = 'Loading…';
 
-        // Clear prompts while loading
         _currentPrompts = [];
         renderPrompts([]);
 
@@ -1245,7 +2416,11 @@ function mediaShow(index) {
         vidEl.onloadeddata = null;
 
         const fillMeta = () => {
-            if (vidEl.videoWidth && vidEl.duration) imgModalOnVideoMeta(vidEl);
+            if (vidEl.videoWidth && vidEl.duration) {
+                imgModalOnVideoMeta(vidEl);
+                // Fade in once metadata ready
+                vidEl.style.opacity = '1';
+            }
         };
         vidEl.onloadedmetadata = fillMeta;
         vidEl.onloadeddata = fillMeta;
@@ -1254,25 +2429,17 @@ function mediaShow(index) {
         vidEl.load();
         if (vidEl.readyState >= 1) fillMeta();
 
-        // Fetch server-side metadata (ffprobe) for ComfyUI prompt/workflow in Comment tag
         const metaPath = item.path;
         if (metaPath) {
             fetch(`/api/files/meta?path=${encodeURIComponent(metaPath)}`)
                 .then(r => r.ok ? r.json() : null)
                 .then(meta => {
                     if (!meta) return;
-
-                    // Show workflow download button — prefer meta.workflow, fall back to wrapping meta.prompt
                     const workflowData = meta.workflow ?? (meta.prompt ? { prompt: meta.prompt } : null);
                     if (workflowData) {
                         wfBtn.style.display = 'inline-flex';
                         wfBtn.onclick = () => downloadWorkflow(workflowData, item.name);
                     }
-
-                    // Extract and render prompts.
-                    // VHS_VideoCombine stores the full workflow graph in Comment tag —
-                    // prefer extractPromptsFromWorkflow (handles WanVideoTextEncode + Textbox links).
-                    // Fall back to API prompt dict format if workflow graph is not available.
                     let prompts = [], notes = [];
                     if (meta.workflow?.nodes) {
                         ({ prompts, notes } = extractPromptsFromWorkflow(meta.workflow));
@@ -1288,15 +2455,44 @@ function mediaShow(index) {
         }
     } else {
         vidEl.style.display = 'none'; vidEl.pause(); vidEl.src = '';
-        imgEl.style.display = 'block';
-        imgEl.src = item.src;
-        imgEl.alt = item.name;
 
-        // Clear prompts while loading
+        // [FIX 13] Fade out → swap src → fade in
+        imgEl.classList.add('is-switching');
+        imgEl.style.display = 'block';
+
+        const cachedSrc = previewCache.get(item.src);
+        const newSrc    = cachedSrc || item.src;
+
+        // After the fade-out transition, swap src
+        const doSwap = () => {
+            imgEl.removeEventListener('transitionend', doSwap);
+            imgEl.src = newSrc;
+            imgEl.alt = item.name;
+        };
+
+        // If img was not yet visible (first open), skip fade-out
+        if (imgEl.style.opacity === '0' || !imgEl.src) {
+            imgEl.src = newSrc;
+            imgEl.alt = item.name;
+            imgEl.classList.remove('is-switching');
+        } else {
+            imgEl.addEventListener('transitionend', doSwap, { once: true });
+            // Fallback: if transition doesn't fire within 250ms, swap anyway
+            setTimeout(() => {
+                imgEl.removeEventListener('transitionend', doSwap);
+                if (imgEl.classList.contains('is-switching')) {
+                    imgEl.src = newSrc;
+                    imgEl.alt = item.name;
+                    imgEl.classList.remove('is-switching');
+                }
+            }, 220);
+        }
+
+        if (!cachedSrc) previewCache.load(item.src).catch(() => {});
+
         _currentPrompts = [];
         renderPrompts([]);
 
-        // Fetch image metadata from API (workflow, prompt, dims)
         const metaPath = item.path;
         if (metaPath) {
             fetch(`/api/files/meta?path=${encodeURIComponent(metaPath)}`)
@@ -1309,8 +2505,6 @@ function mediaShow(index) {
                     if (meta.workflow) {
                         wfBtn.style.display = 'inline-flex';
                         wfBtn.onclick = () => downloadWorkflow(meta.workflow, item.name);
-
-                        // Extract and render prompts
                         const { prompts: wfPrompts, notes: wfNotes } = extractPromptsFromWorkflow(meta.workflow);
                         _currentPrompts = wfPrompts;
                         renderPrompts(_currentPrompts, wfNotes);
@@ -1325,7 +2519,8 @@ function mediaShow(index) {
 }
 
 function imgModalOnLoad(img) {
-    // Only fill dims from natural size if meta API hasn't responded yet
+    // [FIX 13] Fade in once loaded
+    img.classList.remove('is-switching');
     const dimsEl = document.getElementById('img-modal-dims');
     if (!dimsEl.textContent) {
         dimsEl.textContent = `${img.naturalWidth} × ${img.naturalHeight} px`;
@@ -1349,57 +2544,32 @@ function downloadWorkflow(workflow, imageName) {
 
 /* ── Prompts extraction ── */
 
-/**
- * Node types that carry text prompts, and how to extract them.
- *
- * prompt-format   = API dict { "node_id": { "class_type": "...", "inputs": {...} } }
- * workflow-format = graph JSON { "nodes": [ { "type": "...", "widgets_values": [...] } ] }
- *
- * Supported encoders:
- *   CLIPTextEncode          – standard; text in inputs.text / widgets_values[0]
- *   WanVideoTextEncode      – WAN wrapper; positive_prompt & negative_prompt are separate
- *                             named inputs; values may be inline strings or link refs
- *   Textbox                 – plain text passthrough; widgets_values[0] is the text
- *   CLIPTextEncodeSDXL      – SDXL variant; same layout as CLIPTextEncode
- *   CLIPTextEncodeSD3       – SD3 variant; same layout as CLIPTextEncode
- *   smZ CLIPTextEncode      – smZ fork; same layout as CLIPTextEncode
- */
-
 const PROMPT_NODE_DESCRIPTORS = {
     'CLIPTextEncode':     { kind: 'clip',    positiveInput: null,              negativeInput: null,              widgetIdx: 0 },
     'CLIPTextEncodeSDXL': { kind: 'clip',    positiveInput: null,              negativeInput: null,              widgetIdx: 0 },
     'CLIPTextEncodeSD3':  { kind: 'clip',    positiveInput: null,              negativeInput: null,              widgetIdx: 0 },
     'smZ CLIPTextEncode': { kind: 'clip',    positiveInput: null,              negativeInput: null,              widgetIdx: 0 },
     'WanVideoTextEncode':      { kind: 'wan',        positiveInput: 'positive_prompt', negativeInput: 'negative_prompt', widgetIdx: null },
-    // WanVideoTextEncodeCached: widgets_values = [model, dtype, positive, negative, ...]
     'WanVideoTextEncodeCached': { kind: 'wan-cached', positiveInput: 'positive_prompt', negativeInput: 'negative_prompt', positiveWidgetIdx: 2, negativeWidgetIdx: 3 },
     'Textbox':                  { kind: 'textbox',    positiveInput: null,              negativeInput: null,              widgetIdx: 0 },
-    // CR Prompt List: widgets_values = [prepend_text, multiline_text, append_text, start_index, max_rows]
     'CR Prompt List':           { kind: 'cr-prompt-list', widgetIdx: 1 },
-    // Qwen image edit encoder: widgets_values = [prompt]; prompt may also come via linked input
     'TextEncodeQwenImageEditPlus': { kind: 'qwen-edit', widgetIdx: 0 },
-    // Leaf text nodes — relay wires with plain text in widgets_values[0]
     'CR Prompt Text':            { kind: 'text-leaf', widgetIdx: 0 },
     'String':                    { kind: 'text-leaf', widgetIdx: 0 },
     'Text Multiline':            { kind: 'text-leaf', widgetIdx: 0 },
     'PrimitiveString':           { kind: 'text-leaf', widgetIdx: 0 },
     'PrimitiveStringMultiline':  { kind: 'text-leaf', widgetIdx: 0 },
-    // StringConcatenate: joins string_a + separator + string_b
-    // widgets_values = [string_a, string_b, separator]; either part may come via linked input
     'StringConcatenate':         { kind: 'string-concat', aIdx: 0, bIdx: 1, sepIdx: 2 },
-    // Notes are informational annotations, not prompts — collected separately
     'Note':               { kind: 'note', widgetIdx: 0 },
     'MarkdownNote':       { kind: 'note', widgetIdx: 0 },
 };
 
-/** Heuristic: does this text look like a negative prompt? */
 function looksNegative(text) {
     return /worst quality|low quality|ugly|nsfw|censored|blurry|lowres|bad anatomy|[\u4e00-\u9fff]{3,}/.test(
         text.toLowerCase()
     );
 }
 
-/** Sort: positive first, negative last, others in between. */
 function sortPrompts(results) {
     results.sort((a, b) => {
         if (a.isPositive && !b.isPositive) return -1;
@@ -1411,48 +2581,32 @@ function sortPrompts(results) {
     return results;
 }
 
-// ── PROMPT-FORMAT parser ──────────────────────────────────────────────────────
-// API dict stored in MP4 Comment → meta.prompt
-// { "node_id": { "class_type": "...", "inputs": { ... } } }
-// Links inside inputs are [sourceNodeId, slotIndex] arrays.
-
 function resolvePromptValue(value, promptObj) {
     if (typeof value === 'string') return value;
-
     if (Array.isArray(value) && value.length >= 1) {
         const srcId   = String(value[0]);
         const srcNode = promptObj[srcId];
         if (!srcNode) return null;
-
         const srcClass = srcNode.class_type ?? '';
         const desc     = PROMPT_NODE_DESCRIPTORS[srcClass];
-
-        // Textbox: follow its passthrough or text input recursively
         if (desc?.kind === 'textbox') {
             const pt = srcNode.inputs?.passthrough ?? srcNode.inputs?.text ?? null;
             return resolvePromptValue(pt, promptObj);
         }
-
-        // CLIPTextEncode-likes: text lives in inputs.text
         if (srcNode.inputs?.text !== undefined) {
             return resolvePromptValue(srcNode.inputs.text, promptObj);
         }
     }
-
     return null;
 }
 
 function extractPromptsFromVideoMeta(promptObj) {
     if (!promptObj || typeof promptObj !== 'object') return [];
-
     const results = [];
-
     for (const [nodeId, node] of Object.entries(promptObj)) {
         const classType = node.class_type ?? '';
         const desc      = PROMPT_NODE_DESCRIPTORS[classType];
         if (!desc) continue;
-
-        // Textbox nodes are resolved as link targets only, not top-level prompts
         if (desc.kind === 'textbox') continue;
 
         if (desc.kind === 'wan' || desc.kind === 'wan-cached') {
@@ -1460,51 +2614,26 @@ function extractPromptsFromVideoMeta(promptObj) {
             const negRaw  = node.inputs?.[desc.negativeInput];
             const posText = resolvePromptValue(posRaw, promptObj);
             const negText = resolvePromptValue(negRaw, promptObj);
-
-            if (posText?.trim()) {
-                results.push({ title: 'Positive Prompt', text: posText.trim(), isPositive: true,  isNegative: false });
-            }
-            if (negText?.trim()) {
-                results.push({ title: 'Negative Prompt', text: negText.trim(), isPositive: false, isNegative: true  });
-            }
+            if (posText?.trim()) results.push({ title: 'Positive Prompt', text: posText.trim(), isPositive: true,  isNegative: false });
+            if (negText?.trim()) results.push({ title: 'Negative Prompt', text: negText.trim(), isPositive: false, isNegative: true  });
         } else {
-            // clip / generic: single text input
             const raw  = node.inputs?.text;
             const text = resolvePromptValue(raw, promptObj);
             if (!text?.trim()) continue;
-
-            results.push({
-                title:      `Prompt (node ${nodeId})`,
-                text:       text.trim(),
-                isPositive: false,
-                isNegative: looksNegative(text),
-            });
+            results.push({ title: `Prompt (node ${nodeId})`, text: text.trim(), isPositive: false, isNegative: looksNegative(text) });
         }
     }
-
     return sortPrompts(results);
 }
-
-// ── WORKFLOW-FORMAT parser ────────────────────────────────────────────────────
-// Graph JSON stored in PNG chunks or meta.workflow
-// { "nodes": [...], "links": [[linkId, srcNodeId, srcSlot, dstNodeId, dstSlot, type], ...] }
-
-// ── WORKFLOW GRAPH CONTEXT ────────────────────────────────────────────────────
-// Builds lookup tables used by the recursive text tracer.
 
 function buildWorkflowContext(workflow) {
     const nodeById = {};
     for (const n of (workflow.nodes ?? [])) nodeById[n.id] = n;
-
-    // linkById: linkId → { srcNode, srcSlot }
     const linkById = {};
     for (const link of (workflow.links ?? [])) {
         const [linkId, srcNodeId, srcSlot] = link;
         if (nodeById[srcNodeId]) linkById[linkId] = { srcNode: nodeById[srcNodeId], srcSlot };
     }
-
-    // setNodeByVar: varName → active SetNode
-    // (SetNode "exports" a named wire; GetNode "imports" it by the same name)
     const setNodeByVar = {};
     for (const n of (workflow.nodes ?? [])) {
         if (n.type === 'SetNode' && isNodeActive(n)) {
@@ -1512,29 +2641,11 @@ function buildWorkflowContext(workflow) {
             if (varName) setNodeByVar[varName] = n;
         }
     }
-
     return { nodeById, linkById, setNodeByVar };
 }
 
-/** mode=0 (or absent) → enabled; mode=2 → muted/disabled in ComfyUI */
-function isNodeActive(node) {
-    return (node.mode ?? 0) === 0;
-}
+function isNodeActive(node) { return (node.mode ?? 0) === 0; }
 
-// ── RECURSIVE TEXT TRACER ─────────────────────────────────────────────────────
-// Walks the graph backwards from any node until it finds a plain text value.
-// Handles: GetNode → SetNode chains, Textbox pass-throughs, and any node type
-// registered in PROMPT_NODE_DESCRIPTORS.
-//
-// To support a new relay node type, add a case in traceTextFromNode().
-
-/**
- * Entry point: follow the link attached to `inputDef` and trace to text.
- * @param {object} inputDef  – one element from node.inputs[]
- * @param {object} ctx       – workflow context from buildWorkflowContext()
- * @param {Set}    visited   – cycle guard (node ids already on the call stack)
- * @returns {string|null}
- */
 function resolveWorkflowInput(inputDef, ctx, visited = new Set()) {
     if (!inputDef || inputDef.link == null) return null;
     const entry = ctx.linkById[inputDef.link];
@@ -1542,69 +2653,50 @@ function resolveWorkflowInput(inputDef, ctx, visited = new Set()) {
     return traceTextFromNode(entry.srcNode, ctx, visited);
 }
 
-/**
- * Recursively trace a node back to its text value.
- * Returns the first non-empty string found, or null.
- */
 function traceTextFromNode(node, ctx, visited = new Set()) {
     if (!node || !isNodeActive(node)) return null;
-    if (visited.has(node.id)) return null;   // cycle guard
+    if (visited.has(node.id)) return null;
     visited.add(node.id);
 
     const nodeType = node.type ?? '';
 
-    // ── GetNode: resolves a named wire exported by a SetNode ─────────────────
     if (nodeType === 'GetNode') {
         const varName  = node.widgets_values?.[0];
         const setNode  = varName ? ctx.setNodeByVar[varName] : null;
         return setNode ? traceTextFromNode(setNode, ctx, visited) : null;
     }
+    if (nodeType === 'SetNode') return traceFirstLinkedInput(node, ctx, visited);
 
-    // ── SetNode: transparent relay — follow its single input ─────────────────
-    if (nodeType === 'SetNode') {
-        return traceFirstLinkedInput(node, ctx, visited);
-    }
-
-    // ── StringConcatenate: resolves string_a + separator + string_b ──────────
-    // Each part may come from a linked input or an inline widget value.
     if (nodeType === 'StringConcatenate') {
         const desc = PROMPT_NODE_DESCRIPTORS['StringConcatenate'];
         const inputsByName = Object.fromEntries((node.inputs ?? []).map(i => [i.name, i]));
-
         const resolvePartOrWidget = (inputName, widgetIdx) => {
             const inp = inputsByName[inputName];
             if (inp?.link != null) return resolveWorkflowInput(inp, ctx, visited) ?? '';
             return node.widgets_values?.[widgetIdx] ?? '';
         };
-
         const a   = resolvePartOrWidget('string_a', desc.aIdx);
         const b   = resolvePartOrWidget('string_b', desc.bIdx);
         const sep = node.widgets_values?.[desc.sepIdx] ?? '';
-
         const parts = [a, b].filter(s => s.trim());
         if (!parts.length) return null;
         return parts.join(sep);
     }
 
-    // ── Textbox: may pass through via "passthrough" or "text" input ──────────
     if (nodeType === 'Textbox') {
         const linked = traceFirstLinkedInput(node, ctx, visited);
         if (linked) return linked;
-        // fall through to widget read below
     }
 
-    // ── Nodes with a known text widget or named text input ───────────────────
     const desc = PROMPT_NODE_DESCRIPTORS[nodeType]
               ?? PROMPT_NODE_DESCRIPTORS[node.properties?.['Node name for S&R'] ?? ''];
 
     if (desc) {
-        // Try resolving via a linked input first (e.g. CLIPTextEncode ← Textbox)
         const textInput = (node.inputs ?? []).find(inp => inp.name === 'text' || inp.name === 'prompt');
         if (textInput?.link != null) {
             const linked = resolveWorkflowInput(textInput, ctx, visited);
             if (linked) return linked;
         }
-        // Fall back to inline widget value
         const text = node.widgets_values?.[desc.widgetIdx ?? 0];
         return typeof text === 'string' ? text : null;
     }
@@ -1612,7 +2704,6 @@ function traceTextFromNode(node, ctx, visited = new Set()) {
     return null;
 }
 
-/** Follow the first linked input of a relay node (SetNode, Textbox, etc.). */
 function traceFirstLinkedInput(node, ctx, visited) {
     for (const inp of (node.inputs ?? [])) {
         if (inp.link != null) {
@@ -1623,8 +2714,6 @@ function traceFirstLinkedInput(node, ctx, visited) {
     return null;
 }
 
-// ── MAIN EXTRACTOR ────────────────────────────────────────────────────────────
-
 function extractPromptsFromWorkflow(workflow) {
     const nodes   = workflow.nodes ?? [];
     const ctx     = buildWorkflowContext(workflow);
@@ -1633,13 +2722,11 @@ function extractPromptsFromWorkflow(workflow) {
 
     for (const node of nodes) {
         if (!isNodeActive(node)) continue;
-
         const nodeType = node.type ?? '';
         const nodeSR   = node.properties?.['Node name for S&R'] ?? '';
         const desc     = PROMPT_NODE_DESCRIPTORS[nodeType] ?? PROMPT_NODE_DESCRIPTORS[nodeSR];
         if (!desc) continue;
 
-        // ── Notes: informational annotations, not prompts ────────────────────
         if (desc.kind === 'note') {
             const text = node.widgets_values?.[desc.widgetIdx ?? 0];
             if (typeof text === 'string' && text.trim()) {
@@ -1647,41 +2734,27 @@ function extractPromptsFromWorkflow(workflow) {
             }
             continue;
         }
-
-        // Relay/leaf nodes — resolved as link targets only, never collected as top-level prompts
         if (desc.kind === 'textbox' || desc.kind === 'text-leaf' || desc.kind === 'string-concat') continue;
 
         if (desc.kind === 'wan' || desc.kind === 'wan-cached') {
             const inputsByName = Object.fromEntries((node.inputs ?? []).map(inp => [inp.name, inp]));
-
-            // wan-cached: widgets_values = [model, dtype, positive, negative, ...]
-            // wan:        widgets_values = [positive, negative, ...]
             const posWi = desc.positiveWidgetIdx ?? 0;
             const negWi = desc.negativeWidgetIdx ?? 1;
-
             const posText = resolveWorkflowInput(inputsByName[desc.positiveInput], ctx)
                          ?? (typeof node.widgets_values?.[posWi] === 'string' ? node.widgets_values[posWi] : null);
             const negText = resolveWorkflowInput(inputsByName[desc.negativeInput], ctx)
                          ?? (typeof node.widgets_values?.[negWi] === 'string' ? node.widgets_values[negWi] : null);
-
             if (posText?.trim()) results.push({ title: node.title ?? 'Positive Prompt', text: posText.trim(), isPositive: true,  isNegative: false });
             if (negText?.trim()) results.push({ title: 'Negative Prompt',               text: negText.trim(), isPositive: false, isNegative: true  });
 
         } else if (desc.kind === 'cr-prompt-list') {
-            // CR Prompt List: widgets_values = [prepend_text, multiline_text, append_text, ...]
             const raw = node.widgets_values?.[desc.widgetIdx ?? 1];
             if (typeof raw !== 'string' || !raw.trim()) continue;
             raw.split('\n').map(l => l.trim()).filter(Boolean).forEach((line, i) => {
-                results.push({
-                    title:      (node.title ?? 'CR Prompt List') + ' [' + (i + 1) + ']',
-                    text:       line,
-                    isPositive: false,
-                    isNegative: looksNegative(line),
-                });
+                results.push({ title: (node.title ?? 'CR Prompt List') + ' [' + (i + 1) + ']', text: line, isPositive: false, isNegative: looksNegative(line) });
             });
 
         } else if (desc.kind === 'qwen-edit') {
-            // TextEncodeQwenImageEditPlus: prompt via linked input or widget
             const promptInput = (node.inputs ?? []).find(inp => inp.name === 'prompt');
             const text = (promptInput?.link != null ? resolveWorkflowInput(promptInput, ctx) : null)
                       ?? node.widgets_values?.[desc.widgetIdx ?? 0];
@@ -1690,31 +2763,28 @@ function extractPromptsFromWorkflow(workflow) {
             }
 
         } else {
-            // clip / generic: resolve via linked 'text' input, then fall back to inline widget
             const textInput = (node.inputs ?? []).find(inp => inp.name === 'text');
             const text = (textInput?.link != null ? resolveWorkflowInput(textInput, ctx) : null)
                       ?? node.widgets_values?.[desc.widgetIdx ?? 0];
             if (typeof text !== 'string' || !text.trim()) continue;
-
             const title      = node.title ?? 'Prompt';
             const lowerTitle = title.toLowerCase();
-            results.push({
-                title,
-                text:       text.trim(),
-                isPositive: lowerTitle.includes('positive'),
-                isNegative: lowerTitle.includes('negative') || looksNegative(text),
-            });
+            results.push({ title, text: text.trim(), isPositive: lowerTitle.includes('positive'), isNegative: lowerTitle.includes('negative') || looksNegative(text) });
         }
     }
 
     return { prompts: sortPrompts(results), notes };
 }
 
+// [FIX 7] renderPrompts — uses .visible class for animated reveal
 function renderPrompts(prompts, notes = []) {
     const panel = document.getElementById('img-prompts-panel');
     if (!prompts.length && !notes.length) {
-        panel.style.display = 'none';
-        panel.innerHTML = '';
+        panel.classList.remove('visible');
+        // Clear after transition
+        setTimeout(() => {
+            if (!panel.classList.contains('visible')) panel.innerHTML = '';
+        }, 350);
         return;
     }
 
@@ -1749,10 +2819,11 @@ function renderPrompts(prompts, notes = []) {
         </details>` : '';
 
     panel.innerHTML = promptsHtml + notesHtml;
-    panel.style.display = 'flex';
+    // Trigger reflow so transition fires from 0
+    panel.offsetHeight;
+    panel.classList.add('visible');
 }
 
-// Store prompts globally so copy handler can access them
 let _currentPrompts = [];
 
 function copyPrompt(btn, index) {
@@ -1765,7 +2836,6 @@ function copyPrompt(btn, index) {
             btn.classList.remove('copied');
         }, 1800);
     }).catch(() => {
-        // Fallback for non-HTTPS
         const ta = document.getElementById(`prompt-text-${index}`);
         if (ta) { ta.select(); document.execCommand('copy'); }
     });
@@ -1814,23 +2884,16 @@ function captureVideoFrame(canvas, src) {
         canvas.width  = vid.videoWidth;
         canvas.height = vid.videoHeight;
         canvas.getContext('2d').drawImage(vid, 0, 0);
-        // Override canvas intrinsic size attrs with CSS so flex can control sizing
         canvas.style.width  = '100%';
         canvas.style.height = '100%';
         canvas.style.objectFit = 'cover';
         vid.remove();
     };
 
-    vid.addEventListener('loadeddata', () => {
-        vid.currentTime = 0;
-    });
+    vid.addEventListener('loadeddata', () => { vid.currentTime = 0; });
     vid.addEventListener('seeked', draw);
-    vid.addEventListener('loadedmetadata', () => {
-        // Some browsers fire seeked only after loadeddata; try draw immediately
-        if (vid.readyState >= 3) draw();
-    });
+    vid.addEventListener('loadedmetadata', () => { if (vid.readyState >= 3) draw(); });
     vid.addEventListener('error', () => {
-        // On failure replace canvas with icon
         const icon = document.createElement('span');
         icon.className = 'export-item-icon';
         icon.textContent = '🎬';
@@ -1842,103 +2905,36 @@ function captureVideoFrame(canvas, src) {
     vid.load();
 }
 
-
-/* ── Folder Picker Modal ── */
-let fpCurrentPath = '';
-
-async function openFolderPicker() {
-    fpCurrentPath = exportCurrentPath;
-    document.getElementById('folder-picker-modal').classList.add('open');
-    await fpLoad(fpCurrentPath);
-}
-
-function closeFolderPicker() {
-    document.getElementById('folder-picker-modal').classList.remove('open');
-}
-
-function folderPickerBackdropClick(e) {
-    if (e.target === document.getElementById('folder-picker-modal')) closeFolderPicker();
-}
-
-async function confirmFolderPicker() {
-    closeFolderPicker();
-    await exportBrowse(fpCurrentPath);
-}
-
-function fpRenderBreadcrumb(path) {
-    const bc = document.getElementById('fp-breadcrumb');
-    const parts = path ? path.split('/').filter(Boolean) : [];
-    let html = `<span class="crumb-root" style="cursor:pointer" onclick="fpLoad('')">🏠 root</span>`;
-    parts.forEach((p, i) => {
-        const cp = parts.slice(0, i + 1).join('/');
-        html += `<span class="crumb-sep">/</span><span class="crumb" style="cursor:pointer;color:var(--accent)" onclick="fpLoad('${cp.replace(/'/g, "\'")}')">${p}</span>`;
-    });
-    bc.innerHTML = html;
-}
-
-async function fpLoad(path) {
-    fpCurrentPath = path ?? '';
-    fpRenderBreadcrumb(fpCurrentPath);
-
-    const list = document.getElementById('fp-list');
-    list.innerHTML = '<div style="padding:12px;color:var(--text-3);font-size:0.82em;">Loading…</div>';
-
-    try {
-        const params = fpCurrentPath ? `?path=${encodeURIComponent(fpCurrentPath)}` : '';
-        const res = await fetch(`/api/files/browse${params}`);
-        const data = await res.json();
-
-        if (data.error) {
-            list.innerHTML = `<div style="padding:12px;color:var(--red);font-size:0.82em;">⚠ ${data.error}</div>`;
-            return;
-        }
-
-        const folders = data.folders ?? [];
-        if (folders.length === 0) {
-            list.innerHTML = '<div style="padding:12px;color:var(--text-3);font-size:0.82em;font-style:italic;">No subfolders here</div>';
-            return;
-        }
-
-        list.innerHTML = folders.map(name => {
-            const fp = fpCurrentPath ? `${fpCurrentPath}/${name}` : name;
-            return `<div onclick="fpLoad('${fp.replace(/'/g, "\'")}')"
-                        style="display:flex;align-items:center;gap:8px;padding:8px 10px;
-                               border-radius:var(--radius-sm);cursor:pointer;
-                               border:1px solid transparent;transition:all var(--ease);"
-                        onmouseover="this.style.background='var(--surface-2)';this.style.borderColor='var(--border)'"
-                        onmouseout="this.style.background='';this.style.borderColor='transparent'">
-                <span>📁</span>
-                <span style="font-size:0.85em;font-family:'DM Mono',monospace;color:var(--accent)">${name}</span>
-            </div>`;
-        }).join('');
-    } catch (e) {
-        list.innerHTML = `<div style="padding:12px;color:var(--red);font-size:0.82em;">⚠ Error: ${e.message}</div>`;
-    }
-}
-
+/* ── [FIX 10] Browse button now navigates inline — no folder picker modal needed ── */
+// The Browse button is wired in Init below to navigate to root or open breadcrumb navigation.
 
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('export-btn-browse').addEventListener('click', openFolderPicker);
+    // [FIX 10] Browse button scrolls to breadcrumb / navigates to root
+    document.getElementById('export-btn-browse').addEventListener('click', () => {
+        // Navigate to root and scroll breadcrumb into view
+        exportBrowse('').then && exportBrowse('');
+        document.getElementById('export-breadcrumb').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+
     document.getElementById('export-path-input').addEventListener('keydown', e => {
         if (e.key === 'Enter') exportBrowse(e.target.value.trim());
     });
     document.getElementById('export-btn-zip').addEventListener('click', exportDownloadZip);
+    initZipSidebar();
 
     // Tile size slider — controls number of columns
-    const slider = document.getElementById('tile-size-slider');
-    const browser = document.getElementById('export-browser');
-    const tileValLabel = document.getElementById('tile-size-val');
+    const slider    = document.getElementById('tile-size-slider');
+    const browser   = document.getElementById('export-browser');
+    const tileValLbl = document.getElementById('tile-size-val');
     function applyTileSize(val) {
         browser.style.gridTemplateColumns = `repeat(${val}, 1fr)`;
-        if (tileValLabel) tileValLabel.textContent = val;
-        // Remove any inline width/height set on items (legacy)
+        if (tileValLbl) tileValLbl.textContent = val;
         browser.querySelectorAll('.export-item').forEach(el => {
             el.style.width  = '';
             el.style.height = '';
         });
     }
-    // Apply default value from DEFAULT_TILE_COLS constant
     slider.value = DEFAULT_TILE_COLS;
     applyTileSize(DEFAULT_TILE_COLS);
     slider.addEventListener('input', () => applyTileSize(+slider.value));

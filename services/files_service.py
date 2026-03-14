@@ -5,11 +5,17 @@ import io
 import json
 import logging
 import mimetypes
+import shutil
 import struct
 import subprocess
+import tempfile
+import threading
+import time
+import uuid
 import zipfile
 import zlib
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
 
@@ -35,6 +41,7 @@ class PreviewResult:
     content: bytes
     media_type: str
     cache_max_age: int = 3600
+    file_path: Optional[Path] = None   # set for video — lets router use FileResponse + Range support
 
 
 @dataclass
@@ -56,6 +63,33 @@ class FileMetadata:
     error: Optional[str] = None
 
 
+# ── ZIP job tracking ───────────────────────────────────────────────────────────
+
+ZIP_OUTPUT_DIR = Path(tempfile.gettempdir()) / "zips"
+ZIP_TTL_SECONDS = 30 * 60   # remove finished archives after 30 min
+
+
+class ZipStatus(str, Enum):
+    PENDING  = "pending"
+    RUNNING  = "running"
+    DONE     = "done"
+    ERROR    = "error"
+
+
+@dataclass
+class ZipJob:
+    job_id:    str
+    path:      Optional[str]        # relative workdir path requested
+    status:    ZipStatus = ZipStatus.PENDING
+    progress:  int       = 0        # 0-100
+    message:   str       = ""
+    filename:  str       = ""
+    file_path: Optional[Path] = None
+    error:     Optional[str] = None
+    created_at: float    = field(default_factory=time.time)
+    done_at:   Optional[float] = None
+
+
 # ── Service ───────────────────────────────────────────────────────────────────
 
 class FilesService:
@@ -64,16 +98,87 @@ class FilesService:
 
     Public API
     ----------
-    browse()          – directory listing (folders + files)
-    get_safe_path()   – path validation / traversal guard
-    get_preview()     – serve a previewable file as raw bytes
-    build_zip()       – build an in-memory ZIP of a directory
-    build_zip_async() – async wrapper for use in FastAPI endpoints
-    get_file_meta()   – extract image dimensions + embedded ComfyUI workflow
+    browse()            – directory listing (folders + files)
+    get_safe_path()     – path validation / traversal guard
+    get_preview()       – serve a previewable file as raw bytes
+    build_zip()         – build an in-memory ZIP of a directory (legacy)
+    build_zip_async()   – async wrapper for use in FastAPI endpoints (legacy)
+    create_zip_job()    – enqueue a background ZIP job, returns ZipJob
+    get_zip_job()       – look up a job by id
+    get_zip_file_path() – return the output path for a completed job
+    get_file_meta()     – extract image dimensions + embedded ComfyUI workflow
     """
 
     def __init__(self) -> None:
-        pass
+        self._jobs: dict[str, ZipJob] = {}
+        self._jobs_lock = threading.Lock()
+        ZIP_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        self._restore_jobs_from_disk()
+
+    def _job_meta_path(self, job_id: str) -> Path:
+        """Sidecar JSON file that persists a finished job across restarts."""
+        return ZIP_OUTPUT_DIR / f"{job_id}.json"
+
+    def _save_job_to_disk(self, job: ZipJob) -> None:
+        """Write a completed job's metadata to a sidecar JSON file."""
+        try:
+            data = {
+                "job_id":     job.job_id,
+                "path":       job.path,
+                "status":     job.status.value,
+                "filename":   job.filename,
+                "file_path":  str(job.file_path) if job.file_path else None,
+                "created_at": job.created_at,
+                "done_at":    job.done_at,
+            }
+            self._job_meta_path(job.job_id).write_text(
+                json.dumps(data, indent=2), encoding="utf-8"
+            )
+        except OSError:
+            logger.warning("Failed to persist job metadata | job_id=%s", job.job_id)
+
+    def _restore_jobs_from_disk(self) -> None:
+        """
+        On startup, scan ZIP_OUTPUT_DIR for sidecar JSON files and rebuild
+        the in-memory job registry for all archives that still exist on disk.
+        Expired or missing archives are silently skipped.
+        """
+        now = time.time()
+        restored = 0
+        for meta_file in ZIP_OUTPUT_DIR.glob("*.json"):
+            try:
+                data      = json.loads(meta_file.read_text(encoding="utf-8"))
+                done_at   = data.get("done_at") or 0
+                file_path = Path(data["file_path"]) if data.get("file_path") else None
+
+                # Skip if TTL expired or archive file is gone
+                if (now - done_at) > ZIP_TTL_SECONDS:
+                    meta_file.unlink(missing_ok=True)
+                    if file_path and file_path.exists():
+                        file_path.unlink(missing_ok=True)
+                    continue
+                if not file_path or not file_path.exists():
+                    meta_file.unlink(missing_ok=True)
+                    continue
+
+                job = ZipJob(
+                    job_id     = data["job_id"],
+                    path       = data.get("path"),
+                    status     = ZipStatus.DONE,
+                    progress   = 100,
+                    message    = "Done",
+                    filename   = data["filename"],
+                    file_path  = file_path,
+                    created_at = data.get("created_at", done_at),
+                    done_at    = done_at,
+                )
+                self._jobs[job.job_id] = job
+                restored += 1
+            except Exception:
+                logger.debug("Skipping corrupt job metadata | file=%s", meta_file)
+
+        if restored:
+            logger.info("Restored %d ZIP job(s) from disk", restored)
 
     # ── Internal ──────────────────────────────────────────────────────────────
 
@@ -136,10 +241,16 @@ class FilesService:
         """
         Read and return a file for preview or download.
 
-        For image/video extensions the file is served directly (browser can render it).
+        For video extensions a ``PreviewResult`` with ``file_path`` set is returned
+        so the router can use ``FileResponse`` which supports HTTP Range requests
+        (206 Partial Content).  Browsers require Range support to decode the first
+        frame when using a hidden ``<video>`` element for canvas thumbnail capture.
+
+        For image/other previewable extensions the file is read into memory and
+        served directly (browser renders it).
+
         For any other extension the file is served as ``application/octet-stream``
-        so the browser will offer a download — this enables the Download button in
-        the file modal for unsupported types like .bin, .safetensors, etc.
+        so the browser will offer a download.
 
         Raises
         ------
@@ -163,38 +274,146 @@ class FilesService:
                 cache_max_age=0,
             )
 
+        # Video: return the file path so the router can use FileResponse.
+        # FileResponse uses Starlette's StaticFiles Range-request machinery,
+        # which correctly responds with 206 Partial Content — required for
+        # browsers to seek into the video and capture the first frame.
+        if target.suffix.lower() in VIDEO_EXTS:
+            logger.debug("Serving video via FileResponse (Range-capable) | path=%s", path)
+            return PreviewResult(
+                content=b"",                              # not used by router when file_path is set
+                media_type=media_type or "video/mp4",
+                file_path=target,
+            )
+
         logger.debug("Serving preview | path=%s | media_type=%s", path, media_type)
         return PreviewResult(
             content=target.read_bytes(),
             media_type=media_type or "application/octet-stream",
         )
 
-    # ── ZIP export ────────────────────────────────────────────────────────────
+    # ── ZIP export (background job) ───────────────────────────────────────────
+
+    def create_zip_job(self, relative_path: Optional[str] = None) -> ZipJob:
+        """
+        Enqueue a background ZIP job and return a ZipJob immediately.
+        The actual archiving runs in a daemon thread so the HTTP response
+        is returned to the client right away.
+        """
+        self._purge_old_jobs()
+
+        job_id = uuid.uuid4().hex
+        job = ZipJob(job_id=job_id, path=relative_path)
+
+        with self._jobs_lock:
+            self._jobs[job_id] = job
+
+        thread = threading.Thread(
+            target=self._run_zip_job,
+            args=(job,),
+            daemon=True,
+            name=f"zip-{job_id[:8]}",
+        )
+        thread.start()
+        logger.info("ZIP job enqueued | job_id=%s | path=%s", job_id, relative_path)
+        return job
+
+    def get_zip_job(self, job_id: str) -> Optional[ZipJob]:
+        with self._jobs_lock:
+            return self._jobs.get(job_id)
+
+    def get_zip_file_path(self, job_id: str) -> Optional[Path]:
+        """Return the output file path if the job is done, else None."""
+        job = self.get_zip_job(job_id)
+        if job and job.status == ZipStatus.DONE and job.file_path and job.file_path.exists():
+            return job.file_path
+        return None
+
+    def list_zip_jobs(self) -> list[ZipJob]:
+        """Return all known jobs, newest first."""
+        with self._jobs_lock:
+            jobs = list(self._jobs.values())
+        jobs.sort(key=lambda j: j.created_at, reverse=True)
+        return jobs
+
+    def _run_zip_job(self, job: ZipJob) -> None:
+        """Worker executed in a background thread."""
+        try:
+            job.status   = ZipStatus.RUNNING
+            job.message  = "Scanning files…"
+            job.progress = 0
+
+            base   = self._workdir
+            target = (base / job.path).resolve() if job.path else base
+
+            if not str(target).startswith(str(base)):
+                raise PermissionError("Access denied")
+            if not target.is_dir():
+                raise ValueError("Path is not a directory")
+
+            # Collect all files first so we can report accurate progress
+            files = sorted(
+                fp for fp in target.rglob("*")
+                if fp.is_file() and not fp.name.startswith(".")
+            )
+            total        = len(files)
+            job.message  = f"Archiving {total} file{'s' if total != 1 else ''}…"
+
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            zip_name  = f"{target.name or 'export'}_{timestamp}.zip"
+            zip_path  = ZIP_OUTPUT_DIR / zip_name
+
+            with zipfile.ZipFile(zip_path, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+                for i, fp in enumerate(files, 1):
+                    zf.write(fp, fp.relative_to(target))
+                    job.progress = int(i / max(total, 1) * 95)  # reserve last 5% for flush
+
+            job.file_path = zip_path
+            job.filename  = zip_name
+            job.progress  = 100
+            job.status    = ZipStatus.DONE
+            job.done_at   = time.time()
+            job.message   = "Done"
+            self._save_job_to_disk(job)
+            logger.info(
+                "ZIP job finished | job_id=%s | filename=%s | size=%d",
+                job.job_id, zip_name, zip_path.stat().st_size,
+            )
+
+        except Exception as exc:
+            job.status  = ZipStatus.ERROR
+            job.error   = str(exc)
+            job.message = f"Error: {exc}"
+            logger.exception("ZIP job failed | job_id=%s", job.job_id)
+
+    def _purge_old_jobs(self) -> None:
+        """Remove finished jobs and their archive files older than ZIP_TTL_SECONDS."""
+        now = time.time()
+        with self._jobs_lock:
+            stale = [
+                jid for jid, job in self._jobs.items()
+                if job.done_at and (now - job.done_at) > ZIP_TTL_SECONDS
+            ]
+            for jid in stale:
+                job = self._jobs.pop(jid)
+                if job.file_path and job.file_path.exists():
+                    try:
+                        job.file_path.unlink()
+                    except OSError:
+                        pass
+                self._job_meta_path(jid).unlink(missing_ok=True)
+                logger.debug("ZIP job purged | job_id=%s", jid)
+
+    # ── ZIP export (legacy in-memory, kept for compatibility) ─────────────────
 
     def build_zip(self, relative_path: Optional[str] = None) -> tuple[bytes, str]:
-        """
-        Build an in-memory ZIP of a directory.
-
-        Returns
-        -------
-        (zip_bytes, suggested_filename)
-
-        Raises
-        ------
-        PermissionError – path escapes workdir.
-        ValueError      – path is not a directory.
-        """
-        base = self._workdir
+        """Build an in-memory ZIP of a directory (legacy, kept for compatibility)."""
+        base   = self._workdir
         target = (base / relative_path).resolve() if relative_path else base
 
         if not str(target).startswith(str(base)):
-            logger.warning(
-                "Path traversal attempt in build_zip | input=%s | resolved=%s | base=%s",
-                relative_path, target, base,
-            )
             raise PermissionError("Access denied")
         if not target.is_dir():
-            logger.warning("build_zip called on non-directory | path=%s", relative_path)
             raise ValueError("Path is not a directory")
 
         buf = io.BytesIO()
@@ -203,16 +422,13 @@ class FilesService:
                 if fp.is_file() and not fp.name.startswith("."):
                     zf.write(fp, fp.relative_to(target))
         buf.seek(0)
-        data = buf.read()
+        data     = buf.read()
         filename = f"{target.name or 'export'}.zip"
-        logger.info(
-            "ZIP archive built | path=%s | filename=%s | size_bytes=%d",
-            relative_path or "/", filename, len(data),
-        )
+        logger.info("ZIP built (legacy) | path=%s | size=%d", relative_path or "/", len(data))
         return data, filename
 
     async def build_zip_async(self, relative_path: Optional[str] = None) -> tuple[bytes, str]:
-        """Async wrapper around build_zip."""
+        """Async wrapper around build_zip (legacy)."""
         return await asyncio.to_thread(self.build_zip, relative_path)
 
     # ── Metadata (images + video) ─────────────────────────────────────────────
