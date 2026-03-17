@@ -346,71 +346,375 @@
         .selection-actions { display: flex; gap: 8px; }
 
         /* ─────────────────────────────────────────────────────────
-           DOWNLOAD QUEUE TAB
+           DOWNLOAD QUEUE — HEADER PANEL
         ───────────────────────────────────────────────────────── */
-        .queue-header-title {
-            font-size: 0.8em;
-            font-weight: 600;
-            color: var(--text-3);
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            padding-bottom: 10px;
-            margin-bottom: 12px;
-            border-bottom: 1px dashed var(--border);
+
+        /* Unified header card */
+        .queue-panel-header {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 14px;
+            overflow: hidden;
         }
 
-        .queue-header-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-        .queue-row        { display: flex; align-items: center; gap: 6px; }
-        .queue-row-spacer { flex: 1; }
-
-        .queue-count-pill {
-            flex-shrink: 0;
-            display: inline-flex;
+        /* ── Top bar: title + stats + primary actions ── */
+        .queue-topbar {
+            display: flex;
             align-items: center;
-            gap: 5px;
-            font-size: 0.75em;
-            font-family: 'DM Mono', monospace;
+            gap: 10px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .queue-title-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 6px 16px;
+            border-radius: 6px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            flex-shrink: 0;
+            min-width: 110px;
+            text-align: center;
+        }
+        .queue-title-label {
+            font-size: 0.65em;
             font-weight: 600;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            opacity: 0.55;
             color: var(--text-2);
-            background: rgba(255, 95, 126, 0.06);
-            border: 1px solid rgba(255, 95, 126, 0.15);
-            border-radius: 8px;
-            padding: 4px 10px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
             white-space: nowrap;
         }
+        .queue-title-val {
+            font-size: 0.95em;
+            font-weight: 700;
+            font-family: 'DM Mono', monospace;
+            color: var(--text);
+            display: block;
+            min-width: 5ch;
+            font-variant-numeric: tabular-nums;
+            text-align: center;
+        }
 
-        .queue-stats { display: flex; gap: 6px; align-items: center; }
+        .queue-topbar-divider {
+            width: 1px;
+            height: 32px;
+            background: var(--border);
+            flex-shrink: 0;
+        }
 
+        /* Live stats strip — column layout, no layout jumps */
+        .queue-stats {
+            display: flex;
+            gap: 4px;
+            align-items: stretch;
+            flex-shrink: 0;
+        }
         .queue-stat {
-            display: inline-flex;
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 5px;
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 0.75em;
+            justify-content: center;
+            gap: 3px;
+            padding: 6px 16px;
+            border-radius: 6px;
             font-family: 'DM Mono', monospace;
             background: var(--surface-2);
             border: 1px solid var(--border);
-            color: var(--text-2);
             white-space: nowrap;
-            min-width: 0;
+            min-width: 120px;
+            text-align: center;
+        }
+        .queue-stat-label {
+            font-size: 0.65em;
+            font-weight: 600;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            opacity: 0.55;
+            color: currentColor;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+        .queue-stat-icon { font-style: normal; font-size: 1em; }
+        .queue-stat-val  {
+            font-size: 0.95em;
+            font-weight: 700;
+            color: var(--text);
+            display: block;
+            min-width: 9ch;
+            font-variant-numeric: tabular-nums;
+            text-align: center;
         }
 
-        #stat-total-val     { display: inline-block; min-width: 52px; text-align: right; }
-        #stat-remaining-val { display: inline-block; min-width: 52px; text-align: right; }
-        #stat-speed-val     { display: inline-block; min-width: 64px; text-align: right; }
-
-        .queue-stat-icon { opacity: 0.65; font-style: normal; }
-        .queue-stat-val  { font-weight: 600; color: var(--text); }
-
-        .queue-stat.stat-total     { border-color: rgba(91, 127, 255, 0.25); background: var(--accent-dim); }
-        .queue-stat.stat-remaining { border-color: rgba(251, 191, 36, 0.25); background: var(--yellow-dim); color: var(--yellow); }
+        .queue-stat.stat-total     { border-color: rgba(91,127,255,0.25);  background: var(--accent-dim);  color: var(--accent); }
+        .queue-stat.stat-total .queue-stat-val { color: var(--accent); }
+        .queue-stat.stat-remaining { border-color: rgba(251,191,36,0.25);  background: var(--yellow-dim);  color: var(--yellow); }
         .queue-stat.stat-remaining .queue-stat-val { color: var(--yellow); }
-        .queue-stat.stat-speed     { border-color: rgba(96, 165, 250, 0.30); background: var(--blue-dim); color: var(--blue); }
-        .queue-stat.stat-speed     .queue-stat-val { color: var(--blue); }
-        .queue-stat.stat-workers   { border-color: rgba(54, 211, 153, 0.25); background: var(--green-dim); color: var(--green); }
+        .queue-stat.stat-speed     { border-color: rgba(96,165,250,0.30);  background: var(--blue-dim);    color: var(--blue); }
+        .queue-stat.stat-speed .queue-stat-val { color: var(--blue); }
 
-        .queue-controls { display: flex; gap: 6px; flex-shrink: 0; }
+        /* Workers control */
+        .queue-workers-control {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px 4px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(54,211,153,0.3);
+            background: var(--green-dim);
+            font-size: 0.72em;
+            font-family: 'DM Mono', monospace;
+            color: var(--green);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .queue-workers-control input {
+            width: 36px;
+            padding: 1px 4px;
+            font-size: 1em;
+            font-family: 'DM Mono', monospace;
+            font-weight: 700;
+            text-align: center;
+            background: var(--bg);
+            border: 1px solid rgba(54,211,153,0.4);
+            border-radius: 4px;
+            color: var(--green);
+            outline: none;
+        }
+        .queue-workers-control input:focus { border-color: var(--green); }
+
+        /* Primary action buttons */
+        .queue-primary-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        /* Queue toggle button */
+        .btn-queue-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 14px;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.8em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background var(--ease), border-color var(--ease), color var(--ease), opacity var(--ease);
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+        .btn-queue-toggle.state-stopped {
+            background: var(--green-dim);
+            color: var(--green);
+            border-color: rgba(54, 211, 153, 0.35);
+        }
+        .btn-queue-toggle.state-stopped:hover {
+            background: var(--green);
+            color: #fff;
+        }
+        .btn-queue-toggle.state-running {
+            background: var(--red-dim);
+            color: var(--red);
+            border-color: rgba(255, 95, 126, 0.35);
+        }
+        .btn-queue-toggle.state-running:hover {
+            background: var(--red);
+            color: #fff;
+        }
+        .btn-queue-toggle:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Queue status dot */
+        .queue-status-dot {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 9px;
+            border-radius: 10px;
+            font-size: 0.72em;
+            font-weight: 600;
+            font-family: 'DM Mono', monospace;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: background var(--ease), color var(--ease);
+        }
+        .queue-status-dot::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .queue-status-dot.dot-running {
+            background: var(--green-dim);
+            color: var(--green);
+        }
+        .queue-status-dot.dot-running::before {
+            background: var(--green);
+            animation: pulse 1.5s infinite;
+        }
+        .queue-status-dot.dot-stopped {
+            background: var(--surface-2);
+            color: var(--text-3);
+        }
+        .queue-status-dot.dot-stopped::before {
+            background: var(--text-3);
+        }
+
+        /* ── Bottom bar: filter tabs + secondary controls ── */
+        .queue-bottombar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 12px 0 16px;
+            background: var(--surface-2);
+        }
+
+        /* Filter tabs (pill-style, borderless, sits flush in the bar) */
+        .queue-filter-tabs {
+            display: flex;
+            gap: 2px;
+            flex: 1;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .queue-filter-tabs::-webkit-scrollbar { display: none; }
+
+        .queue-ftab {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 10px 12px;
+            margin-bottom: -1px;
+            border: none;
+            border-bottom: 2px solid transparent;
+            background: none;
+            font-family: inherit;
+            font-size: 0.78em;
+            font-weight: 600;
+            color: var(--text-3);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: color var(--ease), border-color var(--ease);
+        }
+        .queue-ftab:hover { color: var(--text-2); }
+        .queue-ftab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+        .queue-ftab.ftab-done.active        { color: var(--green);  border-bottom-color: var(--green); }
+        .queue-ftab.ftab-downloading.active { color: var(--blue);   border-bottom-color: var(--blue); }
+        .queue-ftab.ftab-paused.active      { color: var(--red);    border-bottom-color: var(--red); }
+        .queue-ftab.ftab-pending.active     { color: var(--yellow); border-bottom-color: var(--yellow); }
+        .queue-ftab.ftab-failed.active      { color: var(--red);    border-bottom-color: var(--red); }
+
+        .queue-ftab-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            opacity: 0.5;
+            flex-shrink: 0;
+        }
+        .queue-ftab.active .queue-ftab-dot { opacity: 1; }
+        .queue-ftab.ftab-all .queue-ftab-dot { display: none; }
+
+        .queue-ftab-count {
+            font-size: 0.82em;
+            font-family: 'DM Mono', monospace;
+            font-weight: 700;
+            color: inherit;
+            opacity: 0.7;
+        }
+        .queue-ftab.active .queue-ftab-count { opacity: 1; }
+
+        /* ── Queue search ── */
+        .queue-search-wrap {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            position: relative;
+            padding: 6px 0;
+        }
+        .queue-search-input {
+            width: 160px;
+            padding: 5px 26px 5px 10px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: 'DM Mono', monospace;
+            font-size: 0.76em;
+            color: var(--text);
+            outline: none;
+            transition: border-color var(--ease), width var(--ease), box-shadow var(--ease);
+        }
+        .queue-search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+            width: 200px;
+        }
+        .queue-search-input::placeholder {
+            color: var(--text-3);
+            font-family: 'DM Mono', monospace;
+        }
+        .queue-search-clear {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            font-size: 0.72em;
+            color: var(--text-3);
+            cursor: pointer;
+            padding: 2px 4px;
+            line-height: 1;
+            display: none;
+        }
+        .queue-search-clear.visible { display: block; }
+        .queue-search-clear:hover { color: var(--red); }
+
+        /* Secondary right-side controls inside bottom bar */
+        .queue-secondary-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            padding: 6px 0;
+        }
+
+        /* Select-all row — now inside bottom bar */
+        .queue-select-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78em;
+            font-weight: 500;
+            color: var(--text-3);
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .queue-select-label input { accent-color: var(--accent); cursor: pointer; }
+
+        /* Compatibility stubs for legacy selectors still referenced in JS */
+        .queue-header-row { display: none; }
+        .queue-row-spacer { flex: 1; }
 
         /* ─── Queue multi-select toolbar ─── */
         .queue-select-toolbar {
@@ -957,58 +1261,85 @@
 
         <!-- ════ TAB: DOWNLOAD QUEUE ════ -->
         <div class="tab-panel" data-panel="queue">
-            <div class="queue-header-title">📋 Download Queue</div>
-            <div class="queue-header-row">
-                <!-- Row 1: Downloads | spacer | Workers + Apply | Refresh | spacer | Start All | Stop All -->
-                <div class="queue-row">
-                    <span class="queue-count-pill" id="queue-count-text">
-                        <i class="queue-stat-icon">🗂️</i>
-                        Downloads: <span id="queue-count-val">0</span>
-                    </span>
-                    <div class="queue-row-spacer"></div>
-                    <span class="queue-stat stat-workers">
-                        <i class="queue-stat-icon">⚙️</i>
-                        <span>Workers:</span>
-                        <input type="number" id="concurrency-input" min="1" max="32" value="3"
-                               style="width:42px;padding:1px 4px;font-size:1em;text-align:center;background:var(--bg);border:1px solid rgba(54,211,153,0.3);border-radius:4px;color:var(--text);font-family:'DM Mono',monospace;font-weight:600">
-                        <button class="btn btn-ghost btn-sm" id="btn-set-concurrency" style="padding:2px 8px;font-size:0.9em;height:auto">Apply</button>
-                    </span>
-                    <button class="btn btn-ghost btn-sm" id="btn-refresh"><span>🔄</span><span>Refresh</span></button>
-                    <div class="queue-row-spacer"></div>
-                    <button class="btn btn-success btn-sm" id="btn-start-all"><span>▶️</span><span>Start All</span></button>
-                    <button class="btn btn-danger  btn-sm" id="btn-stop-all"> <span>⏹️</span><span>Stop All</span></button>
-                </div>
-                <!-- Row 2: centred stats -->
-                <div class="queue-row">
-                    <div class="queue-row-spacer"></div>
+
+            <!-- Unified header card -->
+            <div class="queue-panel-header">
+
+                <!-- Top bar: title · stats · workers · primary actions -->
+                <div class="queue-topbar">
+                    <div class="queue-title-block">
+                        <span class="queue-title-label">📋 Downloads</span>
+                        <span class="queue-title-val" id="queue-count-val">0</span>
+                    </div>
+
+                    <div class="queue-topbar-divider"></div>
+
                     <div class="queue-stats">
                         <span class="queue-stat stat-total">
-                            <i class="queue-stat-icon">📦</i>
-                            <span>Total:</span>
+                            <span class="queue-stat-label"><i class="queue-stat-icon">📦</i> Total size</span>
                             <span class="queue-stat-val" id="stat-total-val">—</span>
                         </span>
                         <span class="queue-stat stat-remaining">
-                            <i class="queue-stat-icon">⏳</i>
-                            <span>Remaining:</span>
+                            <span class="queue-stat-label"><i class="queue-stat-icon">⏳</i> Remaining</span>
                             <span class="queue-stat-val" id="stat-remaining-val">—</span>
                         </span>
                         <span class="queue-stat stat-speed" id="stat-speed">
-                            <i class="queue-stat-icon">⚡</i>
-                            <span>Speed:</span>
+                            <span class="queue-stat-label"><i class="queue-stat-icon">⚡</i> Speed</span>
                             <span class="queue-stat-val" id="stat-speed-val">0 B/s</span>
                         </span>
                     </div>
-                    <div class="queue-row-spacer"></div>
+
+                    <div class="queue-topbar-divider"></div>
+
+                    <div class="queue-workers-control">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+                        <span>Workers</span>
+                        <input type="number" id="concurrency-input" min="1" max="32" value="3">
+                        <button class="btn btn-ghost btn-sm" id="btn-set-concurrency" style="padding:1px 7px;font-size:0.85em;color:var(--green);border-color:rgba(54,211,153,0.4)">Apply</button>
+                    </div>
+
+                    <div style="flex:1"></div>
+
+                    <div class="queue-primary-actions">
+                        <button class="btn btn-ghost btn-sm" id="btn-refresh" title="Refresh">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.09"/></svg>
+                            Refresh
+                        </button>
+                        <span class="queue-status-dot dot-stopped" id="queue-status-dot"></span>
+                        <button class="btn-queue-toggle state-stopped" id="btn-queue-toggle">
+                            <svg id="queue-toggle-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            <span id="queue-toggle-label">Start Queue</span>
+                        </button>
+                    </div>
                 </div>
-                <!-- Row 3: select-all checkbox + select mode toggle -->
-                <div class="queue-row" id="queue-select-row">
-                    <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.8em;color:var(--text-2);user-select:none;">
-                        <input type="checkbox" id="queue-select-all-cb" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
-                        <span>Select all</span>
-                    </label>
-                    <div class="queue-row-spacer"></div>
+
+                <!-- Bottom bar: filter tabs + select-all -->
+                <div class="queue-bottombar">
+                    <div class="queue-filter-tabs">
+                        <button class="queue-ftab ftab-all active"         data-filter="all"         onclick="setQueueFilter('all')">        <span class="queue-ftab-dot"></span>All          <span class="queue-ftab-count" id="fcount-all">0</span></button>
+                        <button class="queue-ftab ftab-done"               data-filter="completed"   onclick="setQueueFilter('completed')">   <span class="queue-ftab-dot"></span>Done         <span class="queue-ftab-count" id="fcount-completed">0</span></button>
+                        <button class="queue-ftab ftab-downloading"        data-filter="downloading" onclick="setQueueFilter('downloading')"> <span class="queue-ftab-dot"></span>Downloading  <span class="queue-ftab-count" id="fcount-downloading">0</span></button>
+                        <button class="queue-ftab ftab-paused"             data-filter="paused"      onclick="setQueueFilter('paused')">      <span class="queue-ftab-dot"></span>Paused       <span class="queue-ftab-count" id="fcount-paused">0</span></button>
+                        <button class="queue-ftab ftab-pending"            data-filter="pending"     onclick="setQueueFilter('pending')">     <span class="queue-ftab-dot"></span>Pending      <span class="queue-ftab-count" id="fcount-pending">0</span></button>
+                        <button class="queue-ftab ftab-failed"             data-filter="failed"      onclick="setQueueFilter('failed')">      <span class="queue-ftab-dot"></span>Failed       <span class="queue-ftab-count" id="fcount-failed">0</span></button>
+                    </div>
+
+                    <div class="queue-search-wrap">
+                        <input type="text" id="queue-search-input" class="queue-search-input" placeholder="🔍 Search…" oninput="renderDownloads()">
+                        <button class="queue-search-clear" id="queue-search-clear" onclick="clearQueueSearch()" title="Clear search">✕</button>
+                    </div>
+
+                    <div class="queue-topbar-divider" style="height:20px;margin:0 4px"></div>
+
+                    <div class="queue-secondary-actions">
+                        <label class="queue-select-label">
+                            <input type="checkbox" id="queue-select-all-cb" style="width:14px;height:14px;">
+                            <span id="queue-select-all-label">Select all</span>
+                        </label>
+                    </div>
                 </div>
-            </div>
+
+            </div><!-- /queue-panel-header -->
 
             <!-- Multi-select action toolbar (appears when items selected) -->
             <div class="queue-select-toolbar" id="queue-select-toolbar">
@@ -1312,8 +1643,95 @@ let selectedKeys       = new Set();
 let downloads          = [];
 let speedTracker       = {};
 
-/* ── Queue multi-select state ── */
+/* ── Queue running state ── */
+let queueRunning = false;
+
+/* ── Queue toggle UI ── */
+function updateQueueToggleUI(running) {
+    queueRunning = running;
+    const btn    = document.getElementById('btn-queue-toggle');
+    const dot    = document.getElementById('queue-status-dot');
+    const icon   = document.getElementById('queue-toggle-icon');
+    const label  = document.getElementById('queue-toggle-label');
+    if (!btn) return;
+
+    if (running) {
+        btn.className  = 'btn-queue-toggle state-running';
+        dot.className  = 'queue-status-dot dot-running';
+        dot.textContent = '';
+        label.textContent = 'Stop Queue';
+        icon.innerHTML = '<rect x="3" y="3" width="18" height="18" rx="2"/>';
+    } else {
+        btn.className  = 'btn-queue-toggle state-stopped';
+        dot.className  = 'queue-status-dot dot-stopped';
+        label.textContent = 'Start Queue';
+        icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    }
+}
+
+async function fetchQueueStatus() {
+    try {
+        const data = await apiFetch('/api/downloads/queue-status');
+        if (data.success) updateQueueToggleUI(data.is_running);
+    } catch (err) { console.error('fetchQueueStatus error:', err); }
+}
+
+async function toggleQueue() {
+    const btn = document.getElementById('btn-queue-toggle');
+    btn.disabled = true;
+    try {
+        const endpoint = queueRunning ? '/api/downloads/stop' : '/api/downloads/start';
+        const data     = await apiFetch(endpoint, 'POST');
+        if (!data.success) {
+            showFlash('queue', data.message ?? 'Action failed', 'error');
+        }
+        await fetchQueueStatus();
+        if (data.success) await loadDownloads();
+    } catch (err) {
+        console.error('toggleQueue error:', err);
+        showFlash('queue', 'Error toggling queue', 'error');
+        await fetchQueueStatus();
+    } finally {
+        btn.disabled = false;
+    }
+}
 let queueSelectedIds = new Set();
+
+/* ── Queue filter state ── */
+let queueFilter = 'all';
+
+function setQueueFilter(filter) {
+    queueFilter = filter;
+    document.querySelectorAll('.queue-ftab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+    });
+    renderDownloads();
+}
+
+/* ── Queue search helpers ── */
+function getQueueSearchTerm() {
+    const input = document.getElementById('queue-search-input');
+    return input ? input.value.trim().toLowerCase() : '';
+}
+
+function clearQueueSearch() {
+    const input = document.getElementById('queue-search-input');
+    if (input) input.value = '';
+    const clearBtn = document.getElementById('queue-search-clear');
+    if (clearBtn) clearBtn.classList.remove('visible');
+    renderDownloads();
+}
+
+function updateFilterCounts() {
+    const counts = { all: downloads.length, completed: 0, downloading: 0, paused: 0, pending: 0, failed: 0 };
+    for (const dl of downloads) {
+        if (counts[dl.status] !== undefined) counts[dl.status]++;
+    }
+    for (const [key, val] of Object.entries(counts)) {
+        const el = document.getElementById(`fcount-${key}`);
+        if (el) el.textContent = val;
+    }
+}
 
 /* ── Preset collapse state (pid → collapsed bool) ── */
 let presetCollapseState = {};
@@ -1804,17 +2222,24 @@ function syncQueueSelectUI() {
         card.classList.toggle('queue-selected', queueSelectedIds.has(card.dataset.taskId));
     });
 
-    // Sync select-all checkbox
+    // Visible (filtered) tasks only
+    const visibleIds = (queueFilter === 'all'
+        ? downloads
+        : downloads.filter(d => d.status === queueFilter)
+    ).map(d => d.task_id);
+
+    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => queueSelectedIds.has(id));
+    const someVisibleSelected = visibleIds.some(id => queueSelectedIds.has(id));
+
     const selectAllCb = document.getElementById('queue-select-all-cb');
-    if (downloads.length > 0 && queueSelectedIds.size === downloads.length) {
-        selectAllCb.checked = true;
-        selectAllCb.indeterminate = false;
-    } else if (queueSelectedIds.size > 0) {
-        selectAllCb.checked = false;
-        selectAllCb.indeterminate = true;
-    } else {
-        selectAllCb.checked = false;
-        selectAllCb.indeterminate = false;
+    selectAllCb.checked       = allVisibleSelected;
+    selectAllCb.indeterminate = !allVisibleSelected && someVisibleSelected;
+
+    // Update label to reflect current tab scope
+    const labelEl = document.getElementById('queue-select-all-label');
+    if (labelEl) {
+        const tabName = queueFilter === 'all' ? 'all' : queueFilter;
+        labelEl.textContent = allVisibleSelected ? `Deselect ${tabName}` : `Select ${tabName}`;
     }
 }
 
@@ -1971,13 +2396,36 @@ function renderDownloads() {
     // Always show checkboxes (select mode always active)
     list.classList.add('queue-select-mode');
 
-    // Remove cards whose tasks are gone
-    const activeIds = new Set(downloads.map(d => d.task_id));
+    // Apply status filter + search
+    const _searchTerm = getQueueSearchTerm();
+    const _clearBtn = document.getElementById('queue-search-clear');
+    if (_clearBtn) _clearBtn.classList.toggle('visible', _searchTerm.length > 0);
+
+    const _byStatus = queueFilter === 'all' ? downloads : downloads.filter(dl => dl.status === queueFilter);
+    const filtered = _searchTerm
+        ? _byStatus.filter(dl =>
+            (dl.file_name   ?? '').toLowerCase().includes(_searchTerm) ||
+            (dl.folder_path ?? '').toLowerCase().includes(_searchTerm) ||
+            (dl.url         ?? '').toLowerCase().includes(_searchTerm) ||
+            (dl.task_id     ?? '').toLowerCase().includes(_searchTerm)
+          )
+        : _byStatus;
+
+    // Remove cards whose tasks are gone or filtered out
+    const visibleIds = new Set(filtered.map(d => d.task_id));
     list.querySelectorAll('.download-card[data-task-id]').forEach(card => {
-        if (!activeIds.has(card.dataset.taskId)) card.remove();
+        if (!visibleIds.has(card.dataset.taskId)) card.remove();
     });
 
-    downloads.forEach((dl, i) => {
+    if (filtered.length === 0) {
+        const _term = getQueueSearchTerm();
+        list.innerHTML = emptyStateHtml('🔍', _term
+            ? `No results for "${_term}"${queueFilter !== 'all' ? ` in ${queueFilter}` : ''}`
+            : `No ${queueFilter} downloads`);
+        return;
+    }
+
+    filtered.forEach((dl, i) => {
         const existing = list.querySelector(`.download-card[data-task-id="${dl.task_id}"]`);
         if (!existing) {
             const tmp = document.createElement('div');
@@ -2117,6 +2565,7 @@ function updateQueueStats() {
     document.getElementById('stat-total-val').textContent     = hasSize ? formatBytes(totalBytes) : '—';
     document.getElementById('stat-remaining-val').textContent = hasSize ? formatBytes(Math.max(0, totalBytes - downloadedSum)) : '—';
     document.getElementById('stat-speed-val').textContent     = formatSpeed(totalSpeed);
+    updateFilterCounts();
 }
 
 /* ── Add download ── */
@@ -2289,8 +2738,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-cancel-selection').addEventListener('click', () => { selectedKeys.clear(); updateSelectionBar(); renderPresets(); });
 
     document.getElementById('btn-refresh').addEventListener('click', loadDownloads);
-    document.getElementById('btn-start-all').addEventListener('click', async () => { const data = await apiFetch('/api/downloads/start', 'POST'); if (data.success) loadDownloads(); });
-    document.getElementById('btn-stop-all').addEventListener('click', async () => { const data = await apiFetch('/api/downloads/stop', 'POST'); if (data.success) loadDownloads(); });
+    document.getElementById('btn-queue-toggle').addEventListener('click', toggleQueue);
 
     document.getElementById('btn-set-concurrency').addEventListener('click', async () => {
         const val = parseInt(document.getElementById('concurrency-input').value, 10);
@@ -2301,10 +2749,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Queue select-all checkbox
     document.getElementById('queue-select-all-cb').addEventListener('change', function() {
+        // Only affect tasks visible under the current filter tab
+        const visibleIds = (queueFilter === 'all'
+            ? downloads
+            : downloads.filter(d => d.status === queueFilter)
+        ).map(d => d.task_id);
+
         if (this.checked) {
-            downloads.forEach(dl => queueSelectedIds.add(dl.task_id));
+            visibleIds.forEach(id => queueSelectedIds.add(id));
         } else {
-            queueSelectedIds.clear();
+            visibleIds.forEach(id => queueSelectedIds.delete(id));
         }
         syncQueueSelectUI();
     });
@@ -2368,11 +2822,14 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPresets();
     loadDownloads();
     loadSavedConfigs();
+    fetchQueueStatus();
     apiFetch('/api/downloads/concurrency').then(data => {
         if (data.success && data.max_concurrent)
             document.getElementById('concurrency-input').value = data.max_concurrent;
     });
+    // Poll downloads; also re-sync queue status every 5 seconds
     setInterval(loadDownloads, POLL_MS);
+    setInterval(fetchQueueStatus, 5000);
 
     // ── Editor tab wiring ──
     document.getElementById('ep-refresh-btn').addEventListener('click', epRefreshPresets);

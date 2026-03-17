@@ -71,6 +71,12 @@ class TaskActionResponse(BaseModel):
     message: str
 
 
+class QueueStatusResponse(BaseModel):
+    success: bool
+    is_running: bool = False
+    error: Optional[str] = None
+
+
 class VerifyFileResponse(BaseModel):
     task_id: str
     is_valid: bool

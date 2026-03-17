@@ -21,6 +21,7 @@ from schemas.downloads import (
     TaskProgressResponse,
     VerifyFileResponse, SetConcurrencyResponse, SetConcurrencyRequest, GetConcurrencyResponse, DeleteDownloadRequest,
     ExtractFileResponse,
+    QueueStatusResponse,
 )
 from services.config_loader_service import ConfigLoaderService
 from services.download_manager_service import DownloadManagerService
@@ -56,6 +57,11 @@ async def download_manager_page(request: Request):
 @router.get("/api/downloads/all", response_model=AllTasksResponse)
 async def get_all_downloads():
     return dm_service.get_all_tasks()
+
+
+@router.get("/api/downloads/queue-status", response_model=QueueStatusResponse)
+async def get_queue_status():
+    return dm_service.get_queue_status()
 
 
 @router.post("/api/downloads/start", response_model=TaskActionResponse)

@@ -29,6 +29,7 @@ from schemas.downloads import (
     SetConcurrencyResponse,
     GetConcurrencyResponse,
     ExtractFileResponse,
+    QueueStatusResponse,
 )
 from settings import settings
 
@@ -138,6 +139,15 @@ class DownloadManagerService:
         except Exception as exc:
             logger.error("Failed to stop downloads | error=%s", exc)
             return TaskActionResponse(success=False, message=str(exc))
+
+    @property
+    def is_queue_running(self) -> bool:
+        """Return True if the queue manager is actively processing tasks."""
+        return self._download_manager.queue_manager.is_running
+
+    def get_queue_status(self) -> QueueStatusResponse:
+        """Return the current queue running state."""
+        return QueueStatusResponse(success=True, is_running=self.is_queue_running)
 
     def pause_download(self, task_id: str) -> TaskActionResponse:
         success = self._download_manager.stop_download(task_id)
