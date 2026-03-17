@@ -108,3 +108,10 @@ class ExtractFileResponse(BaseModel):
     success: bool
     message: Optional[str] = None
     error: Optional[str] = None
+
+
+class RetryDownloadResponse(BaseModel):
+    success: bool
+    task_id: Optional[str] = None
+    message: Optional[str] = None
+    error: Optional[str] = None

@@ -2183,6 +2183,26 @@ async function downloadAction(taskId, action) {
 window.resumeDownload = (id) => downloadAction(id, 'resume');
 window.pauseDownload  = (id) => downloadAction(id, 'pause');
 
+window.retryDownload = async (taskId, btn) => {
+    btn.disabled    = true;
+    btn.textContent = '⏳';
+    try {
+        const data = await apiFetch(`/api/downloads/${taskId}/retry`, 'POST');
+        if (data.success) {
+            showFlash('queue', data.message ?? 'Download retried', 'success');
+            await loadDownloads();
+        } else {
+            showFlash('queue', data.error ?? 'Retry failed', 'error');
+            btn.disabled    = false;
+            btn.textContent = '🔄';
+        }
+    } catch {
+        showFlash('queue', 'Error retrying download', 'error');
+        btn.disabled    = false;
+        btn.textContent = '🔄';
+    }
+};
+
 window.extractDownload = async (taskId, btn) => {
     btn.disabled    = true;
     btn.textContent = '⏳';
@@ -2502,6 +2522,7 @@ function buildActionsHtml(dl) {
     return `
         ${ dl.status === 'pending' || dl.status === 'paused' ? `<button class="btn btn-sm btn-ghost" onclick="resumeDownload('${dl.task_id}')">▶️</button>` : '' }
         ${ isActive ? `<button class="btn btn-sm btn-ghost" onclick="pauseDownload('${dl.task_id}')">⏸️</button>` : '' }
+        ${ dl.status === 'failed' ? `<button class="btn btn-sm btn-ghost" title="Retry download" onclick="retryDownload('${dl.task_id}', this)">🔄</button>` : '' }
         ${ dl.status === 'completed' && (dl.file_name ?? '').toLowerCase().endsWith('.zip') ? `<button class="btn btn-sm btn-ghost" title="Extract ZIP" onclick="extractDownload('${dl.task_id}', this)">📦</button>` : '' }
         <button class="btn btn-sm btn-danger" onclick="deleteDownload('${dl.task_id}')">🗑️</button>
     `;

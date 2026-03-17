@@ -22,6 +22,7 @@ from schemas.downloads import (
     VerifyFileResponse, SetConcurrencyResponse, SetConcurrencyRequest, GetConcurrencyResponse, DeleteDownloadRequest,
     ExtractFileResponse,
     QueueStatusResponse,
+    RetryDownloadResponse,
 )
 from services.config_loader_service import ConfigLoaderService
 from services.download_manager_service import DownloadManagerService
@@ -96,6 +97,11 @@ async def add_download(request: AddDownloadRequest):
 @router.post("/api/downloads/{task_id}/extract", response_model=ExtractFileResponse)
 async def extract_download(task_id: str):
     return await dm_service.extract_file(task_id)
+
+
+@router.post("/api/downloads/{task_id}/retry", response_model=RetryDownloadResponse)
+async def retry_download(task_id: str):
+    return await dm_service.retry_download(task_id)
 
 # ===========================================================================
 # Downloads — per-task actions
