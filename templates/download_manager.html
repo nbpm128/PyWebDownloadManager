@@ -346,71 +346,375 @@
         .selection-actions { display: flex; gap: 8px; }
 
         /* ─────────────────────────────────────────────────────────
-           DOWNLOAD QUEUE TAB
+           DOWNLOAD QUEUE — HEADER PANEL
         ───────────────────────────────────────────────────────── */
-        .queue-header-title {
-            font-size: 0.8em;
-            font-weight: 600;
-            color: var(--text-3);
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            padding-bottom: 10px;
-            margin-bottom: 12px;
-            border-bottom: 1px dashed var(--border);
+
+        /* Unified header card */
+        .queue-panel-header {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 14px;
+            overflow: hidden;
         }
 
-        .queue-header-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-        .queue-row        { display: flex; align-items: center; gap: 6px; }
-        .queue-row-spacer { flex: 1; }
-
-        .queue-count-pill {
-            flex-shrink: 0;
-            display: inline-flex;
+        /* ── Top bar: title + stats + primary actions ── */
+        .queue-topbar {
+            display: flex;
             align-items: center;
-            gap: 5px;
-            font-size: 0.75em;
-            font-family: 'DM Mono', monospace;
+            gap: 10px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .queue-title-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 6px 16px;
+            border-radius: 6px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            flex-shrink: 0;
+            min-width: 110px;
+            text-align: center;
+        }
+        .queue-title-label {
+            font-size: 0.65em;
             font-weight: 600;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            opacity: 0.55;
             color: var(--text-2);
-            background: rgba(255, 95, 126, 0.06);
-            border: 1px solid rgba(255, 95, 126, 0.15);
-            border-radius: 8px;
-            padding: 4px 10px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
             white-space: nowrap;
         }
+        .queue-title-val {
+            font-size: 0.95em;
+            font-weight: 700;
+            font-family: 'DM Mono', monospace;
+            color: var(--text);
+            display: block;
+            min-width: 5ch;
+            font-variant-numeric: tabular-nums;
+            text-align: center;
+        }
 
-        .queue-stats { display: flex; gap: 6px; align-items: center; }
+        .queue-topbar-divider {
+            width: 1px;
+            height: 32px;
+            background: var(--border);
+            flex-shrink: 0;
+        }
 
+        /* Live stats strip — column layout, no layout jumps */
+        .queue-stats {
+            display: flex;
+            gap: 4px;
+            align-items: stretch;
+            flex-shrink: 0;
+        }
         .queue-stat {
-            display: inline-flex;
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 5px;
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 0.75em;
+            justify-content: center;
+            gap: 3px;
+            padding: 6px 16px;
+            border-radius: 6px;
             font-family: 'DM Mono', monospace;
             background: var(--surface-2);
             border: 1px solid var(--border);
-            color: var(--text-2);
             white-space: nowrap;
-            min-width: 0;
+            min-width: 120px;
+            text-align: center;
+        }
+        .queue-stat-label {
+            font-size: 0.65em;
+            font-weight: 600;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            opacity: 0.55;
+            color: currentColor;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+        .queue-stat-icon { font-style: normal; font-size: 1em; }
+        .queue-stat-val  {
+            font-size: 0.95em;
+            font-weight: 700;
+            color: var(--text);
+            display: block;
+            min-width: 9ch;
+            font-variant-numeric: tabular-nums;
+            text-align: center;
         }
 
-        #stat-total-val     { display: inline-block; min-width: 52px; text-align: right; }
-        #stat-remaining-val { display: inline-block; min-width: 52px; text-align: right; }
-        #stat-speed-val     { display: inline-block; min-width: 64px; text-align: right; }
-
-        .queue-stat-icon { opacity: 0.65; font-style: normal; }
-        .queue-stat-val  { font-weight: 600; color: var(--text); }
-
-        .queue-stat.stat-total     { border-color: rgba(91, 127, 255, 0.25); background: var(--accent-dim); }
-        .queue-stat.stat-remaining { border-color: rgba(251, 191, 36, 0.25); background: var(--yellow-dim); color: var(--yellow); }
+        .queue-stat.stat-total     { border-color: rgba(91,127,255,0.25);  background: var(--accent-dim);  color: var(--accent); }
+        .queue-stat.stat-total .queue-stat-val { color: var(--accent); }
+        .queue-stat.stat-remaining { border-color: rgba(251,191,36,0.25);  background: var(--yellow-dim);  color: var(--yellow); }
         .queue-stat.stat-remaining .queue-stat-val { color: var(--yellow); }
-        .queue-stat.stat-speed     { border-color: rgba(96, 165, 250, 0.30); background: var(--blue-dim); color: var(--blue); }
-        .queue-stat.stat-speed     .queue-stat-val { color: var(--blue); }
-        .queue-stat.stat-workers   { border-color: rgba(54, 211, 153, 0.25); background: var(--green-dim); color: var(--green); }
+        .queue-stat.stat-speed     { border-color: rgba(96,165,250,0.30);  background: var(--blue-dim);    color: var(--blue); }
+        .queue-stat.stat-speed .queue-stat-val { color: var(--blue); }
 
-        .queue-controls { display: flex; gap: 6px; flex-shrink: 0; }
+        /* Workers control */
+        .queue-workers-control {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px 4px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(54,211,153,0.3);
+            background: var(--green-dim);
+            font-size: 0.72em;
+            font-family: 'DM Mono', monospace;
+            color: var(--green);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .queue-workers-control input {
+            width: 36px;
+            padding: 1px 4px;
+            font-size: 1em;
+            font-family: 'DM Mono', monospace;
+            font-weight: 700;
+            text-align: center;
+            background: var(--bg);
+            border: 1px solid rgba(54,211,153,0.4);
+            border-radius: 4px;
+            color: var(--green);
+            outline: none;
+        }
+        .queue-workers-control input:focus { border-color: var(--green); }
+
+        /* Primary action buttons */
+        .queue-primary-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        /* Queue toggle button */
+        .btn-queue-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 14px;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.8em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background var(--ease), border-color var(--ease), color var(--ease), opacity var(--ease);
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+        .btn-queue-toggle.state-stopped {
+            background: var(--green-dim);
+            color: var(--green);
+            border-color: rgba(54, 211, 153, 0.35);
+        }
+        .btn-queue-toggle.state-stopped:hover {
+            background: var(--green);
+            color: #fff;
+        }
+        .btn-queue-toggle.state-running {
+            background: var(--red-dim);
+            color: var(--red);
+            border-color: rgba(255, 95, 126, 0.35);
+        }
+        .btn-queue-toggle.state-running:hover {
+            background: var(--red);
+            color: #fff;
+        }
+        .btn-queue-toggle:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Queue status dot */
+        .queue-status-dot {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 9px;
+            border-radius: 10px;
+            font-size: 0.72em;
+            font-weight: 600;
+            font-family: 'DM Mono', monospace;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: background var(--ease), color var(--ease);
+        }
+        .queue-status-dot::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .queue-status-dot.dot-running {
+            background: var(--green-dim);
+            color: var(--green);
+        }
+        .queue-status-dot.dot-running::before {
+            background: var(--green);
+            animation: pulse 1.5s infinite;
+        }
+        .queue-status-dot.dot-stopped {
+            background: var(--surface-2);
+            color: var(--text-3);
+        }
+        .queue-status-dot.dot-stopped::before {
+            background: var(--text-3);
+        }
+
+        /* ── Bottom bar: filter tabs + secondary controls ── */
+        .queue-bottombar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 12px 0 16px;
+            background: var(--surface-2);
+        }
+
+        /* Filter tabs (pill-style, borderless, sits flush in the bar) */
+        .queue-filter-tabs {
+            display: flex;
+            gap: 2px;
+            flex: 1;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .queue-filter-tabs::-webkit-scrollbar { display: none; }
+
+        .queue-ftab {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 10px 12px;
+            margin-bottom: -1px;
+            border: none;
+            border-bottom: 2px solid transparent;
+            background: none;
+            font-family: inherit;
+            font-size: 0.78em;
+            font-weight: 600;
+            color: var(--text-3);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: color var(--ease), border-color var(--ease);
+        }
+        .queue-ftab:hover { color: var(--text-2); }
+        .queue-ftab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+        .queue-ftab.ftab-done.active        { color: var(--green);  border-bottom-color: var(--green); }
+        .queue-ftab.ftab-downloading.active { color: var(--blue);   border-bottom-color: var(--blue); }
+        .queue-ftab.ftab-paused.active      { color: var(--red);    border-bottom-color: var(--red); }
+        .queue-ftab.ftab-pending.active     { color: var(--yellow); border-bottom-color: var(--yellow); }
+        .queue-ftab.ftab-failed.active      { color: var(--red);    border-bottom-color: var(--red); }
+
+        .queue-ftab-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            opacity: 0.5;
+            flex-shrink: 0;
+        }
+        .queue-ftab.active .queue-ftab-dot { opacity: 1; }
+        .queue-ftab.ftab-all .queue-ftab-dot { display: none; }
+
+        .queue-ftab-count {
+            font-size: 0.82em;
+            font-family: 'DM Mono', monospace;
+            font-weight: 700;
+            color: inherit;
+            opacity: 0.7;
+        }
+        .queue-ftab.active .queue-ftab-count { opacity: 1; }
+
+        /* ── Queue search ── */
+        .queue-search-wrap {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            position: relative;
+            padding: 6px 0;
+        }
+        .queue-search-input {
+            width: 160px;
+            padding: 5px 26px 5px 10px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: 'DM Mono', monospace;
+            font-size: 0.76em;
+            color: var(--text);
+            outline: none;
+            transition: border-color var(--ease), width var(--ease), box-shadow var(--ease);
+        }
+        .queue-search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+            width: 200px;
+        }
+        .queue-search-input::placeholder {
+            color: var(--text-3);
+            font-family: 'DM Mono', monospace;
+        }
+        .queue-search-clear {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            font-size: 0.72em;
+            color: var(--text-3);
+            cursor: pointer;
+            padding: 2px 4px;
+            line-height: 1;
+            display: none;
+        }
+        .queue-search-clear.visible { display: block; }
+        .queue-search-clear:hover { color: var(--red); }
+
+        /* Secondary right-side controls inside bottom bar */
+        .queue-secondary-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            padding: 6px 0;
+        }
+
+        /* Select-all row — now inside bottom bar */
+        .queue-select-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78em;
+            font-weight: 500;
+            color: var(--text-3);
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .queue-select-label input { accent-color: var(--accent); cursor: pointer; }
+
+        /* Compatibility stubs for legacy selectors still referenced in JS */
+        .queue-header-row { display: none; }
+        .queue-row-spacer { flex: 1; }
 
         /* ─── Queue multi-select toolbar ─── */
         .queue-select-toolbar {
@@ -957,58 +1261,85 @@
 
         <!-- ════ TAB: DOWNLOAD QUEUE ════ -->
         <div class="tab-panel" data-panel="queue">
-            <div class="queue-header-title">📋 Download Queue</div>
-            <div class="queue-header-row">
-                <!-- Row 1: Downloads | spacer | Workers + Apply | Refresh | spacer | Start All | Stop All -->
-                <div class="queue-row">
-                    <span class="queue-count-pill" id="queue-count-text">
-                        <i class="queue-stat-icon">🗂️</i>
-                        Downloads: <span id="queue-count-val">0</span>
-                    </span>
-                    <div class="queue-row-spacer"></div>
-                    <span class="queue-stat stat-workers">
-                        <i class="queue-stat-icon">⚙️</i>
-                        <span>Workers:</span>
-                        <input type="number" id="concurrency-input" min="1" max="32" value="3"
-                               style="width:42px;padding:1px 4px;font-size:1em;text-align:center;background:var(--bg);border:1px solid rgba(54,211,153,0.3);border-radius:4px;color:var(--text);font-family:'DM Mono',monospace;font-weight:600">
-                        <button class="btn btn-ghost btn-sm" id="btn-set-concurrency" style="padding:2px 8px;font-size:0.9em;height:auto">Apply</button>
-                    </span>
-                    <button class="btn btn-ghost btn-sm" id="btn-refresh"><span>🔄</span><span>Refresh</span></button>
-                    <div class="queue-row-spacer"></div>
-                    <button class="btn btn-success btn-sm" id="btn-start-all"><span>▶️</span><span>Start All</span></button>
-                    <button class="btn btn-danger  btn-sm" id="btn-stop-all"> <span>⏹️</span><span>Stop All</span></button>
-                </div>
-                <!-- Row 2: centred stats -->
-                <div class="queue-row">
-                    <div class="queue-row-spacer"></div>
+
+            <!-- Unified header card -->
+            <div class="queue-panel-header">
+
+                <!-- Top bar: title · stats · workers · primary actions -->
+                <div class="queue-topbar">
+                    <div class="queue-title-block">
+                        <span class="queue-title-label">📋 Downloads</span>
+                        <span class="queue-title-val" id="queue-count-val">0</span>
+                    </div>
+
+                    <div class="queue-topbar-divider"></div>
+
                     <div class="queue-stats">
                         <span class="queue-stat stat-total">
-                            <i class="queue-stat-icon">📦</i>
-                            <span>Total:</span>
+                            <span class="queue-stat-label"><i class="queue-stat-icon">📦</i> Total size</span>
                             <span class="queue-stat-val" id="stat-total-val">—</span>
                         </span>
                         <span class="queue-stat stat-remaining">
-                            <i class="queue-stat-icon">⏳</i>
-                            <span>Remaining:</span>
+                            <span class="queue-stat-label"><i class="queue-stat-icon">⏳</i> Remaining</span>
                             <span class="queue-stat-val" id="stat-remaining-val">—</span>
                         </span>
                         <span class="queue-stat stat-speed" id="stat-speed">
-                            <i class="queue-stat-icon">⚡</i>
-                            <span>Speed:</span>
+                            <span class="queue-stat-label"><i class="queue-stat-icon">⚡</i> Speed</span>
                             <span class="queue-stat-val" id="stat-speed-val">0 B/s</span>
                         </span>
                     </div>
-                    <div class="queue-row-spacer"></div>
+
+                    <div class="queue-topbar-divider"></div>
+
+                    <div class="queue-workers-control">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+                        <span>Workers</span>
+                        <input type="number" id="concurrency-input" min="1" max="32" value="3">
+                        <button class="btn btn-ghost btn-sm" id="btn-set-concurrency" style="padding:1px 7px;font-size:0.85em;color:var(--green);border-color:rgba(54,211,153,0.4)">Apply</button>
+                    </div>
+
+                    <div style="flex:1"></div>
+
+                    <div class="queue-primary-actions">
+                        <button class="btn btn-ghost btn-sm" id="btn-refresh" title="Refresh">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.09"/></svg>
+                            Refresh
+                        </button>
+                        <span class="queue-status-dot dot-stopped" id="queue-status-dot"></span>
+                        <button class="btn-queue-toggle state-stopped" id="btn-queue-toggle">
+                            <svg id="queue-toggle-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            <span id="queue-toggle-label">Start Queue</span>
+                        </button>
+                    </div>
                 </div>
-                <!-- Row 3: select-all checkbox + select mode toggle -->
-                <div class="queue-row" id="queue-select-row">
-                    <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.8em;color:var(--text-2);user-select:none;">
-                        <input type="checkbox" id="queue-select-all-cb" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
-                        <span>Select all</span>
-                    </label>
-                    <div class="queue-row-spacer"></div>
+
+                <!-- Bottom bar: filter tabs + select-all -->
+                <div class="queue-bottombar">
+                    <div class="queue-filter-tabs">
+                        <button class="queue-ftab ftab-all active"         data-filter="all"         onclick="setQueueFilter('all')">        <span class="queue-ftab-dot"></span>All          <span class="queue-ftab-count" id="fcount-all">0</span></button>
+                        <button class="queue-ftab ftab-done"               data-filter="completed"   onclick="setQueueFilter('completed')">   <span class="queue-ftab-dot"></span>Done         <span class="queue-ftab-count" id="fcount-completed">0</span></button>
+                        <button class="queue-ftab ftab-downloading"        data-filter="downloading" onclick="setQueueFilter('downloading')"> <span class="queue-ftab-dot"></span>Downloading  <span class="queue-ftab-count" id="fcount-downloading">0</span></button>
+                        <button class="queue-ftab ftab-paused"             data-filter="paused"      onclick="setQueueFilter('paused')">      <span class="queue-ftab-dot"></span>Paused       <span class="queue-ftab-count" id="fcount-paused">0</span></button>
+                        <button class="queue-ftab ftab-pending"            data-filter="pending"     onclick="setQueueFilter('pending')">     <span class="queue-ftab-dot"></span>Pending      <span class="queue-ftab-count" id="fcount-pending">0</span></button>
+                        <button class="queue-ftab ftab-failed"             data-filter="failed"      onclick="setQueueFilter('failed')">      <span class="queue-ftab-dot"></span>Failed       <span class="queue-ftab-count" id="fcount-failed">0</span></button>
+                    </div>
+
+                    <div class="queue-search-wrap">
+                        <input type="text" id="queue-search-input" class="queue-search-input" placeholder="🔍 Search…" oninput="renderDownloads()">
+                        <button class="queue-search-clear" id="queue-search-clear" onclick="clearQueueSearch()" title="Clear search">✕</button>
+                    </div>
+
+                    <div class="queue-topbar-divider" style="height:20px;margin:0 4px"></div>
+
+                    <div class="queue-secondary-actions">
+                        <label class="queue-select-label">
+                            <input type="checkbox" id="queue-select-all-cb" style="width:14px;height:14px;">
+                            <span id="queue-select-all-label">Select all</span>
+                        </label>
+                    </div>
                 </div>
-            </div>
+
+            </div><!-- /queue-panel-header -->
 
             <!-- Multi-select action toolbar (appears when items selected) -->
             <div class="queue-select-toolbar" id="queue-select-toolbar">
@@ -1124,6 +1455,7 @@
                     <option value="">— Select a preset to edit —</option>
                 </select>
                 <button class="btn btn-ghost btn-sm" id="ep-refresh-btn" title="Refresh preset list">🔄</button>
+                <button class="btn btn-ghost btn-sm" id="ep-new-btn" title="Create a new empty preset">✨ New</button>
                 <button class="btn btn-ghost btn-sm" id="ep-merge-btn" title="Merge another preset into current">⊕ Merge</button>
                 <button class="btn btn-ghost btn-sm" id="ep-raw-btn">{ } Raw</button>
                 <button class="btn btn-ghost btn-sm" id="ep-export-btn" title="Export preset as JSON file">⬇ Export</button>
@@ -1201,8 +1533,27 @@
         </div>
     </div>
 
+    <!-- ════ EDITOR: New Preset modal ════ -->
+    <div class="modal-backdrop" id="EP_NEW_MODAL" onclick="if(event.target===this)epCloseNewPreset()">
+        <div class="modal" style="max-width:440px;width:90vw">
+            <div class="modal-title">✨ New Preset</div>
+            <div style="padding:16px;display:flex;flex-direction:column;gap:14px">
+                <div>
+                    <label>Preset file name <span class="label-hint">(.json will be added automatically)</span></label>
+                    <input type="text" id="ep-new-name-input" placeholder="my_preset" autocomplete="off" spellcheck="false">
+                    <div id="ep-new-name-error" style="margin-top:5px;font-size:0.78em;color:var(--red);min-height:1em"></div>
+                </div>
+
+            </div>
+            <div class="modal-actions" style="padding:0 16px 16px">
+                <button class="btn btn-success btn-sm" id="ep-new-create-btn">✨ Create</button>
+                <button class="btn btn-ghost btn-sm" onclick="epCloseNewPreset()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ════ EDITOR: URL Import modal ════ -->
-    <div class="modal-backdrop" id="EP_URL_MODAL" onclick="if(event.target===this)epCloseUrlImport()">
+    <div class="modal-backdrop" id="EP_URL_MODAL">
         <div class="ep-url-modal">
             <div class="ep-url-modal-head">
                 <span>Import Downloads from URL</span>
@@ -1312,8 +1663,95 @@ let selectedKeys       = new Set();
 let downloads          = [];
 let speedTracker       = {};
 
-/* ── Queue multi-select state ── */
+/* ── Queue running state ── */
+let queueRunning = false;
+
+/* ── Queue toggle UI ── */
+function updateQueueToggleUI(running) {
+    queueRunning = running;
+    const btn    = document.getElementById('btn-queue-toggle');
+    const dot    = document.getElementById('queue-status-dot');
+    const icon   = document.getElementById('queue-toggle-icon');
+    const label  = document.getElementById('queue-toggle-label');
+    if (!btn) return;
+
+    if (running) {
+        btn.className  = 'btn-queue-toggle state-running';
+        dot.className  = 'queue-status-dot dot-running';
+        dot.textContent = '';
+        label.textContent = 'Stop Queue';
+        icon.innerHTML = '<rect x="3" y="3" width="18" height="18" rx="2"/>';
+    } else {
+        btn.className  = 'btn-queue-toggle state-stopped';
+        dot.className  = 'queue-status-dot dot-stopped';
+        label.textContent = 'Start Queue';
+        icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    }
+}
+
+async function fetchQueueStatus() {
+    try {
+        const data = await apiFetch('/api/downloads/queue-status');
+        if (data.success) updateQueueToggleUI(data.is_running);
+    } catch (err) { console.error('fetchQueueStatus error:', err); }
+}
+
+async function toggleQueue() {
+    const btn = document.getElementById('btn-queue-toggle');
+    btn.disabled = true;
+    try {
+        const endpoint = queueRunning ? '/api/downloads/stop' : '/api/downloads/start';
+        const data     = await apiFetch(endpoint, 'POST');
+        if (!data.success) {
+            showFlash('queue', data.message ?? 'Action failed', 'error');
+        }
+        await fetchQueueStatus();
+        if (data.success) await loadDownloads();
+    } catch (err) {
+        console.error('toggleQueue error:', err);
+        showFlash('queue', 'Error toggling queue', 'error');
+        await fetchQueueStatus();
+    } finally {
+        btn.disabled = false;
+    }
+}
 let queueSelectedIds = new Set();
+
+/* ── Queue filter state ── */
+let queueFilter = 'all';
+
+function setQueueFilter(filter) {
+    queueFilter = filter;
+    document.querySelectorAll('.queue-ftab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+    });
+    renderDownloads();
+}
+
+/* ── Queue search helpers ── */
+function getQueueSearchTerm() {
+    const input = document.getElementById('queue-search-input');
+    return input ? input.value.trim().toLowerCase() : '';
+}
+
+function clearQueueSearch() {
+    const input = document.getElementById('queue-search-input');
+    if (input) input.value = '';
+    const clearBtn = document.getElementById('queue-search-clear');
+    if (clearBtn) clearBtn.classList.remove('visible');
+    renderDownloads();
+}
+
+function updateFilterCounts() {
+    const counts = { all: downloads.length, completed: 0, downloading: 0, paused: 0, pending: 0, failed: 0 };
+    for (const dl of downloads) {
+        if (counts[dl.status] !== undefined) counts[dl.status]++;
+    }
+    for (const [key, val] of Object.entries(counts)) {
+        const el = document.getElementById(`fcount-${key}`);
+        if (el) el.textContent = val;
+    }
+}
 
 /* ── Preset collapse state (pid → collapsed bool) ── */
 let presetCollapseState = {};
@@ -1528,6 +1966,7 @@ function downloadNodeHtml(dl, pid, idx) {
                 <div class="download-node-info">
                     <div class="download-node-name">${displayName}</div>
                     <div class="download-node-url">${primaryUrl}</div>
+                    ${ dl.description ? `<div class="download-node-url" style="color:var(--text-2);font-style:italic">${dl.description}</div>` : '' }
                 </div>
             </div>
             <div class="download-node-content">
@@ -1804,17 +2243,24 @@ function syncQueueSelectUI() {
         card.classList.toggle('queue-selected', queueSelectedIds.has(card.dataset.taskId));
     });
 
-    // Sync select-all checkbox
+    // Visible (filtered) tasks only
+    const visibleIds = (queueFilter === 'all'
+        ? downloads
+        : downloads.filter(d => d.status === queueFilter)
+    ).map(d => d.task_id);
+
+    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => queueSelectedIds.has(id));
+    const someVisibleSelected = visibleIds.some(id => queueSelectedIds.has(id));
+
     const selectAllCb = document.getElementById('queue-select-all-cb');
-    if (downloads.length > 0 && queueSelectedIds.size === downloads.length) {
-        selectAllCb.checked = true;
-        selectAllCb.indeterminate = false;
-    } else if (queueSelectedIds.size > 0) {
-        selectAllCb.checked = false;
-        selectAllCb.indeterminate = true;
-    } else {
-        selectAllCb.checked = false;
-        selectAllCb.indeterminate = false;
+    selectAllCb.checked       = allVisibleSelected;
+    selectAllCb.indeterminate = !allVisibleSelected && someVisibleSelected;
+
+    // Update label to reflect current tab scope
+    const labelEl = document.getElementById('queue-select-all-label');
+    if (labelEl) {
+        const tabName = queueFilter === 'all' ? 'all' : queueFilter;
+        labelEl.textContent = allVisibleSelected ? `Deselect ${tabName}` : `Select ${tabName}`;
     }
 }
 
@@ -1971,13 +2417,36 @@ function renderDownloads() {
     // Always show checkboxes (select mode always active)
     list.classList.add('queue-select-mode');
 
-    // Remove cards whose tasks are gone
-    const activeIds = new Set(downloads.map(d => d.task_id));
+    // Apply status filter + search
+    const _searchTerm = getQueueSearchTerm();
+    const _clearBtn = document.getElementById('queue-search-clear');
+    if (_clearBtn) _clearBtn.classList.toggle('visible', _searchTerm.length > 0);
+
+    const _byStatus = queueFilter === 'all' ? downloads : downloads.filter(dl => dl.status === queueFilter);
+    const filtered = _searchTerm
+        ? _byStatus.filter(dl =>
+            (dl.file_name   ?? '').toLowerCase().includes(_searchTerm) ||
+            (dl.folder_path ?? '').toLowerCase().includes(_searchTerm) ||
+            (dl.url         ?? '').toLowerCase().includes(_searchTerm) ||
+            (dl.task_id     ?? '').toLowerCase().includes(_searchTerm)
+          )
+        : _byStatus;
+
+    // Remove cards whose tasks are gone or filtered out
+    const visibleIds = new Set(filtered.map(d => d.task_id));
     list.querySelectorAll('.download-card[data-task-id]').forEach(card => {
-        if (!activeIds.has(card.dataset.taskId)) card.remove();
+        if (!visibleIds.has(card.dataset.taskId)) card.remove();
     });
 
-    downloads.forEach((dl, i) => {
+    if (filtered.length === 0) {
+        const _term = getQueueSearchTerm();
+        list.innerHTML = emptyStateHtml('🔍', _term
+            ? `No results for "${_term}"${queueFilter !== 'all' ? ` in ${queueFilter}` : ''}`
+            : `No ${queueFilter} downloads`);
+        return;
+    }
+
+    filtered.forEach((dl, i) => {
         const existing = list.querySelector(`.download-card[data-task-id="${dl.task_id}"]`);
         if (!existing) {
             const tmp = document.createElement('div');
@@ -2117,6 +2586,7 @@ function updateQueueStats() {
     document.getElementById('stat-total-val').textContent     = hasSize ? formatBytes(totalBytes) : '—';
     document.getElementById('stat-remaining-val').textContent = hasSize ? formatBytes(Math.max(0, totalBytes - downloadedSum)) : '—';
     document.getElementById('stat-speed-val').textContent     = formatSpeed(totalSpeed);
+    updateFilterCounts();
 }
 
 /* ── Add download ── */
@@ -2289,8 +2759,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-cancel-selection').addEventListener('click', () => { selectedKeys.clear(); updateSelectionBar(); renderPresets(); });
 
     document.getElementById('btn-refresh').addEventListener('click', loadDownloads);
-    document.getElementById('btn-start-all').addEventListener('click', async () => { const data = await apiFetch('/api/downloads/start', 'POST'); if (data.success) loadDownloads(); });
-    document.getElementById('btn-stop-all').addEventListener('click', async () => { const data = await apiFetch('/api/downloads/stop', 'POST'); if (data.success) loadDownloads(); });
+    document.getElementById('btn-queue-toggle').addEventListener('click', toggleQueue);
 
     document.getElementById('btn-set-concurrency').addEventListener('click', async () => {
         const val = parseInt(document.getElementById('concurrency-input').value, 10);
@@ -2301,10 +2770,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Queue select-all checkbox
     document.getElementById('queue-select-all-cb').addEventListener('change', function() {
+        // Only affect tasks visible under the current filter tab
+        const visibleIds = (queueFilter === 'all'
+            ? downloads
+            : downloads.filter(d => d.status === queueFilter)
+        ).map(d => d.task_id);
+
         if (this.checked) {
-            downloads.forEach(dl => queueSelectedIds.add(dl.task_id));
+            visibleIds.forEach(id => queueSelectedIds.add(id));
         } else {
-            queueSelectedIds.clear();
+            visibleIds.forEach(id => queueSelectedIds.delete(id));
         }
         syncQueueSelectUI();
     });
@@ -2368,11 +2843,14 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPresets();
     loadDownloads();
     loadSavedConfigs();
+    fetchQueueStatus();
     apiFetch('/api/downloads/concurrency').then(data => {
         if (data.success && data.max_concurrent)
             document.getElementById('concurrency-input').value = data.max_concurrent;
     });
+    // Poll downloads; also re-sync queue status every 5 seconds
     setInterval(loadDownloads, POLL_MS);
+    setInterval(fetchQueueStatus, 5000);
 
     // ── Editor tab wiring ──
     document.getElementById('ep-refresh-btn').addEventListener('click', epRefreshPresets);
@@ -2440,14 +2918,14 @@ function epGetNode(path){
     return cur;
 }
 
-async function epRefreshPresets(){
+async function epRefreshPresets(selectName){
     try {
         var data = await apiFetch('/api/configs/list');
         var configs = (data && data.configs) ? data.configs : [];
         var sel = epEl('ep-preset-select');
         var mergeSel = epEl('ep-merge-source');
         if(!sel) return;
-        var cur = sel.value;
+        var cur = selectName || sel.value;
         sel.innerHTML = '<option value="">— Select a preset to edit —</option>';
         if(mergeSel) mergeSel.innerHTML = '<option value="">— Select source preset —</option>';
         configs.forEach(function(c){
@@ -2548,6 +3026,67 @@ function epMergePresetInto(target, source){
         if(existIdx >= 0) epMergePresetInto(target.presets[existIdx], srcSub);
         else target.presets.push(epDeepClone(srcSub));
     });
+}
+
+/* ── New Preset ── */
+function epOpenNewPreset(){
+    epEl('ep-new-name-input').value = '';
+    epEl('ep-new-name-error').textContent = '';
+    epEl('EP_NEW_MODAL').classList.add('open');
+    setTimeout(function(){ epEl('ep-new-name-input').focus(); }, 80);
+}
+
+function epCloseNewPreset(){
+    epEl('EP_NEW_MODAL').classList.remove('open');
+}
+
+async function epCreateNewPreset(){
+    var rawName = (epEl('ep-new-name-input').value || '').trim();
+    var errEl   = epEl('ep-new-name-error');
+    errEl.textContent = '';
+
+    if(!rawName){
+        errEl.textContent = 'File name is required.';
+        epEl('ep-new-name-input').focus();
+        return;
+    }
+    if(/[\/\\:*?"<>|]/.test(rawName)){
+        errEl.textContent = 'Name contains invalid characters.';
+        return;
+    }
+
+    var fileName = rawName.replace(/\.json$/i, '');   // strip .json if user typed it
+
+    // Build empty config structure
+    var newConfig = { authConfigs: {}, presets: [], metadata: { description: '' } };
+
+    // Save via existing API (same path as epSave)
+    try {
+        var blob = new Blob([JSON.stringify(newConfig, null, 2)], {type:'application/json'});
+        var file = new File([blob], fileName + '.json', {type:'application/json'});
+        var formData = new FormData();
+        formData.append('file', file);
+        formData.append('config_name', fileName);
+        var resp = await fetch('/api/configs/save-from-file', {method:'POST', body: formData});
+        var data = await resp.json();
+        if(!data.success){ errEl.textContent = data.error || 'Save failed'; return; }
+    } catch(e){
+        errEl.textContent = 'Error: ' + e.message;
+        return;
+    }
+
+    epCloseNewPreset();
+
+    // Load the new preset into the editor immediately
+    EP_D = newConfig;
+    EP_SEL = null; EP_EXP = {}; EP_CURRENT_PRESET = fileName;
+
+    // Refresh dropdown and select the new entry
+    await epRefreshPresets(fileName);
+
+    epBuildTree();
+    epEl('EP_MAIN').innerHTML = '<div class="empty-state"><div class="empty-state-icon">✨</div><p>Created: <b>' + epEsc(fileName) + '</b><br><span style="font-size:.85em;color:var(--text-3)">Use <b>+ Preset</b> in the sidebar to add presets</span></p></div>';
+    epFlash('Created ' + fileName, 'success');
 }
 
 async function epSave(){
@@ -2706,6 +3245,7 @@ function epDlCardHTML(dl,di){
     h+='<div class="efg efg-1" style="margin-bottom:8px"><div class="ef"><label>Folder Path</label><input value="'+epEsc(dl.folder_path||'')+'" oninput="epUpdDl('+di+',\'folder_path\',this.value)" placeholder="/workspace/ComfyUI/models/"></div></div>';
     h+='<div class="efg efg-2" style="margin-bottom:8px"><div class="ef"><label>Size (bytes)</label><input type="number" value="'+(dl.file_size||'')+'" oninput="epUpdDlNum('+di+',\'file_size\',this.value)"></div><div class="ef"><label>Hash Algo</label><select onchange="epUpdDlHash('+di+',this.value)">'+['','sha256','sha1','md5'].map(function(o){ return '<option value="'+o+'"'+(dl.hash_algorithm===o?' selected':'')+'>'+( o||'— None —')+'</option>'; }).join('')+'</select></div></div>';
     h+='<div class="efg efg-1" style="margin-bottom:8px"><div class="ef"><label>Checksum</label><input class="xs" value="'+epEsc(dl.checksum||'')+'" oninput="epUpdDl('+di+',\'checksum\',this.value)" placeholder="hash value"></div></div>';
+    h+='<div class="efg efg-1" style="margin-bottom:8px"><div class="ef"><label>Description <span class="label-hint" style="font-size:.85em">optional</span></label><input value="'+epEsc(dl.description||'')+'" oninput="epUpdDl('+di+',\'description\',this.value)" placeholder="short description"></div></div>';
     h+='<div class="efdiv"><span>Mirrors</span></div><div id="EMIR'+di+'">'+mirrors.map(function(m,mi){ return epMirrorRowHTML(di,mi,m); }).join('')+'</div>';
     h+='<button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="epAddMirror('+di+')">+ Mirror</button>';
     h+='<div class="efdiv"><span>Extract</span><button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="epToggleExtract('+di+')">'+(hasExtract?'Remove':'Add')+'</button></div>';
@@ -2804,6 +3344,7 @@ function epCloseTransfer(){ epEl('EP_TRANSFER_MODAL').classList.remove('open'); 
 document.addEventListener('DOMContentLoaded', function(){
     function wire(id, evt, fn){ var el=epEl(id); if(el) el.addEventListener(evt,fn); }
     wire('ep-refresh-btn',   'click', epRefreshPresets);
+    wire('ep-new-btn',       'click', epOpenNewPreset);
     wire('ep-preset-select', 'change', epOnPresetSelected);
     wire('ep-save-btn',      'click', epSave);
     wire('ep-add-preset-btn', 'click', epAddPreset);
@@ -2812,6 +3353,10 @@ document.addEventListener('DOMContentLoaded', function(){
     wire('ep-raw-close-btn', 'click', epCloseRaw);
     wire('ep-raw-apply-btn', 'click', epApplyRaw);
     wire('ep-raw-copy-btn',  'click', function(){ navigator.clipboard.writeText(epEl('EDITOR_RAW_TA').value).then(function(){ epFlash('Copied!','success'); }); });
+    wire('ep-new-create-btn','click', epCreateNewPreset);
+    // allow Enter key in name input to submit
+    var newNameInp = epEl('ep-new-name-input');
+    if(newNameInp) newNameInp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); epCreateNewPreset(); } });
     wire('ep-transfer-close-btn', 'click', epCloseTransfer);
     wire('ep-transfer-copy-btn',  'click', function(){ epDoTransfer(false); });
     wire('ep-transfer-move-btn',  'click', function(){ epDoTransfer(true); });
@@ -2828,6 +3373,8 @@ var EP_URL_ITEMS   = [];   // accumulated download objects
 var EP_URL_CHECKED = {};   // index → bool (import candidate)
 var EP_URL_EXPANDED= {};   // index → bool (card expanded)
 var EP_URL_LOADING = false;
+
+var EP_URL_ESC_HANDLER=null;
 
 function epOpenUrlImport(){
     if(!EP_SEL){ epFlash('Select a preset node first','error'); return; }
@@ -2854,11 +3401,16 @@ function epOpenUrlImport(){
     epUrlUpdateFooter();
     epEl('EP_URL_ADD_BTN').disabled=false;
     epEl('EP_URL_MODAL').classList.add('open');
+    // Register ESC handler
+    if(EP_URL_ESC_HANDLER) document.removeEventListener('keydown',EP_URL_ESC_HANDLER);
+    EP_URL_ESC_HANDLER=function(e){ if(e.key==='Escape') epCloseUrlImport(); };
+    document.addEventListener('keydown',EP_URL_ESC_HANDLER);
     setTimeout(function(){ epEl('EP_URL_INPUT').focus(); },80);
 }
 
 function epCloseUrlImport(){
     epEl('EP_URL_MODAL').classList.remove('open');
+    if(EP_URL_ESC_HANDLER){ document.removeEventListener('keydown',EP_URL_ESC_HANDLER); EP_URL_ESC_HANDLER=null; }
 }
 
 function epUrlSetStatus(type,msg){
@@ -2918,41 +3470,76 @@ function epUrlBuildFileItem(u,headers){
     return obj;
 }
 
-// Fetch file size + filename from CivitAI models API
-// URL pattern: /api/download/models/{modelVersionId}
+// Fetch file size + filename from CivitAI API.
+// Handles three URL patterns:
+//   1. civitai.com/models/{modelId}[?modelVersionId={versionId}]  - model page URL
+//   2. civitai.com/api/download/models/{versionId}[?type=...&format=...] - direct download URL
+//   3. civitai.com/models/{modelId}/{slug}[?modelVersionId={versionId}] - slug page URL
 function epUrlFetchCivitaiMeta(u, hdrs){
     try{
         var pu=new URL(u);
         if(!pu.hostname.includes('civitai.com')) return Promise.reject(new Error('not civitai'));
-        var m=pu.pathname.match(/\/models\/(\d+)/);
-        if(!m) return Promise.reject(new Error('no model id'));
-        var modelVersionId=m[1];
-        var apiUrl='https://civitai.com/api/v1/model-versions/'+modelVersionId;
-        return fetch(apiUrl,{headers:hdrs})
-            .then(function(r){ if(!r.ok) throw new Error('API HTTP '+r.status); return r.json(); })
-            .then(function(json){
-                // Find the matching file by type/format query params
-                var wantType=(pu.searchParams.get('type')||'').toLowerCase();
-                var wantFmt=(pu.searchParams.get('format')||'').toLowerCase();
-                var files=json.files||[];
-                var file=files[0]; // default to first
-                if(wantType||wantFmt){
-                    var match=files.find(function(f){
-                        var ft=(f.type||'').toLowerCase();
-                        var ff=((f.metadata&&f.metadata.format)||'').toLowerCase();
-                        var typeOk=!wantType||ft===wantType||ft.replace(' ','')===wantType;
-                        var fmtOk=!wantFmt||ff===wantFmt;
-                        return typeOk&&fmtOk;
-                    });
-                    if(match) file=match;
-                }
-                if(!file) throw new Error('no files in API response');
-                var item={ id:file.name||('civitai_'+modelVersionId), mirrors:[{url:u}] };
-                if(file.name) item.file_name=file.name;
-                if(file.sizeKB) item.file_size=Math.round(file.sizeKB*1024);
-                if(file.hashes&&file.hashes.SHA256) { item.checksum=file.hashes.SHA256.toLowerCase(); item.hash_algorithm='sha256'; }
-                return item;
-            });
+        var proxy='https://corsproxy.io/?';
+
+        // Helper: fetch model-version JSON by version ID and build item
+        function fetchByVersionId(versionId, wantType, wantFmt){
+            var apiUrl='https://civitai.com/api/v1/model-versions/'+versionId;
+            return fetch(proxy+encodeURIComponent(apiUrl),{headers:hdrs})
+                .then(function(r){ if(!r.ok) throw new Error('API HTTP '+r.status); return r.json(); })
+                .then(function(json){
+                    var files=json.files||[];
+                    var file=files[0];
+                    if(wantType||wantFmt){
+                        var match=files.find(function(f){
+                            var ft=(f.type||'').toLowerCase();
+                            var ff=((f.metadata&&f.metadata.format)||'').toLowerCase();
+                            var typeOk=!wantType||ft===wantType||ft.replace(/\s/g,'')===wantType;
+                            var fmtOk=!wantFmt||ff===wantFmt;
+                            return typeOk&&fmtOk;
+                        });
+                        if(match) file=match;
+                    }
+                    if(!file) throw new Error('no files in API response');
+                    var item={ id:file.name||('civitai_'+versionId), mirrors:[{url:u}] };
+                    if(file.name) item.file_name=file.name;
+                    if(file.sizeKB) item.file_size=Math.round(file.sizeKB*1024);
+                    if(file.hashes&&file.hashes.SHA256){ item.checksum=file.hashes.SHA256.toLowerCase(); item.hash_algorithm='sha256'; }
+                    if(json.model&&json.model.name) item.description=json.model.name;
+                    return item;
+                });
+        }
+
+        var wantType=(pu.searchParams.get('type')||'').toLowerCase();
+        var wantFmt=(pu.searchParams.get('format')||'').toLowerCase();
+
+        // Pattern 2: /api/download/models/{versionId}
+        var dlMatch=pu.pathname.match(/\/api\/download\/models\/(\d+)/);
+        if(dlMatch){
+            return fetchByVersionId(dlMatch[1], wantType, wantFmt);
+        }
+
+        // Pattern 1 & 3: /models/{modelId}[/slug][?modelVersionId=...]
+        var pageMatch=pu.pathname.match(/\/models\/(\d+)/);
+        if(pageMatch){
+            var modelId=pageMatch[1];
+            // If modelVersionId is in query params, use it directly
+            var qVersionId=pu.searchParams.get('modelVersionId');
+            if(qVersionId){
+                return fetchByVersionId(qVersionId, wantType, wantFmt);
+            }
+            // Otherwise fetch the model to get the default (latest) version ID
+            var modelApiUrl='https://civitai.com/api/v1/models/'+modelId;
+            return fetch(proxy+encodeURIComponent(modelApiUrl),{headers:hdrs})
+                .then(function(r){ if(!r.ok) throw new Error('Models API HTTP '+r.status); return r.json(); })
+                .then(function(json){
+                    var versions=json.modelVersions||[];
+                    if(!versions.length) throw new Error('no versions');
+                    var versionId=versions[0].id;
+                    return fetchByVersionId(String(versionId), wantType, wantFmt);
+                });
+        }
+
+        return Promise.reject(new Error('unrecognised civitai URL'));
     }catch(e){ return Promise.reject(e); }
 }
 
@@ -3001,6 +3588,27 @@ function epUrlTryMeta(fetchUrl, originalUrl, hdrs){
                     throw new Error('HTTP '+r2.status);
                 });
         });
+}
+
+// Build a canonical CivitAI download URL from any civitai URL.
+// For download URLs (/api/download/models/...) returns as-is.
+// For model page URLs (/models/{modelId}) returns the equivalent download URL.
+function epUrlCivitaiDownloadUrl(u){
+    try{
+        var pu=new URL(u);
+        // Already a download URL — return as-is
+        if(pu.pathname.includes('/api/download/models/')) return u;
+        // Model page: /models/{modelId}[/slug][?modelVersionId=...]
+        var pageMatch=pu.pathname.match(/\/models\/(\d+)/);
+        if(pageMatch){
+            var dl='https://civitai.com/api/download/models/';
+            var qVersionId=pu.searchParams.get('modelVersionId');
+            if(qVersionId) return dl+qVersionId;
+            // No version ID — use modelId (server will serve latest version)
+            return dl+pageMatch[1];
+        }
+    }catch(e){}
+    return u;
 }
 
 // Extract a human-readable filename from a CivitAI download URL
@@ -3076,16 +3684,28 @@ function epUrlAdd(){
         }
     }
 
-    // CivitAI: use their metadata API to get filename, size, SHA256 reliably
+    // CivitAI: primary path — JSON API (handles all URL patterns, uses proxy for CORS)
+    // Fallback — GET via proxy on the download URL to follow the 307 redirect to CDN
+    // which returns Content-Disposition + Content-Length in the final response headers.
     if(u.includes('civitai.com')){
-        epUrlSetStatus('loading','CivitAI: fetching metadata from API...');
+        epUrlSetStatus('loading','CivitAI: resolving metadata via API...');
         epUrlFetchCivitaiMeta(u, hdrs)
             .then(epUrlFinishItem)
-            .catch(function(){
-                // API failed (e.g. auth required) — fall back to HEAD/Range chain
-                epUrlSetStatus('loading','CivitAI API failed, trying direct request...');
-                epUrlTryMeta(u, u, hdrs)
-                    .then(epUrlFinishItem)
+            .catch(function(apiErr){
+                // API failed — build the download URL and GET it via proxy to follow 307→CDN
+                epUrlSetStatus('loading','CivitAI API failed, trying download redirect...');
+                var dlUrl=epUrlCivitaiDownloadUrl(u);
+                var proxied=proxy+encodeURIComponent(dlUrl);
+                fetch(proxied,{method:'GET',headers:Object.assign({},hdrs,{Range:'bytes=0-0'}),redirect:'follow'})
+                    .then(function(r){
+                        if(r.ok||r.status===206||r.status===416) return epUrlBuildFileItem(u,r.headers);
+                        throw new Error('HTTP '+r.status);
+                    })
+                    .then(function(item){
+                        // Ensure mirrors point to the original civitai URL (not the CDN redirect)
+                        item.mirrors=[{url:u}];
+                        epUrlFinishItem(item);
+                    })
                     .catch(function(){
                         epUrlSetStatus('ok','Added (metadata unavailable — please fill in details manually)');
                         epUrlFinishItem(epUrlBuildFallbackItem(u));
@@ -3156,7 +3776,8 @@ function epUrlBuildCard(item,idx){
     }
     if(item.checksum){
         var b1=document.createElement('span');
-        b1.className='editor-badge ebadge-green'; b1.style.flexShrink='0'; b1.textContent='SHA256';
+        b1.className='editor-badge ebadge-green'; b1.style.flexShrink='0';
+        b1.textContent=(item.hash_algorithm||'sha256').toUpperCase();
         head.appendChild(b1);
     }
     if(item.mirrors&&item.mirrors[0]&&item.mirrors[0].auth){
@@ -3201,12 +3822,44 @@ function epUrlBuildCard(item,idx){
     g2.appendChild(epUrlField('File Size (bytes)', item.file_size||'', function(v){ var n=parseInt(v,10); if(!isNaN(n)&&n>0) EP_URL_ITEMS[idx].file_size=n; else delete EP_URL_ITEMS[idx].file_size; }, 'file_size', '', 'number'));
     inner.appendChild(g2);
 
-    // Checksum (only shown if present)
-    if(item.checksum){
-        var gc=document.createElement('div');
-        gc.appendChild(epUrlField('Checksum (SHA256)', item.checksum||'', function(v){ if(v) EP_URL_ITEMS[idx].checksum=v; else delete EP_URL_ITEMS[idx].checksum; }, 'checksum'));
-        inner.appendChild(gc);
-    }
+    // Hash Algorithm + Checksum (always shown, matching preset editor)
+    var gh=document.createElement('div');
+    gh.style.cssText='display:grid;grid-template-columns:1fr 2fr;gap:8px';
+
+    // Hash Algorithm select
+    var hashDiv=document.createElement('div');
+    hashDiv.className='ep-iurl-field';
+    var hashLbl=document.createElement('label');
+    hashLbl.textContent='Hash Algo';
+    var hashSel=document.createElement('select');
+    hashSel.style.cssText='background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 7px;font-family:inherit;font-size:.85em;color:var(--text);outline:none;width:100%';
+    ['','sha256','sha1','md5'].forEach(function(o){
+        var opt=document.createElement('option');
+        opt.value=o; opt.textContent=o||'— None —';
+        if((item.hash_algorithm||'')=== o) opt.selected=true;
+        hashSel.appendChild(opt);
+    });
+    (function(i){ hashSel.onchange=function(){ if(this.value) EP_URL_ITEMS[i].hash_algorithm=this.value; else delete EP_URL_ITEMS[i].hash_algorithm; }; })(idx);
+    hashDiv.appendChild(hashLbl); hashDiv.appendChild(hashSel);
+    gh.appendChild(hashDiv);
+
+    // Checksum
+    gh.appendChild(epUrlField('Checksum', item.checksum||'', function(v){ if(v) EP_URL_ITEMS[idx].checksum=v; else delete EP_URL_ITEMS[idx].checksum; }, 'checksum', 'hash value'));
+    inner.appendChild(gh);
+
+    // Description field
+    var descDiv=document.createElement('div');
+    descDiv.style.cssText='margin-bottom:4px';
+    var descLbl=document.createElement('label');
+    descLbl.textContent='Description';
+    var descHint=document.createElement('span');
+    descHint.className='label-hint'; descHint.style.fontSize='.85em'; descHint.textContent=' optional';
+    descLbl.appendChild(descHint);
+    var descInp=document.createElement('input');
+    descInp.type='text'; descInp.value=item.description||''; descInp.placeholder='short description';
+    (function(i){ descInp.onblur=function(){ if(this.value) EP_URL_ITEMS[i].description=this.value; else delete EP_URL_ITEMS[i].description; }; })(idx);
+    descDiv.appendChild(descLbl); descDiv.appendChild(descInp);
+    inner.appendChild(descDiv);
 
     // Mirrors section
     var mirDiv=document.createElement('div');

@@ -71,6 +71,12 @@ class TaskActionResponse(BaseModel):
     message: str
 
 
+class QueueStatusResponse(BaseModel):
+    success: bool
+    is_running: bool = False
+    error: Optional[str] = None
+
+
 class VerifyFileResponse(BaseModel):
     task_id: str
     is_valid: bool
@@ -100,5 +106,12 @@ class DeleteDownloadRequest(BaseModel):
 
 class ExtractFileResponse(BaseModel):
     success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+
+
+class RetryDownloadResponse(BaseModel):
+    success: bool
+    task_id: Optional[str] = None
     message: Optional[str] = None
     error: Optional[str] = None

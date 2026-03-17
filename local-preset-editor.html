@@ -155,7 +155,7 @@
   <body>
     <div id="root"></div>
     <script type="text/babel">
-      const { useState, useRef, useCallback } = React;
+      const { useState, useRef, useCallback, useEffect } = React;
       const uid = () => Math.random().toString(36).slice(2,6).toUpperCase();
       const fmtBytes = b => { if(!b&&b!==0)return''; if(b>=1e9)return(b/1e9).toFixed(2)+' GB'; if(b>=1e6)return(b/1e6).toFixed(1)+' MB'; if(b>0)return Math.round(b/1e3)+' KB'; return'0'; };
       const deepClone = o => JSON.parse(JSON.stringify(o));
@@ -605,6 +605,85 @@
             });
         };
 
+        // ── CivitAI helpers ─────────────────────────────────────────────────────
+
+        // Build canonical download URL from any civitai URL
+        const civitaiDownloadUrl = (u) => {
+          try {
+            var pu = new URL(u);
+            if (pu.pathname.includes('/api/download/models/')) return u;
+            var m = pu.pathname.match(/\/models\/(\d+)/);
+            if (m) {
+              var qv = pu.searchParams.get('modelVersionId');
+              return 'https://civitai.com/api/download/models/' + (qv || m[1]);
+            }
+          } catch(e) {}
+          return u;
+        };
+
+        // Fetch metadata from CivitAI API (via CORS proxy)
+        // Handles: /api/download/models/{versionId}, /models/{modelId}[?modelVersionId=…]
+        const fetchCivitaiMeta = (u, extraHeaders) => {
+          var proxy = 'https://corsproxy.io/?';
+          try {
+            var pu = new URL(u);
+            if (!pu.hostname.includes('civitai.com')) return Promise.reject(new Error('not civitai'));
+
+            const fetchByVersionId = (versionId, wantType, wantFmt) => {
+              var apiUrl = 'https://civitai.com/api/v1/model-versions/' + versionId;
+              return fetch(proxy + encodeURIComponent(apiUrl), {headers: extraHeaders})
+                .then(function(r) { if (!r.ok) throw new Error('API HTTP ' + r.status); return r.json(); })
+                .then(function(json) {
+                  var files = json.files || [];
+                  var file = files[0];
+                  if (wantType || wantFmt) {
+                    var match = files.find(function(f) {
+                      var ft = (f.type||'').toLowerCase();
+                      var ff = ((f.metadata&&f.metadata.format)||'').toLowerCase();
+                      return (!wantType || ft===wantType || ft.replace(/\s/g,'')===wantType) &&
+                             (!wantFmt  || ff===wantFmt);
+                    });
+                    if (match) file = match;
+                  }
+                  if (!file) throw new Error('no files in API response');
+                  var item = { id: file.name||('civitai_'+versionId), mirrors:[{url:u}] };
+                  if (file.name)   item.file_name  = file.name;
+                  if (file.sizeKB) item.file_size  = Math.round(file.sizeKB * 1024);
+                  if (file.hashes && file.hashes.SHA256) {
+                    item.checksum       = file.hashes.SHA256.toLowerCase();
+                    item.hash_algorithm = 'sha256';
+                  }
+                  if (json.model && json.model.name) item.description = json.model.name;
+                  return item;
+                });
+            };
+
+            var wantType = (pu.searchParams.get('type')||'').toLowerCase();
+            var wantFmt  = (pu.searchParams.get('format')||'').toLowerCase();
+
+            // Pattern: /api/download/models/{versionId}
+            var dlMatch = pu.pathname.match(/\/api\/download\/models\/(\d+)/);
+            if (dlMatch) return fetchByVersionId(dlMatch[1], wantType, wantFmt);
+
+            // Pattern: /models/{modelId}[/slug][?modelVersionId=…]
+            var pageMatch = pu.pathname.match(/\/models\/(\d+)/);
+            if (pageMatch) {
+              var qv = pu.searchParams.get('modelVersionId');
+              if (qv) return fetchByVersionId(qv, wantType, wantFmt);
+              // No versionId — fetch model to get latest version
+              var modelApiUrl = 'https://civitai.com/api/v1/models/' + pageMatch[1];
+              return fetch(proxy + encodeURIComponent(modelApiUrl), {headers: extraHeaders})
+                .then(function(r) { if (!r.ok) throw new Error('Models API HTTP ' + r.status); return r.json(); })
+                .then(function(json) {
+                  var versions = json.modelVersions || [];
+                  if (!versions.length) throw new Error('no versions');
+                  return fetchByVersionId(String(versions[0].id), wantType, wantFmt);
+                });
+            }
+            return Promise.reject(new Error('unrecognised civitai URL'));
+          } catch(e) { return Promise.reject(e); }
+        };
+
         // Mutate a field on item at index
         const updateItem = (idx, field, value) => {
           setItems(function(prev) {
@@ -678,6 +757,13 @@
           setChecked(next);
         };
 
+        // Close on ESC
+        useEffect(function() {
+          function onKeyDown(e) { if (e.key === 'Escape') onClose(); }
+          document.addEventListener('keydown', onKeyDown);
+          return function() { document.removeEventListener('keydown', onKeyDown); };
+        }, [onClose]);
+
         const doAdd = () => {
           const u = url.trim();
           if (!u) { setStatus({type:'err',msg:'Please enter a URL'}); return; }
@@ -726,6 +812,29 @@
             }
           }
 
+          // CivitAI: API first, then GET-Range via proxy following 307→CDN
+          if (u.includes('civitai.com')) {
+            setStatus({type:'loading', msg:'CivitAI: resolving metadata via API...'});
+            fetchCivitaiMeta(u, extraHeaders)
+              .then(finishItem)
+              .catch(function() {
+                setStatus({type:'loading', msg:'CivitAI API failed, trying download redirect...'});
+                var dlUrl = civitaiDownloadUrl(u);
+                fetch(proxy + encodeURIComponent(dlUrl), {method:'GET', headers:Object.assign({},extraHeaders,{Range:'bytes=0-0'}), redirect:'follow'})
+                  .then(function(r) {
+                    var item = buildFileItem(u, r.headers);
+                    item.mirrors = [{url:u}];
+                    finishItem(item);
+                  })
+                  .catch(function() {
+                    setStatus({type:'ok', msg:'Added (metadata unavailable — please fill in manually)'});
+                    var name = filenameFromUrl(u) || ('dl_'+Math.random().toString(36).slice(2,6).toUpperCase());
+                    finishItem({id:name, file_name:name, mirrors:[{url:u}]});
+                  });
+              });
+            return;
+          }
+
           // Generic file: direct HEAD, fallback to CORS proxy
           fetch(u, {method:'HEAD', headers:extraHeaders})
             .then(function(resp) {
@@ -750,7 +859,7 @@
         };
 
         return (
-          <div className="modal-backdrop show" onClick={function(e){if(e.target===e.currentTarget)onClose();}}>
+          <div className="modal-backdrop show">
             <div className="import-url-modal" style={{maxWidth:1100,width:'98vw',maxHeight:'92vh'}}>
               <div className="modal-head"><span>Import Downloads from URL</span><button className="btn ghost sm" onClick={onClose}>✕</button></div>
               <div className="import-url-body" style={{overflowY:'auto',flex:1}}>
@@ -810,7 +919,7 @@
                               style={{accentColor:'var(--accent)',width:13,height:13,flexShrink:0,cursor:'pointer'}} />
                             <span className="iurl-card-fname" onClick={function(){toggleExpanded(idx);}} style={{cursor:'pointer'}}>{item.file_name||item.id||'unnamed'}</span>
                             {item.file_size&&<span style={{fontSize:10.5,color:'var(--text-3)',fontFamily:'var(--font-mono)',flexShrink:0}}>{fmtBytes(item.file_size)}</span>}
-                            {item.checksum&&<span className="badge green" style={{flexShrink:0}}>SHA256</span>}
+                            {item.checksum&&<span className="badge green" style={{flexShrink:0}}>{(item.hash_algorithm||'sha256').toUpperCase()}</span>}
                             {item.mirrors&&item.mirrors[0]&&item.mirrors[0].auth&&<span className="badge orange" style={{flexShrink:0}}>{item.mirrors[0].auth}</span>}
                             <span style={{fontSize:9,color:'var(--text-3)',cursor:'pointer'}} onClick={function(){toggleExpanded(idx);}}>{expanded[idx]?'▲':'▼'}</span>
                             <button className="btn danger sm" style={{padding:'2px 6px',fontSize:11}} onClick={function(e){e.stopPropagation();removeItem(idx);}}>✕</button>
@@ -840,12 +949,26 @@
                                     <input type="number" defaultValue={item.file_size||''} key={'fs-'+idx} onBlur={function(e){updateItem(idx,'file_size',e.target.value?+e.target.value:null);}} />
                                   </div>
                                 </div>
-                                {item.checksum && (
+                                <div style={{display:'grid',gridTemplateColumns:'1fr 2fr',gap:8}}>
                                   <div className="iurl-field">
-                                    <label>Checksum (SHA256)</label>
-                                    <input defaultValue={item.checksum||''} key={'cs-'+idx} onBlur={function(e){updateItem(idx,'checksum',e.target.value);}} style={{fontFamily:'var(--font-mono)',fontSize:10.5}} />
+                                    <label>Hash Algo</label>
+                                    <select value={item.hash_algorithm||''} onChange={function(e){updateItem(idx,'hash_algorithm',e.target.value||null);}}
+                                      style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:'var(--radius-sm)',padding:'5px 8px',fontFamily:'var(--font-mono)',fontSize:11.5,color:'var(--text)',outline:'none',width:'100%',appearance:'none'}}>
+                                      <option value="">— None —</option>
+                                      <option value="sha256">sha256</option>
+                                      <option value="sha1">sha1</option>
+                                      <option value="md5">md5</option>
+                                    </select>
                                   </div>
-                                )}
+                                  <div className="iurl-field">
+                                    <label>Checksum</label>
+                                    <input defaultValue={item.checksum||''} key={'cs-'+idx+'-'+(item.checksum||'')} placeholder="hash value" onBlur={function(e){updateItem(idx,'checksum',e.target.value);}} style={{fontFamily:'var(--font-mono)',fontSize:10.5}} />
+                                  </div>
+                                </div>
+                                <div className="iurl-field">
+                                  <label>Description <span style={{fontWeight:400,textTransform:'none',letterSpacing:0,color:'var(--text-3)',fontSize:10}}>(optional)</span></label>
+                                  <input defaultValue={item.description||''} key={'desc-'+idx+'-'+(item.description||'')} placeholder="short description" onBlur={function(e){updateItem(idx,'description',e.target.value);}} />
+                                </div>
                                 {/* Mirror URLs */}
                                 <div>
                                   <div style={{fontSize:10,fontWeight:700,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'.07em',marginBottom:4}}>Mirrors</div>

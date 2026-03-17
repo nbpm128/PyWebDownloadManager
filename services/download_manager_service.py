@@ -29,6 +29,8 @@ from schemas.downloads import (
     SetConcurrencyResponse,
     GetConcurrencyResponse,
     ExtractFileResponse,
+    QueueStatusResponse,
+    RetryDownloadResponse,
 )
 from settings import settings
 
@@ -138,6 +140,15 @@ class DownloadManagerService:
         except Exception as exc:
             logger.error("Failed to stop downloads | error=%s", exc)
             return TaskActionResponse(success=False, message=str(exc))
+
+    @property
+    def is_queue_running(self) -> bool:
+        """Return True if the queue manager is actively processing tasks."""
+        return self._download_manager.queue_manager.is_running
+
+    def get_queue_status(self) -> QueueStatusResponse:
+        """Return the current queue running state."""
+        return QueueStatusResponse(success=True, is_running=self.is_queue_running)
 
     def pause_download(self, task_id: str) -> TaskActionResponse:
         success = self._download_manager.stop_download(task_id)
@@ -336,6 +347,75 @@ class DownloadManagerService:
             expected_hash=task.expected_hash,
             mirrors_count=len(task.mirrors),
         )
+
+    async def retry_download(self, task_id: str) -> RetryDownloadResponse:
+        """Re-queue a failed task using all its original mirrors."""
+        if task_id not in self._download_manager.tasks:
+            logger.warning("retry_download: task not found | task_id=%s", task_id)
+            return RetryDownloadResponse(success=False, error="Task not found")
+
+        task = self._download_manager.tasks[task_id]
+
+        if task.status != DownloadStatus.FAILED:
+            logger.warning(
+                "retry_download: task is not in failed state | task_id=%s | status=%s",
+                task_id, task.status,
+            )
+            return RetryDownloadResponse(
+                success=False,
+                error=f"Task is not in failed state (current: {task.status})",
+            )
+
+        try:
+            mirrors = [
+                MirrorSchema(
+                    url=m.url,
+                    priority=m.priority,
+                    headers=dict(m.headers) if m.headers else {},
+                    cookies=dict(m.cookies) if m.cookies else {},
+                )
+                for m in task.mirrors
+            ]
+
+            extract_opts = None
+            if task.extract:
+                from schemas.downloads import ExtractOptionsSchema
+                extract_opts = ExtractOptionsSchema(
+                    format=task.extract.format.value if hasattr(task.extract.format, "value") else task.extract.format,
+                    destination=task.extract.destination,
+                    remove_archive=task.extract.remove_archive,
+                    password=task.extract.password,
+                )
+
+            retry_request = AddDownloadRequest(
+                file_name=task.file_name,
+                folder_path=task.folder_path,
+                mirrors=mirrors,
+                expected_hash=task.expected_hash,
+                hash_algorithm=task.hash_algorithm or "sha256",
+                extract=extract_opts,
+            )
+
+            # Remove the failed task before re-adding (keep file if it exists)
+            await self._download_manager.delete_task(task, delete_file=False)
+
+            response = await self.add_download(retry_request)
+            if response.success:
+                logger.info(
+                    "Download task retried | old_task_id=%s | new_task_id=%s | mirrors=%d",
+                    task_id, response.task_id, len(mirrors),
+                )
+                return RetryDownloadResponse(
+                    success=True,
+                    task_id=response.task_id,
+                    message="Download task retried successfully",
+                )
+            else:
+                return RetryDownloadResponse(success=False, error=response.error)
+
+        except Exception as exc:
+            logger.error("Failed to retry download task | task_id=%s | error=%s", task_id, exc)
+            return RetryDownloadResponse(success=False, error=str(exc))
 
     async def extract_file(self, task_id: str) -> ExtractFileResponse:
         if task_id not in self._download_manager.tasks:
