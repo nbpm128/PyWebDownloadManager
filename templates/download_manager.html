@@ -863,6 +863,137 @@
         .dl-actions      { display: flex; gap: 4px; }
         .dl-actions .btn-sm { padding: 4px 10px; font-size: 0.75em; }
 
+        /* ── Compact view ── */
+        .downloads-list.view-compact { gap: 3px; }
+        .downloads-list.view-compact .download-card { padding: 0; }
+        /* In compact mode: show compact row, hide expanded rows */
+        .downloads-list.view-compact .download-card:not(.card-expanded) .dl-top    { display: none !important; }
+        .downloads-list.view-compact .download-card:not(.card-expanded) .dl-bottom { display: none !important; }
+        .downloads-list.view-compact .download-card:not(.card-expanded) .dl-error  { display: none !important; }
+        .downloads-list.view-compact .download-card:not(.card-expanded) .dl-compact-row { display: flex !important; }
+        /* In compact mode, expanded cards still show full view */
+        .downloads-list.view-compact .download-card.card-expanded .dl-compact-row { display: none !important; }
+        .downloads-list.view-compact .download-card.card-expanded { padding: 12px 14px; }
+
+        /* compact row — hidden by default (only shown in compact view) */
+        .dl-compact-row {
+            display: none;
+            align-items: center; gap: 8px;
+            padding: 5px 10px; min-width: 0;
+        }
+        .dl-compact-fname {
+            flex: 1; min-width: 0; font-family: 'DM Mono', monospace;
+            font-size: 0.8em; font-weight: 500; color: var(--text);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        /* Fat progress bar with % text inside */
+        .dl-compact-progress {
+            width: 140px; flex-shrink: 0; position: relative;
+        }
+        .dl-compact-track {
+            height: 18px; background: var(--surface-3);
+            border: 1px solid var(--border);
+            border-radius: 4px; overflow: hidden; position: relative;
+        }
+        .dl-compact-fill {
+            height: 100%; border-radius: 3px;
+            background: linear-gradient(90deg, var(--accent), #a78bfa);
+            transition: width 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: absolute; top:0; left:0;
+        }
+        .dl-compact-fill.completed { background: linear-gradient(90deg, var(--green), #34d399); }
+        .dl-compact-fill.active::after {
+            content:''; position:absolute; inset:0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.15));
+            animation: shimmer 1.5s infinite;
+        }
+        .dl-compact-pct-label {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.68em; font-family: 'DM Mono', monospace;
+            font-weight: 700; color: var(--text); z-index: 1;
+            text-shadow: 0 0 4px rgba(0,0,0,.6);
+            pointer-events: none;
+        }
+        /* compact action buttons — smaller */
+        .dl-compact-row .dl-actions { flex-shrink: 0; display: flex; gap: 3px; }
+        .dl-compact-row .dl-actions .btn-sm { padding: 3px 7px; font-size: 0.72em; }
+        /* expand/collapse icon button */
+        .dl-expand-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 22px; height: 22px; flex-shrink: 0; padding: 0;
+            background: var(--surface-3); border: 1px solid var(--border);
+            border-radius: 4px; color: var(--text-3); cursor: pointer;
+            transition: all var(--ease);
+        }
+        .dl-expand-btn:hover { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+        .dl-collapse-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 20px; height: 20px; flex-shrink: 0; padding: 0;
+            background: none; border: 1px solid var(--border);
+            border-radius: 4px; color: var(--text-3); cursor: pointer;
+            transition: all var(--ease);
+        }
+        .dl-collapse-btn:hover { background: var(--surface-2); border-color: var(--accent); color: var(--accent); }
+
+        /* ── Mirror indicator ── */
+        .dl-mirror-row {
+            display: flex; align-items: center; gap: 4px;
+            margin-top: 4px; flex-wrap: wrap;
+        }
+        .dl-mirror-label {
+            font-size: 0.65em; font-weight: 600; color: var(--text-3);
+            text-transform: uppercase; letter-spacing: .06em; flex-shrink: 0;
+        }
+        .dl-mirror-pill {
+            display: inline-flex; align-items: center; gap: 3px;
+            padding: 1px 6px; border-radius: 4px; font-size: 0.65em;
+            font-family: 'DM Mono', monospace; font-weight: 600;
+            background: var(--surface-2); border: 1px solid var(--border);
+            color: var(--text-3); transition: all var(--ease); cursor: default;
+        }
+        .dl-mirror-pill.active {
+            background: var(--blue-dim); border-color: rgba(96,165,250,.35);
+            color: var(--blue);
+        }
+        .dl-mirror-pill.active::before {
+            content: ''; width: 5px; height: 5px; border-radius: 50%;
+            background: var(--blue); flex-shrink: 0;
+            animation: pulse 1.5s infinite;
+        }
+        .dl-mirror-pill.failed {
+            background: var(--red-dim); border-color: rgba(244,99,122,.25);
+            color: var(--red); text-decoration: line-through; opacity: 0.6;
+        }
+        .dl-mirror-pill.done {
+            background: var(--green-dim); border-color: rgba(52,211,153,.25);
+            color: var(--green);
+        }
+        .dl-mirror-arrow {
+            font-size: 0.6em; color: var(--text-3); flex-shrink: 0;
+        }
+
+        /* Collapse button: only visible when in compact view (card is expanded) */
+        .dl-collapse-btn { display: none; }
+        .downloads-list.view-compact .dl-collapse-btn { display: inline-flex; }
+
+        /* ── Queue view-mode toggle ── */
+        .queue-view-toggle {
+            display: inline-flex; border: 1px solid var(--border);
+            border-radius: var(--radius-sm); overflow: hidden; flex-shrink: 0;
+        }
+        .queue-view-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 28px; height: 26px; border: none; background: var(--surface-2);
+            color: var(--text-3); cursor: pointer; transition: all var(--ease);
+            font-size: 11px;
+        }
+        .queue-view-btn:hover { background: var(--surface-3); color: var(--text); }
+        .queue-view-btn.active {
+            background: var(--accent-dim); color: var(--accent);
+        }
+        .queue-view-btn + .queue-view-btn { border-left: 1px solid var(--border); }
+
         .dl-error {
             margin-top: 8px;
             padding: 8px 10px;
@@ -1332,6 +1463,16 @@
                     <div class="queue-topbar-divider" style="height:20px;margin:0 4px"></div>
 
                     <div class="queue-secondary-actions">
+                        <!-- View mode: expanded / compact -->
+                        <div class="queue-view-toggle" title="View mode">
+                            <button class="queue-view-btn active" id="btn-view-expanded" title="Expanded view">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="17" width="18" height="4" rx="1"/></svg>
+                            </button>
+                            <button class="queue-view-btn" id="btn-view-compact" title="Compact view">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                            </button>
+                        </div>
+                        <div class="queue-topbar-divider" style="height:18px;margin:0 2px"></div>
                         <label class="queue-select-label">
                             <input type="checkbox" id="queue-select-all-cb" style="width:14px;height:14px;">
                             <span id="queue-select-all-label">Select all</span>
@@ -1719,6 +1860,28 @@ let queueSelectedIds = new Set();
 
 /* ── Queue filter state ── */
 let queueFilter = 'all';
+
+/* ── Queue view mode: 'expanded' | 'compact' ── */
+let queueViewMode = 'expanded';
+/* ── Per-card expanded state in compact mode: taskId → bool ── */
+let cardExpandedState = {};
+
+function setQueueViewMode(mode) {
+    queueViewMode = mode;
+    const list = document.getElementById('downloads-list');
+    list.classList.toggle('view-compact', mode === 'compact');
+    document.getElementById('btn-view-expanded').classList.toggle('active', mode === 'expanded');
+    document.getElementById('btn-view-compact').classList.toggle('active', mode === 'compact');
+    // When switching to expanded, clear per-card expanded state
+    if (mode === 'expanded') cardExpandedState = {};
+}
+
+function toggleCardExpand(taskId) {
+    cardExpandedState[taskId] = !cardExpandedState[taskId];
+    const card = document.querySelector(`.download-card[data-task-id="${taskId}"]`);
+    if (!card) return;
+    card.classList.toggle('card-expanded', !!cardExpandedState[taskId]);
+}
 
 function setQueueFilter(filter) {
     queueFilter = filter;
@@ -2182,7 +2345,10 @@ async function loadDownloads() {
             const dt    = prev ? (now - prev.ts) / 1000 : 0;
             dl._speed = dl.speed != null ? dl.speed
                 : (prev && dt > 0 && dl.status === 'downloading') ? Math.max(0, (bytes - prev.bytes) / dt) : 0;
-            speedTracker[dl.task_id] = { bytes, ts: now };
+            // Preserve mirrors list from previous poll (API only returns mirrors_count)
+            if (prev && prev.mirrors) dl._mirrors = prev.mirrors;
+            else if (dl._mirrors === undefined) dl._mirrors = [];
+            speedTracker[dl.task_id] = { bytes, ts: now, mirrors: dl._mirrors };
         });
         const activeIds = new Set(data.tasks.map(d => d.task_id));
         Object.keys(speedTracker).forEach(id => { if (!activeIds.has(id)) delete speedTracker[id]; });
@@ -2203,6 +2369,26 @@ async function downloadAction(taskId, action) {
 }
 window.resumeDownload = (id) => downloadAction(id, 'resume');
 window.pauseDownload  = (id) => downloadAction(id, 'pause');
+
+window.retryDownload = async (taskId, btn) => {
+    btn.disabled    = true;
+    btn.textContent = '⏳';
+    try {
+        const data = await apiFetch(`/api/downloads/${taskId}/retry`, 'POST');
+        if (data.success) {
+            showFlash('queue', 'Download requeued successfully', 'success');
+            await loadDownloads();
+        } else {
+            showFlash('queue', data.error ?? 'Retry failed', 'error');
+            btn.disabled    = false;
+            btn.textContent = '🔄';
+        }
+    } catch {
+        showFlash('queue', 'Error retrying download', 'error');
+        btn.disabled    = false;
+        btn.textContent = '🔄';
+    }
+};
 
 window.extractDownload = async (taskId, btn) => {
     btn.disabled    = true;
@@ -2464,6 +2650,45 @@ function renderDownloads() {
     });
 }
 
+/* ── Mirror indicator helpers ── */
+function buildMirrorPillsHtml(dl) {
+    const count = dl.mirrors_count ?? 0;
+    if (count <= 0) return '';
+    if (count === 1 && dl.status !== 'downloading') return ''; // single mirror, no need to show when idle
+
+    const currentUrl = dl.url ?? '';
+    const mirrors = dl._mirrors ?? [];
+    const isActive = dl.status === 'downloading';
+    const isDone   = dl.status === 'completed';
+
+    let pills = '';
+
+    if (mirrors.length > 0) {
+        // Full mirror list available — match by URL
+        mirrors.forEach((m, i) => {
+            const active = isActive && m.url === currentUrl;
+            const done   = isDone;
+            const cls    = active ? 'active' : done ? 'done' : '';
+            pills += `<span class="dl-mirror-pill ${cls}" title="${m.url}">M${i+1}</span>`;
+            if (i < mirrors.length - 1) pills += `<span class="dl-mirror-arrow">›</span>`;
+        });
+    } else {
+        // Fallback: count-only — detect which mirror by matching URL suffix pattern
+        // We track "last seen active index" via data attribute on card (set on patchCard)
+        const activeIdx = dl._activeMirrorIdx ?? 0;
+        for (let i = 0; i < count; i++) {
+            const active = isActive && i === activeIdx;
+            const done   = isDone;
+            const cls    = active ? 'active' : done ? 'done' : '';
+            pills += `<span class="dl-mirror-pill ${cls}">M${i+1}</span>`;
+            if (i < count - 1) pills += `<span class="dl-mirror-arrow">›</span>`;
+        }
+    }
+
+    if (!pills) return '';
+    return `<div class="dl-mirror-row"><span class="dl-mirror-label">Mirror:</span>${pills}</div>`;
+}
+
 function patchCard(card, dl) {
     const pct      = dl.total_bytes > 0 ? Math.round((dl.downloaded_bytes / dl.total_bytes) * 100) : Math.round(dl.percentage ?? 0);
     const isActive = dl.status === 'downloading';
@@ -2496,12 +2721,60 @@ function patchCard(card, dl) {
         badge.className   = `badge badge-${dl.status}`;
     }
 
+    // Compact badge
+    const badgeC = card.querySelector('.dl-compact-badge');
+    if (badgeC) {
+        badgeC.textContent = dl.status;
+        badgeC.className   = `badge badge-${dl.status} dl-compact-badge`;
+    }
+
+    // Track active mirror index — increment when URL changes during download
+    if (dl.status === 'downloading' && dl.url) {
+        const prevUrl = card.dataset.mirrorUrl;
+        if (prevUrl && prevUrl !== dl.url) {
+            dl._activeMirrorIdx = (dl._activeMirrorIdx ?? 0) + 1;
+        }
+        if (dl._activeMirrorIdx === undefined) dl._activeMirrorIdx = 0;
+        card.dataset.mirrorUrl = dl.url;
+    }
+
+    // Mirror pills — re-render when url or status changes
+    const mirrorRow = card.querySelector('.dl-mirror-row');
+    const newMirrorHtml = buildMirrorPillsHtml(dl);
+    const dlInfo = card.querySelector('.dl-info');
+    if (dlInfo) {
+        // Remove old mirror row if present
+        if (mirrorRow) mirrorRow.remove();
+        // Insert fresh one before end of dl-info
+        if (newMirrorHtml) dlInfo.insertAdjacentHTML('beforeend', newMirrorHtml);
+    }
+
     // Action buttons — only re-render on status change
     if (card.dataset.status !== dl.status) {
         card.dataset.status = dl.status;
         const actions = card.querySelector('.dl-actions');
         if (actions) actions.innerHTML = buildActionsHtml(dl);
     }
+
+    // Sync compact progress fill
+    const fillC = card.querySelector('.dl-compact-fill');
+    if (fillC) {
+        fillC.style.width = pct + '%';
+        fillC.classList.toggle('active',    isActive);
+        fillC.classList.toggle('completed', dl.status === 'completed');
+    }
+    const pctLabel = card.querySelector('.dl-compact-pct-label');
+    if (pctLabel) pctLabel.textContent = pct + '%';
+
+    // Sync compact action buttons
+    const compactActions = card.querySelector('.dl-compact-row .dl-actions');
+    if (compactActions && card.dataset.status !== dl.status) {
+        compactActions.innerHTML = buildActionsHtml(dl);
+    }
+
+    // Sync expanded state
+    const isCardExp = !!cardExpandedState[dl.task_id];
+    card.classList.toggle('card-expanded', isCardExp);
 
     // Sync selection state
     card.classList.toggle('queue-selected', queueSelectedIds.has(dl.task_id));
@@ -2524,39 +2797,95 @@ function buildActionsHtml(dl) {
         ${ dl.status === 'pending' || dl.status === 'paused' ? `<button class="btn btn-sm btn-ghost" onclick="resumeDownload('${dl.task_id}')">▶️</button>` : '' }
         ${ isActive ? `<button class="btn btn-sm btn-ghost" onclick="pauseDownload('${dl.task_id}')">⏸️</button>` : '' }
         ${ dl.status === 'completed' && (dl.file_name ?? '').toLowerCase().endsWith('.zip') ? `<button class="btn btn-sm btn-ghost" title="Extract ZIP" onclick="extractDownload('${dl.task_id}', this)">📦</button>` : '' }
+        ${ dl.status === 'failed' ? `<button class="btn btn-sm btn-ghost" title="Retry — will try all mirrors" onclick="retryDownload('${dl.task_id}', this)" style="color:var(--yellow);border-color:rgba(245,191,79,.35)">🔄</button>` : '' }
         <button class="btn btn-sm btn-danger" onclick="deleteDownload('${dl.task_id}')">🗑️</button>
     `;
 }
 
 function downloadCardHtml(dl) {
-    const pct      = dl.total_bytes > 0 ? Math.round((dl.downloaded_bytes / dl.total_bytes) * 100) : Math.round(dl.percentage ?? 0);
-    const isActive = dl.status === 'downloading';
-    const fileName = dl.file_name ?? basenameOf(dl.filepath);
-    const savePath = dl.folder_path ? `${dl.folder_path}/${dl.file_name ?? ''}` : (dl.filepath ?? '');
-    const url      = dl.url ?? '';
-    const hash     = dl.expected_hash ?? dl.checksum ?? '';
-    const safeUrl  = url.replace(/'/g, "\\'");
-    const isSelected = queueSelectedIds.has(dl.task_id);
+    const pct        = dl.total_bytes > 0 ? Math.round((dl.downloaded_bytes / dl.total_bytes) * 100) : Math.round(dl.percentage ?? 0);
+    const isActive   = dl.status === 'downloading';
+    const fileName   = dl.file_name ?? basenameOf(dl.filepath);
+    const savePath   = dl.folder_path ? `${dl.folder_path}/${dl.file_name ?? ''}` : (dl.filepath ?? '');
+    const url        = dl.url ?? '';
+    const hash       = dl.expected_hash ?? dl.checksum ?? '';
+    const safeUrl    = url.replace(/'/g, "\'");
+    const isSelected  = queueSelectedIds.has(dl.task_id);
+    const isCardExp   = !!cardExpandedState[dl.task_id];
 
     const speedChip = isActive
         ? `<span class="dl-speed">⚡ ${formatSpeed(dl._speed)}</span>`
         : `<span class="dl-speed idle">${dl.status === 'completed' ? '✓ done' : dl.status}</span>`;
 
+    const mirrorHtml = buildMirrorPillsHtml(dl);
+
+    // Mirror pills for compact row (inline, no label)
+    const count = dl.mirrors_count ?? 0;
+    let compactMirrors = '';
+    if (count > 1) {
+        const mirrors = dl._mirrors ?? [];
+        if (mirrors.length > 0) {
+            mirrors.forEach((m, i) => {
+                const active = isActive && m.url === (dl.url ?? '');
+                const done   = dl.status === 'completed';
+                compactMirrors += `<span class="dl-mirror-pill ${active ? 'active' : done ? 'done' : ''}" title="${m.url}" style="padding:0 4px;font-size:.6em">M${i+1}</span>`;
+                if (i < mirrors.length - 1) compactMirrors += `<span class="dl-mirror-arrow" style="font-size:.55em">›</span>`;
+            });
+        } else {
+            const activeIdx = dl._activeMirrorIdx ?? 0;
+            for (let i = 0; i < count; i++) {
+                const active = isActive && i === activeIdx;
+                compactMirrors += `<span class="dl-mirror-pill ${active ? 'active' : ''}" style="padding:0 4px;font-size:.6em">M${i+1}</span>`;
+                if (i < count - 1) compactMirrors += `<span class="dl-mirror-arrow" style="font-size:.55em">›</span>`;
+            }
+        }
+    }
+
+    // Expand icon SVG
+    const expandIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>`;
+    // Collapse icon SVG
+    const collapseIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="10" y1="14" x2="21" y2="3"></line><line x1="3" y1="21" x2="14" y2="10"></line></svg>`;
+
     return `
-        <div class="download-card${isSelected ? ' queue-selected' : ''}" data-task-id="${dl.task_id}" data-status="${dl.status}">
+        <div class="download-card${isSelected ? ' queue-selected' : ''}${isCardExp ? ' card-expanded' : ''}"
+             data-task-id="${dl.task_id}" data-status="${dl.status}">
+
+            <!-- ── COMPACT ROW ── -->
+            <div class="dl-compact-row">
+                <input type="checkbox" class="dl-select-checkbox" data-task-id="${dl.task_id}" ${isSelected ? 'checked' : ''}>
+                <span class="dl-compact-fname" title="${fileName}">${fileName}</span>
+                ${ compactMirrors ? `<div style="display:flex;align-items:center;gap:2px;flex-shrink:0">${compactMirrors}</div>` : '' }
+                <div class="dl-compact-progress">
+                    <div class="dl-compact-track">
+                        <div class="dl-compact-fill ${isActive ? 'active' : ''} ${dl.status === 'completed' ? 'completed' : ''}"
+                             style="width:${pct}%"></div>
+                        <span class="dl-compact-pct-label">${pct}%</span>
+                    </div>
+                </div>
+                <button class="dl-expand-btn" onclick="toggleCardExpand('${dl.task_id}')" title="Expand">${expandIcon}</button>
+                <div class="dl-actions">${buildActionsHtml(dl)}</div>
+            </div>
+
+            <!-- ── EXPANDED: TOP ROW ── -->
             <div class="dl-top">
                 <input type="checkbox" class="dl-select-checkbox" data-task-id="${dl.task_id}" ${isSelected ? 'checked' : ''}>
                 <div class="dl-info">
-                    <div class="dl-filename" title="${fileName}">${fileName}</div>
+                    <div style="display:flex;align-items:center;gap:6px;min-width:0">
+                        <div class="dl-filename" title="${fileName}" style="flex:1;min-width:0">${fileName}</div>
+                        <button class="dl-collapse-btn js-collapse-btn" onclick="toggleCardExpand('${dl.task_id}')" title="Collapse to compact">${collapseIcon}</button>
+                    </div>
                     ${ savePath ? `<div class="dl-meta-row"><span class="dl-meta-label">Path:</span><span class="dl-meta-val">${savePath}</span></div>` : '' }
                     ${ hash     ? `<div class="dl-meta-row"><span class="dl-meta-label">Hash:</span><span class="dl-meta-val hash">${hash}</span></div>` : '' }
                     <div class="dl-url-row">
                         <span class="dl-url" title="${url}">${url}</span>
                         ${ url ? `<button class="btn-copy" title="Copy URL" onclick="copyUrl('${safeUrl}', this)">⎘</button>` : '' }
                     </div>
+                    ${ mirrorHtml }
                 </div>
                 <span class="badge badge-${dl.status}">${dl.status}</span>
             </div>
+
+            <!-- ── EXPANDED: BOTTOM ROW ── -->
             <div class="dl-bottom">
                 <div class="dl-progress">
                     <div class="progress-track">
@@ -2759,6 +3088,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-cancel-selection').addEventListener('click', () => { selectedKeys.clear(); updateSelectionBar(); renderPresets(); });
 
     document.getElementById('btn-refresh').addEventListener('click', loadDownloads);
+
+    // Queue view mode
+    document.getElementById('btn-view-expanded').addEventListener('click', () => setQueueViewMode('expanded'));
+    document.getElementById('btn-view-compact').addEventListener('click',   () => setQueueViewMode('compact'));
+
+
     document.getElementById('btn-queue-toggle').addEventListener('click', toggleQueue);
 
     document.getElementById('btn-set-concurrency').addEventListener('click', async () => {
@@ -2869,13 +3204,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('ep-transfer-move-btn').addEventListener('click', () => epDoTransfer(true));
 });
 
-/* ═══════════════════════════════════════════════════════════════
-   PRESET EDITOR  (Edit Preset tab)
-   Uses /api/configs/* endpoints
-═══════════════════════════════════════════════════════════════ */
-</script>
-
-<script>
 /* ═══════════════════════════════════════════════════════════════
    PRESET EDITOR  (Edit Preset tab)
    Uses /api/configs/* endpoints
