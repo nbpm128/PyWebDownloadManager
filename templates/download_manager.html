@@ -1005,6 +1005,37 @@
             color: var(--red);
         }
 
+        /* ── Extract progress ── */
+        .dl-extract-progress {
+            margin-top: 8px;
+        }
+        .dl-extract-label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75em;
+            color: var(--text-2);
+            margin-bottom: 4px;
+            font-family: 'DM Mono', monospace;
+        }
+        .dl-extract-label [data-ep-pct] {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .dl-extract-track {
+            height: 4px;
+            background: var(--surface-2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .dl-extract-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+            background: linear-gradient(90deg, var(--accent), var(--blue, #60a5fa));
+        }
+
         /* ─────────────────────────────────────────────────────────
            IMPORT TAB
         ───────────────────────────────────────────────────────── */
@@ -2638,12 +2669,15 @@ function renderDownloads() {
             const tmp = document.createElement('div');
             tmp.innerHTML = downloadCardHtml(dl);
             const newCard = tmp.firstElementChild;
+            // Reset data-status so patchCard always syncs buttons on first render
+            newCard.dataset.status = '';
             const cards = list.querySelectorAll('.download-card');
             if (cards[i]) list.insertBefore(newCard, cards[i]);
             else list.appendChild(newCard);
             // Attach checkbox listener
             const cb = newCard.querySelector('.dl-select-checkbox');
             if (cb) cb.addEventListener('change', () => onQueueCheckboxChange(dl.task_id, cb.checked));
+            patchCard(newCard, dl);
         } else {
             patchCard(existing, dl);
         }
@@ -2749,11 +2783,12 @@ function patchCard(card, dl) {
         if (newMirrorHtml) dlInfo.insertAdjacentHTML('beforeend', newMirrorHtml);
     }
 
-    // Action buttons — only re-render on status change
+    // Action buttons — re-render all instances (expanded + compact) on status change
     if (card.dataset.status !== dl.status) {
         card.dataset.status = dl.status;
-        const actions = card.querySelector('.dl-actions');
-        if (actions) actions.innerHTML = buildActionsHtml(dl);
+        card.querySelectorAll('.dl-actions').forEach(actions => {
+            actions.innerHTML = buildActionsHtml(dl);
+        });
     }
 
     // Sync compact progress fill
@@ -2765,12 +2800,6 @@ function patchCard(card, dl) {
     }
     const pctLabel = card.querySelector('.dl-compact-pct-label');
     if (pctLabel) pctLabel.textContent = pct + '%';
-
-    // Sync compact action buttons
-    const compactActions = card.querySelector('.dl-compact-row .dl-actions');
-    if (compactActions && card.dataset.status !== dl.status) {
-        compactActions.innerHTML = buildActionsHtml(dl);
-    }
 
     // Sync expanded state
     const isCardExp = !!cardExpandedState[dl.task_id];
@@ -2788,6 +2817,27 @@ function patchCard(card, dl) {
         if (errEl.textContent !== dl.error_message) errEl.textContent = dl.error_message;
     } else if (errEl) {
         errEl.remove();
+    }
+
+    // Extract progress — show only when status is 'processing'
+    const dlProgress = card.querySelector('.dl-progress');
+    let epRow = card.querySelector('[data-ep-row]');
+    if (dl.status === 'processing' && dl.extract_progress != null && dlProgress) {
+        const epPct = Math.round(dl.extract_progress);
+        if (!epRow) {
+            epRow = document.createElement('div');
+            epRow.className = 'dl-extract-progress';
+            epRow.setAttribute('data-ep-row', '');
+            epRow.innerHTML = `<div class="dl-extract-label">📦 Extracting… <span data-ep-pct>${epPct}%</span></div><div class="dl-extract-track"><div class="dl-extract-fill" style="width:${epPct}%"></div></div>`;
+            dlProgress.appendChild(epRow);
+        } else {
+            const pctEl = epRow.querySelector('[data-ep-pct]');
+            const fillEl = epRow.querySelector('.dl-extract-fill');
+            if (pctEl) pctEl.textContent = epPct + '%';
+            if (fillEl) fillEl.style.width = epPct + '%';
+        }
+    } else if (epRow) {
+        epRow.remove();
     }
 }
 
@@ -2895,6 +2945,13 @@ function downloadCardHtml(dl) {
                         <span data-pt="pct">${pct}% &nbsp;${speedChip}</span>
                         <span data-pt="bytes">${formatBytes(dl.downloaded_bytes)} / ${formatBytes(dl.total_bytes)}</span>
                     </div>
+                    ${ dl.status === 'processing' && dl.extract_progress != null ? `
+                    <div class="dl-extract-progress" data-ep-row>
+                        <div class="dl-extract-label">📦 Extracting… <span data-ep-pct>${Math.round(dl.extract_progress)}%</span></div>
+                        <div class="dl-extract-track">
+                            <div class="dl-extract-fill" style="width:${Math.round(dl.extract_progress)}%"></div>
+                        </div>
+                    </div>` : '' }
                 </div>
                 <div class="dl-actions">
                     ${ buildActionsHtml(dl) }

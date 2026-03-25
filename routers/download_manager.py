@@ -52,7 +52,9 @@ url_meta_service = UrlMetaService()
 
 @router.get("/dm")
 async def download_manager_page(request: Request):
-    return templates.TemplateResponse("download_manager.html", {"request": request, "active_page": "dm"})
+    return templates.TemplateResponse(
+        request=request, name="download_manager.html", context={"request": request, "active_page": "dm"}
+    )
 
 
 # ===========================================================================

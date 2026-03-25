@@ -38,7 +38,7 @@ async def root():
 async def dashboard(request: Request):
     """Dashboard page with system information"""
     return templates.TemplateResponse(
-        "dashboard.html", {"request": request, "active_page": "dashboard"}
+        request=request, name="dashboard.html", context={"request": request, "active_page": "dashboard"}
     )
 
 

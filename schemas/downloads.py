@@ -51,6 +51,7 @@ class TaskSchema(BaseModel):
     error_message: Optional[str] = None
     expected_hash: Optional[str] = None
     mirrors_count: int = 0
+    extract_progress: Optional[float] = None
 
 
 class AllTasksResponse(BaseModel):

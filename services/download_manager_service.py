@@ -317,7 +317,7 @@ class DownloadManagerService:
     def _task_to_schema(task: DownloadTask) -> TaskSchema:
         total = task.total_bytes or 0
         downloaded = task.downloaded_bytes or 0
-        progress = round((downloaded / total) * 100, 2) if total > 0 else 0.0
+        progress = round(min((downloaded / total) * 100, 100.0), 2) if total > 0 else 0.0
 
         speed: Optional[float] = None
         if task.created_at and task.status != DownloadStatus.PENDING:
@@ -346,10 +346,11 @@ class DownloadManagerService:
             error_message=task.error_message,
             expected_hash=task.expected_hash,
             mirrors_count=len(task.mirrors),
+            extract_progress=task.extract_progress,
         )
 
     async def retry_download(self, task_id: str) -> RetryDownloadResponse:
-        """Re-queue a failed task using all its original mirrors."""
+        """Re-queue a failed task, resuming from the partial file if it exists."""
         if task_id not in self._download_manager.tasks:
             logger.warning("retry_download: task not found | task_id=%s", task_id)
             return RetryDownloadResponse(success=False, error="Task not found")
@@ -367,52 +368,13 @@ class DownloadManagerService:
             )
 
         try:
-            mirrors = [
-                MirrorSchema(
-                    url=m.url,
-                    priority=m.priority,
-                    headers=dict(m.headers) if m.headers else {},
-                    cookies=dict(m.cookies) if m.cookies else {},
-                )
-                for m in task.mirrors
-            ]
-
-            extract_opts = None
-            if task.extract:
-                from schemas.downloads import ExtractOptionsSchema
-                extract_opts = ExtractOptionsSchema(
-                    format=task.extract.format.value if hasattr(task.extract.format, "value") else task.extract.format,
-                    destination=task.extract.destination,
-                    remove_archive=task.extract.remove_archive,
-                    password=task.extract.password,
-                )
-
-            retry_request = AddDownloadRequest(
-                file_name=task.file_name,
-                folder_path=task.folder_path,
-                mirrors=mirrors,
-                expected_hash=task.expected_hash,
-                hash_algorithm=task.hash_algorithm or "sha256",
-                extract=extract_opts,
-            )
-
-            # Remove the failed task before re-adding (keep file if it exists)
-            await self._download_manager.delete_task(task, delete_file=False)
-
-            response = await self.add_download(retry_request)
-            if response.success:
-                logger.info(
-                    "Download task retried | old_task_id=%s | new_task_id=%s | mirrors=%d",
-                    task_id, response.task_id, len(mirrors),
-                )
-                return RetryDownloadResponse(
-                    success=True,
-                    task_id=response.task_id,
-                    message="Download task retried successfully",
-                )
+            success = await self._download_manager.resume_download(task_id)
+            if success:
+                logger.info("Download task retried | task_id=%s", task_id)
+                return RetryDownloadResponse(success=True, task_id=task_id,
+                                             message="Download task retried successfully")
             else:
-                return RetryDownloadResponse(success=False, error=response.error)
-
+                return RetryDownloadResponse(success=False, error="Failed to re-queue task")
         except Exception as exc:
             logger.error("Failed to retry download task | task_id=%s | error=%s", task_id, exc)
             return RetryDownloadResponse(success=False, error=str(exc))
