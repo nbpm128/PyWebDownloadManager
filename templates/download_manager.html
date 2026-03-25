@@ -1331,7 +1331,7 @@
         <div class="page-header-icon">📦</div>
         <div>
             <h1>Download Manager</h1>
-            <p>Manage your downloads with presets and mirrors</p>
+            <p>Manage your downloads</p>
         </div>
     </header>
 {% endblock %}
@@ -3757,216 +3757,25 @@ function epUrlFmtBytes(b){
     return (b/1073741824).toFixed(2)+' GB';
 }
 
-function epUrlBuildHeaders(){
+// ── Collect resolved auth headers/cookies from current preset's authConfigs ──
+function epUrlBuildAuthPayload(){
     var auth=epEl('EP_URL_AUTH').value;
-    if(!auth||!EP_D.authConfigs[auth]) return {};
-    var cfg=EP_D.authConfigs[auth]; var hdrs={};
-    if(cfg.headers) Object.keys(cfg.headers).forEach(function(k){ hdrs[k]=cfg.headers[k]; });
-    if(cfg.cookies&&Object.keys(cfg.cookies).length){
-        hdrs['Cookie']=Object.keys(cfg.cookies).map(function(k){ return k+'='+cfg.cookies[k]; }).join('; ');
-    }
-    return hdrs;
+    if(!auth||!EP_D.authConfigs[auth]) return {headers:{},cookies:{}};
+    var cfg=EP_D.authConfigs[auth];
+    return {
+        headers: cfg.headers  ? Object.assign({},cfg.headers)  : {},
+        cookies: cfg.cookies  ? Object.assign({},cfg.cookies)  : {},
+    };
 }
 
-function epUrlFilenameFromCD(cd){
-    if(!cd) return null;
-    var m=cd.match(/filename\*=(?:UTF-8'')?([^;]+)/i);
-    if(m) return decodeURIComponent(m[1].trim().replace(/^["']|["']$/g,''));
-    m=cd.match(/filename=["']?([^"';]+)["']?/i);
-    if(m) return m[1].trim();
-    return null;
-}
-
-function epUrlFilenameFromUrl(u){
-    try{ var name=new URL(u).pathname.split('/').filter(Boolean).pop(); return name?decodeURIComponent(name):null; }
-    catch(e){ return null; }
-}
-
-function epUrlBuildFileItem(u,headers){
-    var cd=headers?headers.get('content-disposition'):null;
-    var cl=headers?headers.get('content-length'):null;
-    var cr=headers?headers.get('content-range'):null;
-    var fileName=epUrlFilenameFromCD(cd)||epUrlFilenameFromUrl(u);
-    var fileSize=null;
-    // Content-Range: bytes 0-0/TOTAL  — total is after the slash
-    if(cr){ var parts=cr.split('/'); var sz=parseInt(parts[parts.length-1],10); if(!isNaN(sz)&&sz>1) fileSize=sz; }
-    // Content-Length is only useful for HEAD (full file) — for Range responses it's just 1
-    if(!fileSize&&cl){ var sz2=parseInt(cl,10); if(!isNaN(sz2)&&sz2>1) fileSize=sz2; }
-    var obj={ id:fileName||('dl_'+Math.random().toString(36).slice(2,6).toUpperCase()), mirrors:[{url:u}] };
-    if(fileName) obj.file_name=fileName;
-    if(fileSize) obj.file_size=fileSize;
-    return obj;
-}
-
-// Fetch file size + filename from CivitAI API.
-// Handles three URL patterns:
-//   1. civitai.com/models/{modelId}[?modelVersionId={versionId}]  - model page URL
-//   2. civitai.com/api/download/models/{versionId}[?type=...&format=...] - direct download URL
-//   3. civitai.com/models/{modelId}/{slug}[?modelVersionId={versionId}] - slug page URL
-function epUrlFetchCivitaiMeta(u, hdrs){
-    try{
-        var pu=new URL(u);
-        if(!pu.hostname.includes('civitai.com')) return Promise.reject(new Error('not civitai'));
-        var proxy='https://corsproxy.io/?';
-
-        // Helper: fetch model-version JSON by version ID and build item
-        function fetchByVersionId(versionId, wantType, wantFmt){
-            var apiUrl='https://civitai.com/api/v1/model-versions/'+versionId;
-            return fetch(proxy+encodeURIComponent(apiUrl),{headers:hdrs})
-                .then(function(r){ if(!r.ok) throw new Error('API HTTP '+r.status); return r.json(); })
-                .then(function(json){
-                    var files=json.files||[];
-                    var file=files[0];
-                    if(wantType||wantFmt){
-                        var match=files.find(function(f){
-                            var ft=(f.type||'').toLowerCase();
-                            var ff=((f.metadata&&f.metadata.format)||'').toLowerCase();
-                            var typeOk=!wantType||ft===wantType||ft.replace(/\s/g,'')===wantType;
-                            var fmtOk=!wantFmt||ff===wantFmt;
-                            return typeOk&&fmtOk;
-                        });
-                        if(match) file=match;
-                    }
-                    if(!file) throw new Error('no files in API response');
-                    var item={ id:file.name||('civitai_'+versionId), mirrors:[{url:u}] };
-                    if(file.name) item.file_name=file.name;
-                    if(file.sizeKB) item.file_size=Math.round(file.sizeKB*1024);
-                    if(file.hashes&&file.hashes.SHA256){ item.checksum=file.hashes.SHA256.toLowerCase(); item.hash_algorithm='sha256'; }
-                    if(json.model&&json.model.name) item.description=json.model.name;
-                    return item;
-                });
-        }
-
-        var wantType=(pu.searchParams.get('type')||'').toLowerCase();
-        var wantFmt=(pu.searchParams.get('format')||'').toLowerCase();
-
-        // Pattern 2: /api/download/models/{versionId}
-        var dlMatch=pu.pathname.match(/\/api\/download\/models\/(\d+)/);
-        if(dlMatch){
-            return fetchByVersionId(dlMatch[1], wantType, wantFmt);
-        }
-
-        // Pattern 1 & 3: /models/{modelId}[/slug][?modelVersionId=...]
-        var pageMatch=pu.pathname.match(/\/models\/(\d+)/);
-        if(pageMatch){
-            var modelId=pageMatch[1];
-            // If modelVersionId is in query params, use it directly
-            var qVersionId=pu.searchParams.get('modelVersionId');
-            if(qVersionId){
-                return fetchByVersionId(qVersionId, wantType, wantFmt);
-            }
-            // Otherwise fetch the model to get the default (latest) version ID
-            var modelApiUrl='https://civitai.com/api/v1/models/'+modelId;
-            return fetch(proxy+encodeURIComponent(modelApiUrl),{headers:hdrs})
-                .then(function(r){ if(!r.ok) throw new Error('Models API HTTP '+r.status); return r.json(); })
-                .then(function(json){
-                    var versions=json.modelVersions||[];
-                    if(!versions.length) throw new Error('no versions');
-                    var versionId=versions[0].id;
-                    return fetchByVersionId(String(versionId), wantType, wantFmt);
-                });
-        }
-
-        return Promise.reject(new Error('unrecognised civitai URL'));
-    }catch(e){ return Promise.reject(e); }
-}
-
-function epUrlIsHF(u){ try{ return new URL(u).hostname==='huggingface.co'; }catch(e){ return false; } }
-
-// Convert any HF file URL (blob or resolve) to both variants
-function epUrlHFVariants(u){
-    var m=u.match(/^(https:\/\/huggingface\.co\/[^/]+\/[^/]+)\/(blob|resolve)\/(.+)$/);
-    if(!m) return null;
-    return { blob:m[1]+'/blob/'+m[3], resolve:m[1]+'/resolve/'+m[3] };
-}
-
-// Scrape SHA256 hash from HuggingFace blob page HTML
-function epUrlFetchHFSha256(blobUrl,proxy){
-    return fetch(proxy+encodeURIComponent(blobUrl))
-        .then(function(resp){ if(!resp.ok) throw new Error('HTTP '+resp.status); return resp.text(); })
-        .then(function(html){
-            var doc=new DOMParser().parseFromString(html,'text/html');
-            // Strategy 1: <dt>SHA256:</dt> -> sibling <dd>
-            var dts=doc.querySelectorAll('dt');
-            for(var i=0;i<dts.length;i++){
-                if(dts[i].textContent.trim()==='SHA256:'){
-                    var dd=dts[i].nextElementSibling;
-                    if(dd){ var h=dd.textContent.trim(); if(h.match(/^[0-9a-f]{64}$/i)) return h; }
-                }
-            }
-            // Strategy 2: any element near "SHA256" containing 64-char hex
-            var els=doc.querySelectorAll('*');
-            for(var j=0;j<els.length;j++){
-                var t=els[j].textContent||'';
-                if(t.indexOf('SHA256')!==-1){ var mx=t.match(/\b([0-9a-f]{64})\b/i); if(mx) return mx[1]; }
-            }
-            return null;
-        });
-}
-
-// Try HEAD, then GET Range:bytes=0-0 on same fetchUrl to extract filename+size
-function epUrlTryMeta(fetchUrl, originalUrl, hdrs){
-    return fetch(fetchUrl,{method:'HEAD',headers:hdrs})
-        .then(function(resp){
-            if(resp.ok||resp.status===206) return epUrlBuildFileItem(originalUrl,resp.headers);
-            // HEAD rejected (400/405/etc) — try GET Range: bytes=0-0
-            return fetch(fetchUrl,{method:'GET',headers:Object.assign({},hdrs,{Range:'bytes=0-0'})})
-                .then(function(r2){
-                    if(r2.ok||r2.status===206||r2.status===416) return epUrlBuildFileItem(originalUrl,r2.headers);
-                    throw new Error('HTTP '+r2.status);
-                });
-        });
-}
-
-// Build a canonical CivitAI download URL from any civitai URL.
-// For download URLs (/api/download/models/...) returns as-is.
-// For model page URLs (/models/{modelId}) returns the equivalent download URL.
-function epUrlCivitaiDownloadUrl(u){
-    try{
-        var pu=new URL(u);
-        // Already a download URL — return as-is
-        if(pu.pathname.includes('/api/download/models/')) return u;
-        // Model page: /models/{modelId}[/slug][?modelVersionId=...]
-        var pageMatch=pu.pathname.match(/\/models\/(\d+)/);
-        if(pageMatch){
-            var dl='https://civitai.com/api/download/models/';
-            var qVersionId=pu.searchParams.get('modelVersionId');
-            if(qVersionId) return dl+qVersionId;
-            // No version ID — use modelId (server will serve latest version)
-            return dl+pageMatch[1];
-        }
-    }catch(e){}
-    return u;
-}
-
-// Extract a human-readable filename from a CivitAI download URL
-// e.g. /api/download/models/2121297?type=Model -> civitai_model_2121297.safetensors
-function epUrlCivitaiFilename(u){
-    try{
-        var pu=new URL(u);
-        if(!pu.hostname.includes('civitai.com')) return null;
-        var m=pu.pathname.match(/\/models\/(\d+)/);
-        var mid=m?m[1]:'';
-        var type=(pu.searchParams.get('type')||'model').toLowerCase();
-        var fmt=(pu.searchParams.get('format')||'').toLowerCase();
-        var ext=fmt==='diffusers'?'safetensors':fmt==='onnx'?'onnx':'safetensors';
-        return 'civitai_'+type+(mid?'_'+mid:'')+(ext?'.'+ext:'');
-    }catch(e){ return null; }
-}
-
-// Build a URL-only item when all metadata fetches fail
-function epUrlBuildFallbackItem(u){
-    var name=epUrlCivitaiFilename(u)||epUrlFilenameFromUrl(u)||('dl_'+Math.random().toString(36).slice(2,6).toUpperCase());
-    return { id:name, file_name:name, mirrors:[{url:u}] };
-}
-
+// ── Finish: attach auth to mirror, push to list, render ──
 function epUrlFinishItem(item){
     var auth=epEl('EP_URL_AUTH').value;
-    if(auth) item.mirrors[0].auth=auth;
+    if(auth && item.mirrors && item.mirrors[0]) item.mirrors[0].auth=auth;
     var idx=EP_URL_ITEMS.length;
     EP_URL_ITEMS.push(item);
-    EP_URL_CHECKED[idx]=true;   // auto-checked
-    EP_URL_EXPANDED[idx]=true;  // auto-expanded
+    EP_URL_CHECKED[idx]=true;
+    EP_URL_EXPANDED[idx]=true;
     epUrlRenderCards();
     var info=(item.file_name||item.id||'file');
     if(item.file_size) info+=' ('+epUrlFmtBytes(item.file_size)+')';
@@ -3978,83 +3787,44 @@ function epUrlFinishItem(item){
     epUrlUpdateFooter();
 }
 
-function epUrlOnErr(e){
-    epUrlSetStatus('err','Error: '+e.message);
+function epUrlOnErr(msg){
+    epUrlSetStatus('err','Error: '+(msg||'unknown error'));
     EP_URL_LOADING=false;
     epEl('EP_URL_ADD_BTN').disabled=false;
 }
 
+// ── Main add handler — delegates entirely to the backend ──
 function epUrlAdd(){
     var u=(epEl('EP_URL_INPUT').value||'').trim();
     if(!u){ epUrlSetStatus('err','Please enter a URL'); return; }
     if(EP_URL_LOADING) return;
     EP_URL_LOADING=true;
     epEl('EP_URL_ADD_BTN').disabled=true;
-    epUrlSetStatus('loading','Fetching...');
+    epUrlSetStatus('loading','Fetching metadata…');
 
-    var proxy='https://corsproxy.io/?';
-    var hdrs=epUrlBuildHeaders();
+    var authPayload=epUrlBuildAuthPayload();
 
-    if(epUrlIsHF(u)){
-        var variants=epUrlHFVariants(u);
-        if(variants){
-            epUrlSetStatus('loading','HuggingFace: fetching SHA256 + metadata...');
-            var sha256P=epUrlFetchHFSha256(variants.blob,proxy).catch(function(){ return null; });
-            var metaP=epUrlTryMeta(proxy+encodeURIComponent(variants.resolve),variants.resolve,hdrs)
-                .catch(function(){ return epUrlBuildFileItem(variants.resolve,null); });
-            Promise.all([sha256P,metaP]).then(function(res){
-                var item=res[1];
-                item.mirrors=[{url:variants.resolve}];
-                if(res[0]){ item.checksum=res[0]; item.hash_algorithm='sha256'; }
-                epUrlFinishItem(item);
-            }).catch(epUrlOnErr);
+    fetch('/api/url-meta',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+            url: u,
+            headers: authPayload.headers,
+            cookies: authPayload.cookies,
+        }),
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+        if(!data.success && !data.item){
+            epUrlOnErr(data.error||'Backend returned failure');
             return;
         }
-    }
-
-    // CivitAI: primary path — JSON API (handles all URL patterns, uses proxy for CORS)
-    // Fallback — GET via proxy on the download URL to follow the 307 redirect to CDN
-    // which returns Content-Disposition + Content-Length in the final response headers.
-    if(u.includes('civitai.com')){
-        epUrlSetStatus('loading','CivitAI: resolving metadata via API...');
-        epUrlFetchCivitaiMeta(u, hdrs)
-            .then(epUrlFinishItem)
-            .catch(function(apiErr){
-                // API failed — build the download URL and GET it via proxy to follow 307→CDN
-                epUrlSetStatus('loading','CivitAI API failed, trying download redirect...');
-                var dlUrl=epUrlCivitaiDownloadUrl(u);
-                var proxied=proxy+encodeURIComponent(dlUrl);
-                fetch(proxied,{method:'GET',headers:Object.assign({},hdrs,{Range:'bytes=0-0'}),redirect:'follow'})
-                    .then(function(r){
-                        if(r.ok||r.status===206||r.status===416) return epUrlBuildFileItem(u,r.headers);
-                        throw new Error('HTTP '+r.status);
-                    })
-                    .then(function(item){
-                        // Ensure mirrors point to the original civitai URL (not the CDN redirect)
-                        item.mirrors=[{url:u}];
-                        epUrlFinishItem(item);
-                    })
-                    .catch(function(){
-                        epUrlSetStatus('ok','Added (metadata unavailable — please fill in details manually)');
-                        epUrlFinishItem(epUrlBuildFallbackItem(u));
-                    });
-            });
-        return;
-    }
-
-    // Generic chain: direct HEAD/GET-Range -> proxy HEAD/GET-Range -> URL-only fallback
-    epUrlTryMeta(u, u, hdrs)
-        .then(epUrlFinishItem)
-        .catch(function(){
-            epUrlSetStatus('loading','Direct failed, retrying via proxy...');
-            epUrlTryMeta(proxy+encodeURIComponent(u), u, hdrs)
-                .then(epUrlFinishItem)
-                .catch(function(){
-                    // All metadata attempts failed — add URL-only item for manual editing
-                    epUrlSetStatus('ok','Added (metadata unavailable — please fill in details manually)');
-                    epUrlFinishItem(epUrlBuildFallbackItem(u));
-                });
-        });
+        if(data.warning){
+            epUrlSetStatus('loading', '⚠ '+data.warning);
+        }
+        epUrlFinishItem(data.item);
+    })
+    .catch(function(err){ epUrlOnErr(err.message); });
 }
 
 // ── Card rendering ───────────────────────────────────────────

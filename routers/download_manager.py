@@ -26,6 +26,8 @@ from schemas.downloads import (
 )
 from services.config_loader_service import ConfigLoaderService
 from services.download_manager_service import DownloadManagerService
+from services.url_meta_service import UrlMetaService
+from schemas.url_meta import UrlMetaRequest, UrlMetaResponse
 
 router = APIRouter()
 
@@ -40,6 +42,8 @@ dm_service = DownloadManagerService()
 
 _presets_dir = os.path.join(os.path.dirname(__file__), "..", "presets")
 config_service = ConfigLoaderService(presets_path=_presets_dir)
+
+url_meta_service = UrlMetaService()
 
 
 # ===========================================================================
@@ -140,6 +144,20 @@ async def delete_download(task_id: str, request: DeleteDownloadRequest):
 @router.get("/api/downloads/browse")
 async def browse_folders(path: Optional[str] = None):
     return dm_service.browse_folders(path)
+
+
+# ===========================================================================
+# URL Metadata — server-side fetch to bypass CORS
+# ===========================================================================
+
+@router.post("/api/url-meta", response_model=UrlMetaResponse)
+async def fetch_url_meta(request: UrlMetaRequest):
+    """
+    Fetch filename / file-size / checksum for a URL server-side.
+    Supports HuggingFace, CivitAI, and generic direct-download links.
+    Auth headers/cookies from the request body are forwarded to the target.
+    """
+    return await url_meta_service.fetch_meta(request)
 
 
 # ===========================================================================
