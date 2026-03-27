@@ -40,8 +40,7 @@ templates = Jinja2Templates(directory=_templates_dir)
 
 dm_service = DownloadManagerService()
 
-_presets_dir = os.path.join(os.path.dirname(__file__), "..", "presets")
-config_service = ConfigLoaderService(presets_path=_presets_dir)
+config_service = ConfigLoaderService()
 
 url_meta_service = UrlMetaService()
 

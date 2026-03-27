@@ -21,10 +21,8 @@ logger = logging.getLogger(__name__)
 class ConfigLoaderService:
     """Manages JSON preset configs stored in a local directory."""
 
-    def __init__(self, presets_path: str = None) -> None:
-        if not presets_path:
-            presets_path = settings.presets_path
-        self.presets_path = presets_path
+    def __init__(self) -> None:
+        self.presets_path = settings.presets_path
         os.makedirs(self.presets_path, exist_ok=True)
         logger.debug("ConfigLoaderService initialised | presets_path=%s", self.presets_path)
 
