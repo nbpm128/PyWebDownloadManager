@@ -1,9 +1,10 @@
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 
 from routers.dashboard import router as dashboard_router
 from routers.download_manager import router as download_manager_router
 from routers.files_router import router as files_router
+from auth import require_auth
 from logger import setup_logger
 from settings import settings
 
@@ -11,7 +12,8 @@ from settings import settings
 app = FastAPI(
     title="PyWebDownloadManager",
     description="Simple Download Manager",
-    version="0.1.0",
+    version="0.1.1",
+    dependencies=[Depends(require_auth)],
 )
 
 
