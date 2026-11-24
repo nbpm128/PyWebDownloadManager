@@ -154,6 +154,185 @@
   </head>
   <body>
     <div id="root"></div>
+    <script id="civitai-helpers">
+      // ── CivitAI helpers (plain JS, no JSX) ───────────────────────────────
+      // The API host serves the metadata API; the .red mirror host serves the
+      // same models — version/file IDs are shared, downloads need no auth.
+      // Exposed as window.Civitai so it can be executed and tested headless.
+      window.Civitai = (function () {
+        var API_BASE = 'https://civitai.com/api/v1';
+        var API_HOST = 'civitai.com';
+        var MIRROR_HOST = 'civitai.red';
+        var DL_VERSION_RE = /\/api\/download\/models\/(\d+)/;
+        var MODEL_RE = /\/models\/(\d+)/;
+
+        function isCivitaiUrl(u) {
+          try {
+            var h = new URL(u).hostname;
+            return h.indexOf(API_HOST) !== -1 || h.endsWith(MIRROR_HOST);
+          } catch (e) { return false; }
+        }
+
+        function isCivitaiMirrorUrl(u) {
+          try { return new URL(u).hostname.endsWith(MIRROR_HOST); } catch (e) { return false; }
+        }
+
+        // Build canonical download URL from any civitai URL — keeps the origin
+        // of the given link, so mirror URLs stay on the mirror.
+        function civitaiDownloadUrl(u) {
+          try {
+            var pu = new URL(u);
+            if (pu.pathname.indexOf('/api/download/models/') !== -1) return u;
+            var m = pu.pathname.match(MODEL_RE);
+            if (m) {
+              var qv = pu.searchParams.get('modelVersionId');
+              return 'https://' + pu.hostname + '/api/download/models/' + (qv || m[1]);
+            }
+          } catch (e) {}
+          return u;
+        }
+
+        // Fetch metadata from CivitAI API (optionally via CORS proxy).
+        // Handles: /api/download/models/{versionId}, /models/{modelId}[?modelVersionId=…]
+        function fetchCivitaiMeta(u, extraHeaders, proxy) {
+          proxy = (proxy === undefined) ? 'https://corsproxy.io/?' : proxy;
+          return new Promise(function (resolve, reject) {
+            try {
+              var pu = new URL(u);
+              if (!isCivitaiUrl(u)) return reject(new Error('not civitai'));
+
+              var fetchByVersionId = function (versionId, wantType, wantFmt, fileId) {
+                var apiUrl = API_BASE + '/model-versions/' + versionId;
+                // empty proxy = direct fetch (used by headless tests)
+                var via = proxy ? proxy + encodeURIComponent(apiUrl) : apiUrl;
+                return fetch(via, { headers: extraHeaders })
+                  .then(function (r) { if (!r.ok) throw new Error('API HTTP ' + r.status); return r.json(); })
+                  .then(function (json) {
+                    var files = json.files || [];
+                    var file = null;
+                    // fileId from the URL names the exact file — highest priority
+                    if (fileId) {
+                      file = files.find(function (f) { return String(f.id) === String(fileId); });
+                    }
+                    if (!file && (wantType || wantFmt)) {
+                      file = files.find(function (f) {
+                        var ft = (f.type || '').toLowerCase();
+                        var ff = ((f.metadata && f.metadata.format) || '').toLowerCase();
+                        return (!wantType || ft === wantType || ft.replace(/\s/g, '') === wantType) &&
+                               (!wantFmt || ff === wantFmt);
+                      });
+                    }
+                    if (!file) file = files[0];
+                    if (!file) throw new Error('no files in API response');
+                    var item = { id: file.name || ('civitai_' + versionId), mirrors: [{ url: u }] };
+                    if (file.name)   item.file_name  = file.name;
+                    if (file.sizeKB) item.file_size  = Math.round(file.sizeKB * 1024);
+                    if (file.hashes && file.hashes.SHA256) {
+                      item.checksum       = file.hashes.SHA256.toLowerCase();
+                      item.hash_algorithm = 'sha256';
+                    }
+                    if (json.model && json.model.name) item.description = json.model.name;
+                    return item;
+                  });
+              };
+
+              var wantType = (pu.searchParams.get('type') || '').toLowerCase();
+              var wantFmt  = (pu.searchParams.get('format') || '').toLowerCase();
+              var fileId   = pu.searchParams.get('fileId');
+
+              // Pattern: /api/download/models/{versionId}
+              var dlMatch = pu.pathname.match(DL_VERSION_RE);
+              if (dlMatch) return resolve(fetchByVersionId(dlMatch[1], wantType, wantFmt, fileId));
+
+              // Pattern: /models/{modelId}[/slug][?modelVersionId=…]
+              var pageMatch = pu.pathname.match(MODEL_RE);
+              if (pageMatch) {
+                var qv = pu.searchParams.get('modelVersionId');
+                if (qv) return resolve(fetchByVersionId(qv, wantType, wantFmt, fileId));
+                // No versionId — fetch model to get latest version
+                var modelApiUrl = API_BASE + '/models/' + pageMatch[1];
+                var modelVia = proxy ? proxy + encodeURIComponent(modelApiUrl) : modelApiUrl;
+                return fetch(modelVia, { headers: extraHeaders })
+                  .then(function (r) { if (!r.ok) throw new Error('Models API HTTP ' + r.status); return r.json(); })
+                  .then(function (json) {
+                    var versions = json.modelVersions || [];
+                    if (!versions.length) throw new Error('no versions');
+                    return fetchByVersionId(String(versions[0].id), wantType, wantFmt, fileId);
+                  })
+                  .then(resolve, reject);
+              }
+              return reject(new Error('unrecognised civitai URL'));
+            } catch (e) { return reject(e); }
+          });
+        }
+
+        return {
+          API_BASE: API_BASE,
+          API_HOST: API_HOST,
+          MIRROR_HOST: MIRROR_HOST,
+          isCivitaiUrl: isCivitaiUrl,
+          isCivitaiMirrorUrl: isCivitaiMirrorUrl,
+          civitaiDownloadUrl: civitaiDownloadUrl,
+          fetchCivitaiMeta: fetchCivitaiMeta
+        };
+      })();
+    </script>
+    <script id="comfy-folder-helpers">
+      // ── ComfyUI folder path helpers (plain JS, no DOM) ────────────────────
+      // Same helpers as templates/download_manager.html (comfy-folder-helpers);
+      // the standalone editor cannot read server env, so the root is a manual
+      // entry persisted in localStorage.
+      window.ComfyFolder = (function () {
+        var DIRS = ['checkpoints','diffusion_models','unet','loras','vae','clip','text_encoders',
+                    'clip_vision','controlnet','upscale_models','embeddings','style_models',
+                    'hypernetworks','gligen','photomaker','audio_encoders','diffusers',
+                    'model_patches','frame_interpolation','background_removal','detection',
+                    'optical_flow','latent_upscale_models','geometry_estimation'];
+
+        function joinPath(root, dir) {
+          // empty root → the dir itself; normalise trailing \ and / (Windows roots)
+          // ComfyUI stores models under <root>/models/<dir> — insert "models"
+          // unless the root already points at it
+          if (!root) return dir || '';
+          var r = root.replace(/[\\/]+$/, '');
+          if (!/models$/i.test(r)) r += '/models';
+          return r + '/' + dir;
+        }
+
+        // value → {dir} when it is a known dir (with or without root prefix), else {custom}
+        // both separators (\ and /) are normalised; an optional "models/" segment is stripped
+        function parse(value, root) {
+          if (!value) return { custom: '' };
+          var norm = function (p) { return p.replace(/[\\/]+$/, '').replace(/\\/g, '/'); };
+          var candidates = [];
+          if (root) {
+            var prefix = norm(root) + '/';
+            if (norm(value).indexOf(prefix) === 0) {
+              candidates.push(value.slice(norm(root).length + 1));
+            }
+          }
+          candidates.push(value);
+          for (var i = 0; i < candidates.length; i++) {
+            var rest = candidates[i].replace(/\\/g, '/');
+            var m = rest.match(/^models\/(.+)$/i);
+            var dir = m ? m[1] : rest;
+            if (DIRS.indexOf(dir) !== -1) return { dir: dir };
+          }
+          return { custom: value };
+        }
+
+        function loadRoot() {
+          try { return localStorage.getItem('comfy_root') || ''; } catch (e) { return ''; }
+        }
+
+        function saveRoot(v) {
+          try { localStorage.setItem('comfy_root', v || ''); } catch (e) {}
+        }
+
+        return { DIRS: DIRS, joinPath: joinPath, parse: parse, loadRoot: loadRoot, saveRoot: saveRoot };
+      })();
+      window.COMFY_ROOT = window.ComfyFolder.loadRoot();
+    </script>
     <script type="text/babel">
       const { useState, useRef, useCallback, useEffect } = React;
       const uid = () => Math.random().toString(36).slice(2,6).toUpperCase();
@@ -453,6 +632,70 @@
         );
       }
 
+      // ── Folder Path composite: ComfyUI Root + Model Directory + Custom ──
+      // NOTE: root inputs use defaultValue (no re-render on keystroke, lesson
+      // from task_2) — root edited in one mounted composite is NOT mirrored
+      // into other already-mounted ones until they remount; shared value is
+      // window.COMFY_ROOT. Also: selecting "— None —" clears folder_path
+      // (parity with download_manager.html), it does not write "<root>/".
+      // Card variant (DownloadCard) — writes via the card's `upd` mutator.
+      // Full Path is always visible: shows root+dir (or the raw custom value)
+      // and writes folder_path on edit.
+      function ComfyFolderPathCard({ di, value, upd }) {
+        const p = window.ComfyFolder.parse(value||'', window.COMFY_ROOT);
+        const isCustom = p.dir === undefined;
+        const fullPath = isCustom ? (value||'') : window.ComfyFolder.joinPath(window.COMFY_ROOT, p.dir);
+        return (
+          <div className="grid1" style={{marginBottom:10}}>
+            <div className="field"><label>ComfyUI Root</label>
+              <input defaultValue={window.COMFY_ROOT} key={'cr-'+di}
+                onBlur={e=>{ window.COMFY_ROOT=e.target.value; window.ComfyFolder.saveRoot(e.target.value); }}
+                placeholder="C:\ComfyUI or /workspace/ComfyUI" /></div>
+            <div className="field"><label>Model Directory</label>
+              <select value={isCustom ? '__custom__' : p.dir} onChange={e=>{
+                if(e.target.value==='__custom__'){ upd('folder_path', value||''); return; }
+                upd('folder_path', e.target.value ? window.ComfyFolder.joinPath(window.COMFY_ROOT, e.target.value) : '');
+              }}>
+                <option value="">— None —</option>
+                {window.ComfyFolder.DIRS.map(d=><option key={d} value={d}>{d}</option>)}
+                <option value="__custom__">Custom…</option>
+              </select></div>
+            <div className="field"><label>Full Path</label>
+              <input key={'fp-'+di+'-'+fullPath} defaultValue={fullPath} onBlur={e=>upd('folder_path',e.target.value)}
+                placeholder={window.ComfyFolder.joinPath(window.COMFY_ROOT, 'loras')} /></div>
+          </div>
+        );
+      }
+
+      // Import-modal variant — writes via `updateItem`.
+      // Full Path is always visible: shows root+dir (or the raw custom value).
+      function ComfyFolderPathImport({ idx, value, updateItem }) {
+        const p = window.ComfyFolder.parse(value||'', window.COMFY_ROOT);
+        const isCustom = p.dir === undefined;
+        const fullPath = isCustom ? (value||'') : window.ComfyFolder.joinPath(window.COMFY_ROOT, p.dir);
+        return (
+          <div className="iurl-field">
+            <label>ComfyUI Root</label>
+            <input defaultValue={window.COMFY_ROOT} key={'ir-'+idx}
+              onBlur={e=>{ window.COMFY_ROOT=e.target.value; window.ComfyFolder.saveRoot(e.target.value); }}
+              placeholder="C:\ComfyUI or /workspace/ComfyUI" />
+            <label style={{marginTop:6}}>Model Directory</label>
+            <select value={isCustom ? '__custom__' : p.dir} onChange={e=>{
+              if(e.target.value==='__custom__'){ updateItem(idx,'folder_path',value||''); return; }
+              updateItem(idx,'folder_path', e.target.value ? window.ComfyFolder.joinPath(window.COMFY_ROOT, e.target.value) : '');
+            }}>
+              <option value="">— None —</option>
+              {window.ComfyFolder.DIRS.map(d=><option key={d} value={d}>{d}</option>)}
+              <option value="__custom__">Custom…</option>
+            </select>
+            <label style={{marginTop:6}}>Full Path</label>
+            <input key={'fp-'+idx+'-'+fullPath} defaultValue={fullPath}
+              onBlur={e=>updateItem(idx,'folder_path',e.target.value)}
+              placeholder={window.ComfyFolder.joinPath(window.COMFY_ROOT, 'loras')} />
+          </div>
+        );
+      }
+
       function DownloadCard({ dl, di, authConfigs, updateData, sel, showToast }) {
         const [open, setOpen] = useState(false);
         const upd=(f,v)=>updateData(d=>{const n=getNodeFromData(d,sel);if((v===''||v===undefined)&&f!=='id')delete n.downloads[di][f];else n.downloads[di][f]=v;});
@@ -467,7 +710,7 @@
               <div className="dl-body">
                 <div className="grid1" style={{marginBottom:10}}><div className="field"><label>ID <span style={{color:'var(--red)',fontSize:9}}>*required</span></label><input key={`id-${di}-${dl.id}`} defaultValue={dl.id||''} onBlur={e=>upd('id',e.target.value)} placeholder="unique file ID" /></div></div>
                 <div className="grid1" style={{marginBottom:10}}><div className="field"><label>File Name</label><input key={`fn-${di}-${dl.file_name}`} defaultValue={dl.file_name||''} onBlur={e=>upd('file_name',e.target.value)} placeholder="filename.safetensors" /></div></div>
-                <div className="grid1" style={{marginBottom:10}}><div className="field"><label>Folder Path</label><input key={`fp-${di}-${dl.folder_path}`} defaultValue={dl.folder_path||''} onBlur={e=>upd('folder_path',e.target.value)} placeholder="/workspace/ComfyUI/models/" /></div></div>
+                <ComfyFolderPathCard di={di} value={dl.folder_path||''} upd={upd} />
                 <div className="grid2" style={{marginBottom:10}}>
                   <div className="field"><label>File Size (bytes)</label><input type="number" key={`fs-${di}`} defaultValue={dl.file_size||''} onBlur={e=>{updateData(d=>{const n=getNodeFromData(d,sel);if(!e.target.value)delete n.downloads[di].file_size;else n.downloads[di].file_size=+e.target.value;});}} placeholder="optional" /></div>
                   <div className="field"><label>Hash Algorithm</label><select value={dl.hash_algorithm||''} onChange={e=>{updateData(d=>{const n=getNodeFromData(d,sel);if(!e.target.value)delete n.downloads[di].hash_algorithm;else n.downloads[di].hash_algorithm=e.target.value;});}}>
@@ -605,84 +848,8 @@
             });
         };
 
-        // ── CivitAI helpers ─────────────────────────────────────────────────────
-
-        // Build canonical download URL from any civitai URL
-        const civitaiDownloadUrl = (u) => {
-          try {
-            var pu = new URL(u);
-            if (pu.pathname.includes('/api/download/models/')) return u;
-            var m = pu.pathname.match(/\/models\/(\d+)/);
-            if (m) {
-              var qv = pu.searchParams.get('modelVersionId');
-              return 'https://civitai.com/api/download/models/' + (qv || m[1]);
-            }
-          } catch(e) {}
-          return u;
-        };
-
-        // Fetch metadata from CivitAI API (via CORS proxy)
-        // Handles: /api/download/models/{versionId}, /models/{modelId}[?modelVersionId=…]
-        const fetchCivitaiMeta = (u, extraHeaders) => {
-          var proxy = 'https://corsproxy.io/?';
-          try {
-            var pu = new URL(u);
-            if (!pu.hostname.includes('civitai.com')) return Promise.reject(new Error('not civitai'));
-
-            const fetchByVersionId = (versionId, wantType, wantFmt) => {
-              var apiUrl = 'https://civitai.com/api/v1/model-versions/' + versionId;
-              return fetch(proxy + encodeURIComponent(apiUrl), {headers: extraHeaders})
-                .then(function(r) { if (!r.ok) throw new Error('API HTTP ' + r.status); return r.json(); })
-                .then(function(json) {
-                  var files = json.files || [];
-                  var file = files[0];
-                  if (wantType || wantFmt) {
-                    var match = files.find(function(f) {
-                      var ft = (f.type||'').toLowerCase();
-                      var ff = ((f.metadata&&f.metadata.format)||'').toLowerCase();
-                      return (!wantType || ft===wantType || ft.replace(/\s/g,'')===wantType) &&
-                             (!wantFmt  || ff===wantFmt);
-                    });
-                    if (match) file = match;
-                  }
-                  if (!file) throw new Error('no files in API response');
-                  var item = { id: file.name||('civitai_'+versionId), mirrors:[{url:u}] };
-                  if (file.name)   item.file_name  = file.name;
-                  if (file.sizeKB) item.file_size  = Math.round(file.sizeKB * 1024);
-                  if (file.hashes && file.hashes.SHA256) {
-                    item.checksum       = file.hashes.SHA256.toLowerCase();
-                    item.hash_algorithm = 'sha256';
-                  }
-                  if (json.model && json.model.name) item.description = json.model.name;
-                  return item;
-                });
-            };
-
-            var wantType = (pu.searchParams.get('type')||'').toLowerCase();
-            var wantFmt  = (pu.searchParams.get('format')||'').toLowerCase();
-
-            // Pattern: /api/download/models/{versionId}
-            var dlMatch = pu.pathname.match(/\/api\/download\/models\/(\d+)/);
-            if (dlMatch) return fetchByVersionId(dlMatch[1], wantType, wantFmt);
-
-            // Pattern: /models/{modelId}[/slug][?modelVersionId=…]
-            var pageMatch = pu.pathname.match(/\/models\/(\d+)/);
-            if (pageMatch) {
-              var qv = pu.searchParams.get('modelVersionId');
-              if (qv) return fetchByVersionId(qv, wantType, wantFmt);
-              // No versionId — fetch model to get latest version
-              var modelApiUrl = 'https://civitai.com/api/v1/models/' + pageMatch[1];
-              return fetch(proxy + encodeURIComponent(modelApiUrl), {headers: extraHeaders})
-                .then(function(r) { if (!r.ok) throw new Error('Models API HTTP ' + r.status); return r.json(); })
-                .then(function(json) {
-                  var versions = json.modelVersions || [];
-                  if (!versions.length) throw new Error('no versions');
-                  return fetchByVersionId(String(versions[0].id), wantType, wantFmt);
-                });
-            }
-            return Promise.reject(new Error('unrecognised civitai URL'));
-          } catch(e) { return Promise.reject(e); }
-        };
+        // ── CivitAI helpers moved to the global <script id="civitai-helpers">
+        // block above: window.Civitai.civitaiDownloadUrl / .fetchCivitaiMeta.
 
         // Mutate a field on item at index
         const updateItem = (idx, field, value) => {
@@ -813,13 +980,13 @@
           }
 
           // CivitAI: API first, then GET-Range via proxy following 307→CDN
-          if (u.includes('civitai.com')) {
+          if (window.Civitai.isCivitaiUrl(u)) {
             setStatus({type:'loading', msg:'CivitAI: resolving metadata via API...'});
-            fetchCivitaiMeta(u, extraHeaders)
+            window.Civitai.fetchCivitaiMeta(u, extraHeaders, proxy)
               .then(finishItem)
               .catch(function() {
                 setStatus({type:'loading', msg:'CivitAI API failed, trying download redirect...'});
-                var dlUrl = civitaiDownloadUrl(u);
+                var dlUrl = window.Civitai.civitaiDownloadUrl(u);
                 fetch(proxy + encodeURIComponent(dlUrl), {method:'GET', headers:Object.assign({},extraHeaders,{Range:'bytes=0-0'}), redirect:'follow'})
                   .then(function(r) {
                     var item = buildFileItem(u, r.headers);
@@ -939,11 +1106,8 @@
                                     <input defaultValue={item.file_name||''} key={'fn-'+idx} onBlur={function(e){updateItem(idx,'file_name',e.target.value);}} />
                                   </div>
                                 </div>
-                                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-                                  <div className="iurl-field">
-                                    <label>Folder Path</label>
-                                    <input defaultValue={item.folder_path||''} key={'fp-'+idx} placeholder="/workspace/ComfyUI/models/" onBlur={function(e){updateItem(idx,'folder_path',e.target.value);}} />
-                                  </div>
+                                <div style={{display:'grid',gridTemplateColumns:'1fr',gap:8}}>
+                                  <ComfyFolderPathImport idx={idx} value={item.folder_path||''} updateItem={updateItem} />
                                   <div className="iurl-field">
                                     <label>File Size (bytes)</label>
                                     <input type="number" defaultValue={item.file_size||''} key={'fs-'+idx} onBlur={function(e){updateItem(idx,'file_size',e.target.value?+e.target.value:null);}} />

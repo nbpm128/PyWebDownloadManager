@@ -1,0 +1,19 @@
+# Environment / secrets
+.env
+
+# User data with credentials
+presets/
+
+# Runtime artifacts
+downloads/
+logs/
+__pycache__/
+*.pyc
+
+# IDE
+.idea/
+
+# Plans (working documents, not code)
+plans/
+plan-filesRouter.prompt.md
+

@@ -14,6 +14,16 @@ logger = logging.getLogger(__name__)
 # Timeout for all outgoing HTTP requests (seconds)
 _TIMEOUT = 20.0
 
+# CivitAI endpoints: civitai.com serves the API; civitai.red is an open mirror
+# of the same models (downloads there need no auth). Version/file IDs are shared
+# between both hosts.
+_CIVITAI_API_BASE = "https://civitai.com/api/v1"
+_CIVITAI_API_HOST = "civitai.com"
+_CIVITAI_MIRROR_HOST = "civitai.red"
+
+_CIVITAI_DL_VERSION_RE = re.compile(r"/api/download/models/(\d+)")
+_CIVITAI_MODEL_RE = re.compile(r"/models/(\d+)")
+
 
 class UrlMetaService:
     """
@@ -47,8 +57,21 @@ class UrlMetaService:
 
             if hostname == "huggingface.co":
                 item = await self._fetch_hf(url, merged_headers)
-            elif "civitai.com" in hostname:
-                item = await self._fetch_civitai(url, merged_headers)
+            elif self._is_civitai_host(hostname):
+                try:
+                    item = await self._fetch_civitai(url, merged_headers)
+                except Exception as exc:
+                    if self._is_civitai_mirror(hostname):
+                        # Mirror hosts are Cloudflare-guarded, so generic HEAD/Range
+                        # is often the only thing that works when the API is down
+                        # or the version is unknown to the API.
+                        logger.info(
+                            "civitai mirror API lookup failed | url=%s | error=%s | falling back to generic",
+                            url, exc,
+                        )
+                        item = await self._fetch_generic(url, merged_headers)
+                    else:
+                        raise
             else:
                 item = await self._fetch_generic(url, merged_headers)
 
@@ -117,16 +140,17 @@ class UrlMetaService:
         qs        = parse_qs(parsed.query)
         want_type = (qs.get("type",    [""])[0]).lower()
         want_fmt  = (qs.get("format",  [""])[0]).lower()
+        file_id   = qs.get("fileId",   [None])[0]
         version_id: Optional[str] = None
 
         # Pattern: /api/download/models/{versionId}
-        dl_match = re.search(r"/api/download/models/(\d+)", parsed.path)
+        dl_match = _CIVITAI_DL_VERSION_RE.search(parsed.path)
         if dl_match:
             version_id = dl_match.group(1)
 
         # Pattern: /models/{modelId}[/slug][?modelVersionId=...]
         if not version_id:
-            page_match = re.search(r"/models/(\d+)", parsed.path)
+            page_match = _CIVITAI_MODEL_RE.search(parsed.path)
             if page_match:
                 version_id = qs.get("modelVersionId", [None])[0]
                 if not version_id:
@@ -139,13 +163,13 @@ class UrlMetaService:
             raise ValueError("Could not determine CivitAI version ID from URL")
 
         return await self._civitai_item_by_version(
-            version_id, url, hdrs, want_type, want_fmt
+            version_id, url, hdrs, want_type, want_fmt, file_id
         )
 
     async def _civitai_latest_version(self, model_id: str, hdrs: dict) -> str:
         async with httpx.AsyncClient(follow_redirects=True, timeout=_TIMEOUT) as client:
             r = await client.get(
-                f"https://civitai.com/api/v1/models/{model_id}", headers=hdrs
+                f"{_CIVITAI_API_BASE}/models/{model_id}", headers=hdrs
             )
             r.raise_for_status()
             versions = r.json().get("modelVersions", [])
@@ -160,10 +184,11 @@ class UrlMetaService:
         hdrs: dict,
         want_type: str,
         want_fmt: str,
+        file_id: Optional[str] = None,
     ) -> UrlMetaItem:
         async with httpx.AsyncClient(follow_redirects=True, timeout=_TIMEOUT) as client:
             r = await client.get(
-                f"https://civitai.com/api/v1/model-versions/{version_id}",
+                f"{_CIVITAI_API_BASE}/model-versions/{version_id}",
                 headers=hdrs,
             )
             r.raise_for_status()
@@ -174,7 +199,12 @@ class UrlMetaService:
             raise ValueError("No files in CivitAI API response")
 
         chosen = files[0]
-        if want_type or want_fmt:
+        if file_id:
+            for f in files:
+                if str(f.get("id")) == str(file_id):
+                    chosen = f
+                    break
+        elif want_type or want_fmt:
             for f in files:
                 ft  = (f.get("type") or "").lower()
                 ff  = ((f.get("metadata") or {}).get("format") or "").lower()
@@ -236,6 +266,16 @@ class UrlMetaService:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _is_civitai_host(hostname: str) -> bool:
+        """True for civitai.com (and subdomains) and the civitai.red mirror."""
+        return _CIVITAI_API_HOST in hostname or hostname.endswith(_CIVITAI_MIRROR_HOST)
+
+    @staticmethod
+    def _is_civitai_mirror(hostname: str) -> bool:
+        """True for the open civitai.red mirror (API may not know its URLs)."""
+        return hostname.endswith(_CIVITAI_MIRROR_HOST)
 
     @staticmethod
     def _build_headers(request: UrlMetaRequest) -> dict:

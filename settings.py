@@ -25,5 +25,7 @@ class Settings:
         self.username = os.getenv("DM_USERNAME", "")
         self.password = os.getenv("DM_PASSWORD", "")
 
+        self.comfy_root = os.getenv("DM_COMFY_ROOT", "")
+
 
 settings = Settings(".env")

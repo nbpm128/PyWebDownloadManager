@@ -1820,6 +1820,53 @@
 {% endblock %}
 
 {% block scripts %}
+<script id="comfy-folder-helpers">
+// ── ComfyUI folder path helpers (plain JS, no DOM) ──────────────────────
+// Pattern: the `civitai-helpers` block in local-preset-editor.html — kept as
+// a separate plain-JS block so it can be executed and tested headless.
+window.ComfyFolder = (function () {
+    // The 24 model-holding subdirectories of ComfyUI/models (master, 2026-11-24)
+    var DIRS = ['checkpoints','diffusion_models','unet','loras','vae','clip','text_encoders',
+                'clip_vision','controlnet','upscale_models','embeddings','style_models',
+                'hypernetworks','gligen','photomaker','audio_encoders','diffusers',
+                'model_patches','frame_interpolation','background_removal','detection',
+                'optical_flow','latent_upscale_models','geometry_estimation'];
+
+    function joinPath(root, dir) {
+        // empty root → the dir itself; normalise trailing \ and / (Windows roots)
+        // ComfyUI stores models under <root>/models/<dir> — insert "models"
+        // unless the root already points at it
+        if (!root) return dir || '';
+        var r = root.replace(/[\\/]+$/, '');
+        if (!/models$/i.test(r)) r += '/models';
+        return r + '/' + dir;
+    }
+
+    // value → {dir} when it is a known dir (with or without root prefix), else {custom}
+    // both separators (\ and /) are normalised; an optional "models/" segment is stripped
+    function parse(value, root) {
+        if (!value) return { custom: '' };
+        var norm = function (p) { return p.replace(/[\\/]+$/, '').replace(/\\/g, '/'); };
+        var candidates = [];
+        if (root) {
+            var prefix = norm(root) + '/';
+            if (norm(value).indexOf(prefix) === 0) {
+                candidates.push(value.slice(norm(root).length + 1));
+            }
+        }
+        candidates.push(value);
+        for (var i = 0; i < candidates.length; i++) {
+            var rest = candidates[i].replace(/\\/g, '/');
+            var m = rest.match(/^models\/(.+)$/i);
+            var dir = m ? m[1] : rest;
+            if (DIRS.indexOf(dir) !== -1) return { dir: dir };
+        }
+        return { custom: value };
+    }
+
+    return { DIRS: DIRS, joinPath: joinPath, parse: parse };
+})();
+</script>
 <script>
 'use strict';
 
@@ -3271,6 +3318,8 @@ var EP_SEL  = null;
 var EP_EXP  = {};
 var EP_DRAG_SRC = null;
 var EP_CURRENT_PRESET = null;
+var EP_COMFY_ROOT = '';   // ComfyUI root from DM_COMFY_ROOT (via /api/system/environment)
+var EP_COMFY_ROOT_LOADED = false;   // env is read once; manual edits after that are kept
 
 function epEl(id){ return document.getElementById(id); }
 function epEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -3305,6 +3354,17 @@ function epGetNode(path){
 
 async function epRefreshPresets(selectName){
     try {
+        // pick up DM_COMFY_ROOT once per session — the value is an environment
+        // default; a user-edited EP_COMFY_ROOT must not be overwritten here
+        if(!EP_COMFY_ROOT_LOADED){
+            apiFetch('/api/system/environment').then(function(d){
+                if(!EP_COMFY_ROOT_LOADED){
+                    EP_COMFY_ROOT = (d && d.comfy_root) || '';
+                    EP_COMFY_ROOT_LOADED = true;
+                    epSyncRootInputs();
+                }
+            }).catch(function(){ /* env stays as-is */ });
+        }
         var data = await apiFetch('/api/configs/list');
         var configs = (data && data.configs) ? data.configs : [];
         var sel = epEl('ep-preset-select');
@@ -3622,12 +3682,63 @@ function epRenderPreset(){
     epInitDlDnd();
 }
 
+// ── Folder Path composite: ComfyUI Root + Model Directory dropdown + Custom ──
+function epFolderPathHTML(di, value){
+    var p = window.ComfyFolder.parse(value, EP_COMFY_ROOT);
+    var isCustom = (p.dir === undefined);
+    var fullPath = isCustom ? (value||'') : window.ComfyFolder.joinPath(EP_COMFY_ROOT, p.dir);
+    var opts = ['<option value="">— None —</option>']
+        .concat(window.ComfyFolder.DIRS.map(function(d){
+            return '<option value="'+d+'"'+(!isCustom && p.dir===d?' selected':'')+'>'+d+'</option>';
+        }))
+        .concat(['<option value="__custom__"'+(isCustom?' selected':'')+'>Custom…</option>']);
+    var h='<div class="efg efg-1" style="margin-bottom:8px">';
+    h+='<div class="ef"><label>ComfyUI Root</label><input class="ep-comfy-root-input" value="'+epEsc(EP_COMFY_ROOT)+'" oninput="epUpdDlRoot(this.value)" placeholder="C:\\ComfyUI or /workspace/ComfyUI"></div>';
+    h+='<div class="ef"><label>Model Directory</label><select onchange="epUpdDlDir('+di+',this.value)">'+opts.join('')+'</select></div>';
+    h+='<div class="ef"><label>Full Path</label><input value="'+epEsc(fullPath)+'" oninput="epUpdDl('+di+',\'folder_path\',this.value)" onblur="epUpdDlFull('+di+',this.value)" placeholder="'+epEsc(window.ComfyFolder.joinPath(EP_COMFY_ROOT, 'loras'))+'"></div>';
+    h+='</div>';
+    return h;
+}
+
+// Full Path edited by hand: write it, then re-render — parse() switches the
+// select to Custom… when the path no longer matches root+dir
+function epUpdDlFull(di, v){
+    epUpdDl(di, 'folder_path', v);
+    epRerenderDlCard(di);
+}
+
+function epUpdDlDir(di, dir){
+    if(dir === '__custom__'){ epRerenderDlCard(di); return; }   // show custom input
+    epUpdDl(di, 'folder_path', dir ? window.ComfyFolder.joinPath(EP_COMFY_ROOT, dir) : '');
+    epRerenderDlCard(di);
+}
+
+function epUpdDlRoot(v){
+    // root is environment config: store it and mirror to every rendered root
+    // input (no re-render — it would steal focus on each keystroke). The
+    // select of the current card keeps showing its option until the next
+    // dir change / re-render; folder_path is not rewritten.
+    EP_COMFY_ROOT = v;
+    epSyncRootInputs();
+}
+
+function epSyncRootInputs(){
+    document.querySelectorAll('.ep-comfy-root-input').forEach(function(inp){
+        if(inp !== document.activeElement) inp.value = EP_COMFY_ROOT;
+    });
+}
+
+// Re-render one download card, following the epRmMirror/epRenderMainKeepOpen pattern
+function epRerenderDlCard(di){
+    epRenderMainKeepOpen('EDC'+di);
+}
+
 function epDlCardHTML(dl,di){
     var cid='EDC'+di; var mirrors=dl.mirrors||[]; var hasExtract=dl.extract!==undefined;
     var h='<div class="edl-card" id="'+cid+'"><div class="edl-card-head" onclick="epToggleDC(\''+cid+'\')"><span style="font-size:13px">📦</span><span class="edl-fname">'+epEsc(dl.file_name||dl.id||'unnamed')+'</span>'+(dl.file_size?'<span style="font-size:.75em;color:var(--text-3);font-family:monospace;flex-shrink:0">'+epFmtBytes(dl.file_size)+'</span>':'')+'<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();epRmDownload('+di+')">✕</button></div><div class="edl-card-body" id="'+cid+'B">';
     h+='<div class="efg efg-1" style="margin-bottom:8px"><div class="ef"><label>ID *</label><input value="'+epEsc(dl.id||'')+'" oninput="epUpdDl('+di+',\'id\',this.value)"></div></div>';
     h+='<div class="efg efg-1" style="margin-bottom:8px"><div class="ef"><label>File Name</label><input value="'+epEsc(dl.file_name||'')+'" oninput="epUpdDl('+di+',\'file_name\',this.value)" placeholder="filename.safetensors"></div></div>';
-    h+='<div class="efg efg-1" style="margin-bottom:8px"><div class="ef"><label>Folder Path</label><input value="'+epEsc(dl.folder_path||'')+'" oninput="epUpdDl('+di+',\'folder_path\',this.value)" placeholder="/workspace/ComfyUI/models/"></div></div>';
+    h+=epFolderPathHTML(di, dl.folder_path||'');
     h+='<div class="efg efg-2" style="margin-bottom:8px"><div class="ef"><label>Size (bytes)</label><input type="number" value="'+(dl.file_size||'')+'" oninput="epUpdDlNum('+di+',\'file_size\',this.value)"></div><div class="ef"><label>Hash Algo</label><select onchange="epUpdDlHash('+di+',this.value)">'+['','sha256','sha1','md5'].map(function(o){ return '<option value="'+o+'"'+(dl.hash_algorithm===o?' selected':'')+'>'+( o||'— None —')+'</option>'; }).join('')+'</select></div></div>';
     h+='<div class="efg efg-1" style="margin-bottom:8px"><div class="ef"><label>Checksum</label><input class="xs" value="'+epEsc(dl.checksum||'')+'" oninput="epUpdDl('+di+',\'checksum\',this.value)" placeholder="hash value"></div></div>';
     h+='<div class="efg efg-1" style="margin-bottom:8px"><div class="ef"><label>Description <span class="label-hint" style="font-size:.85em">optional</span></label><input value="'+epEsc(dl.description||'')+'" oninput="epUpdDl('+di+',\'description\',this.value)" placeholder="short description"></div></div>';
@@ -3970,10 +4081,10 @@ function epUrlBuildCard(item,idx){
     g1.appendChild(epUrlField('File Name', item.file_name||'', function(v){ if(v) EP_URL_ITEMS[idx].file_name=v; else delete EP_URL_ITEMS[idx].file_name; }, 'file_name'));
     inner.appendChild(g1);
 
-    // Grid: Folder Path + File Size
+    // Folder Path composite + File Size
     var g2=document.createElement('div');
-    g2.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px';
-    g2.appendChild(epUrlField('Folder Path', item.folder_path||'', function(v){ if(v) EP_URL_ITEMS[idx].folder_path=v; else delete EP_URL_ITEMS[idx].folder_path; }, 'folder_path', '/workspace/ComfyUI/models/'));
+    g2.style.cssText='display:grid;grid-template-columns:1fr;gap:8px';
+    g2.appendChild(epFolderPathDOM(idx, item.folder_path||''));
     g2.appendChild(epUrlField('File Size (bytes)', item.file_size||'', function(v){ var n=parseInt(v,10); if(!isNaN(n)&&n>0) EP_URL_ITEMS[idx].file_size=n; else delete EP_URL_ITEMS[idx].file_size; }, 'file_size', '', 'number'));
     inner.appendChild(g2);
 
@@ -4059,6 +4170,76 @@ function epUrlField(labelText, value, onChange, fieldKey, placeholder, inputType
     inp.onblur=function(){ onChange(this.value); };
     div.appendChild(lbl); div.appendChild(inp);
     return div;
+}
+
+// Folder Path composite for the URL-import card (DOM variant of epFolderPathHTML):
+// root input updates the shared EP_COMFY_ROOT, dropdown joins root+dir, and the
+// always-visible Full Path field shows the resulting path (root+dir, or the raw
+// custom value). Writes only EP_URL_ITEMS[idx].folder_path.
+function epFolderPathDOM(idx, value){
+    var p = window.ComfyFolder.parse(value, EP_COMFY_ROOT);
+    var isCustom = (p.dir === undefined);
+    var fullPath = isCustom ? (value||'') : window.ComfyFolder.joinPath(EP_COMFY_ROOT, p.dir);
+    var setFolder = function(v){ if(v) EP_URL_ITEMS[idx].folder_path=v; else delete EP_URL_ITEMS[idx].folder_path; };
+
+    var wrap = document.createElement('div');
+    wrap.className = 'ep-iurl-field';
+
+    var rootLbl = document.createElement('label');
+    rootLbl.textContent = 'ComfyUI Root';
+    var rootInp = document.createElement('input');
+    rootInp.type = 'text';
+    rootInp.className = 'ep-comfy-root-input';
+    rootInp.value = EP_COMFY_ROOT;
+    rootInp.placeholder = 'C:\\ComfyUI or /workspace/ComfyUI';
+    rootInp.oninput = function(){ epUpdDlRoot(this.value); };
+    wrap.appendChild(rootLbl); wrap.appendChild(rootInp);
+
+    var dirLbl = document.createElement('label');
+    dirLbl.textContent = 'Model Directory';
+    dirLbl.style.marginTop = '6px';
+    var sel = document.createElement('select');
+    sel.onchange = function(){
+        if(this.value === '__custom__'){ epRerenderUrlCards(); return; }   // refresh full path
+        setFolder(this.value ? window.ComfyFolder.joinPath(EP_COMFY_ROOT, this.value) : '');
+        epRerenderUrlCards();
+    };
+    var optNone = document.createElement('option');
+    optNone.value = ''; optNone.textContent = '— None —';
+    sel.appendChild(optNone);
+    window.ComfyFolder.DIRS.forEach(function(d){
+        var o = document.createElement('option');
+        o.value = d; o.textContent = d;
+        if(!isCustom && p.dir === d) o.selected = true;
+        sel.appendChild(o);
+    });
+    var optCustom = document.createElement('option');
+    optCustom.value = '__custom__'; optCustom.textContent = 'Custom…';
+    if(isCustom) optCustom.selected = true;
+    sel.appendChild(optCustom);
+    wrap.appendChild(sel);
+
+    var fpLbl = document.createElement('label');
+    fpLbl.textContent = 'Full Path';
+    fpLbl.style.marginTop = '6px';
+    var fpInp = document.createElement('input');
+    fpInp.type = 'text';
+    fpInp.value = fullPath;
+    fpInp.placeholder = window.ComfyFolder.joinPath(EP_COMFY_ROOT, 'loras');
+    fpInp.onblur = function(){
+        // write the hand-typed path, then re-render — parse() switches the
+        // select to Custom… when the path no longer matches root+dir
+        setFolder(this.value);
+        epRerenderUrlCards();
+    };
+    wrap.appendChild(fpLbl); wrap.appendChild(fpInp);
+
+    return wrap;
+}
+
+// Re-render the URL-import cards (rebuilds the whole container, like epUrlRenderCards)
+function epRerenderUrlCards(){
+    epUrlRenderCards();
 }
 
 function epUrlToggleExpanded(idx){

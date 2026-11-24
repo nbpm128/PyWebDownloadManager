@@ -322,6 +322,7 @@ class DashboardService:
             "cuda_version": cuda_version,
             "torch_version": torch_version,
             "hostname": hostname,
+            "comfy_root": settings.comfy_root,
         }
 
     @staticmethod

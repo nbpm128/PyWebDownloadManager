@@ -4,6 +4,7 @@ from fastapi import FastAPI, Depends
 from routers.dashboard import router as dashboard_router
 from routers.download_manager import router as download_manager_router
 from routers.files_router import router as files_router
+from routers.presets_api import router as presets_api_router
 from auth import require_auth
 from logger import setup_logger
 from settings import settings
@@ -20,6 +21,7 @@ app = FastAPI(
 app.include_router(dashboard_router)
 app.include_router(files_router)
 app.include_router(download_manager_router)
+app.include_router(presets_api_router)
 
 
 if __name__ == "__main__":
